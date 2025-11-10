@@ -213,7 +213,7 @@ const ResultsTabs: React.FC<ResultsTabsProps> = ({ analysis, onReset }) => {
                       Example from your resume
                     </p>
                     <p className="text-sm text-gray-700 italic leading-relaxed">
-                      "{strength.example}"
+                      &quot;{strength.example}&quot;
                     </p>
                   </div>
                 </div>

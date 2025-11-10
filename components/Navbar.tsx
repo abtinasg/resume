@@ -24,6 +24,17 @@ export default function Navbar() {
     { name: 'Contact', href: '#contact' },
   ];
 
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (href.startsWith('#')) {
+      e.preventDefault();
+      const element = document.querySelector(href);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setIsMobileMenuOpen(false);
+      }
+    }
+  };
+
   return (
     <motion.header
       initial={{ y: -100 }}
@@ -63,6 +74,7 @@ export default function Navbar() {
               >
                 <Link
                   href={link.href}
+                  onClick={(e) => handleNavClick(e, link.href)}
                   className="relative text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200 group"
                 >
                   {link.name}
@@ -137,7 +149,7 @@ export default function Navbar() {
                   >
                     <Link
                       href={link.href}
-                      onClick={() => setIsMobileMenuOpen(false)}
+                      onClick={(e) => handleNavClick(e, link.href)}
                       className="block py-2 text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200"
                     >
                       {link.name}
