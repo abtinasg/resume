@@ -1,8 +1,24 @@
+'use client';
+
+import UploadSection from '@/components/UploadSection';
+
 export default function Home() {
+  const handleFileSelect = (file: File) => {
+    console.log('File selected:', file.name);
+    // TODO: Process the uploaded file
+  };
+
+  const handleTextPaste = (text: string) => {
+    console.log('Text pasted, length:', text.length);
+    // TODO: Process the pasted text
+  };
+
   return (
-    <div className="container mx-auto px-6 py-8">
-      <h2 className="text-3xl font-bold mb-4 text-primary">Welcome to ResumeIQ</h2>
-      <p className="text-neutral">Your AI-powered resume builder</p>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <UploadSection
+        onFileSelect={handleFileSelect}
+        onTextPaste={handleTextPaste}
+      />
     </div>
   );
 }
