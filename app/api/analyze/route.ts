@@ -130,6 +130,20 @@ export async function POST(req: NextRequest) {
       try {
         resumeText = await extractTextFromBase64PDF(validatedInput.resumeText);
 
+        // Check for fallback message (indicates parsing failed or empty PDF)
+        if (resumeText.startsWith('[Empty or non-readable PDF file')) {
+          return NextResponse.json<ErrorResponse>(
+            {
+              success: false,
+              error: {
+                code: 'PDF_INSUFFICIENT_CONTENT',
+                message: 'PDF does not contain enough readable text. Please ensure your PDF is text-based (not a scanned image) and contains at least 30 characters of content.',
+              },
+            },
+            { status: 400 }
+          );
+        }
+
         // Validate extracted text length
         if (resumeText.length > MAX_TEXT_LENGTH) {
           return NextResponse.json<ErrorResponse>(
@@ -150,7 +164,7 @@ export async function POST(req: NextRequest) {
               success: false,
               error: {
                 code: 'PDF_INSUFFICIENT_CONTENT',
-                message: 'PDF does not contain enough text content',
+                message: 'PDF does not contain enough text content (minimum 50 characters required)',
               },
             },
             { status: 400 }
