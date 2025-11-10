@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import UploadSection from '@/components/UploadSection';
 
 export default function Home() {
@@ -19,7 +20,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-white relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/20 to-white relative overflow-hidden">
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl" />
@@ -32,17 +33,27 @@ export default function Home() {
         <div className="max-w-5xl mx-auto px-6 pt-20 pb-16 sm:pt-32 sm:pb-24">
           <div className="text-center space-y-8">
             {/* Logo/Brand with glow effect */}
-            <div className="inline-block opacity-0 animate-fadeIn [animation-delay:100ms] [animation-fill-mode:forwards]">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] as any, delay: 0.1 }}
+              className="inline-block"
+            >
               <div className="relative inline-block">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 blur-xl opacity-30 rounded-full" />
                 <h1 className="relative text-5xl sm:text-6xl lg:text-7xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 bg-clip-text text-transparent">
                   ResumeIQ
                 </h1>
               </div>
-            </div>
+            </motion.div>
 
             {/* Main headline */}
-            <div className="space-y-4 opacity-0 animate-fadeIn [animation-delay:300ms] [animation-fill-mode:forwards]">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] as any, delay: 0.3 }}
+              className="space-y-4"
+            >
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight max-w-4xl mx-auto">
                 Get AI-Powered Resume Feedback{' '}
                 <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
@@ -53,10 +64,15 @@ export default function Home() {
               <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
                 Upload your resume and receive expert insights instantly. Powered by advanced AI to help you land your dream job.
               </p>
-            </div>
+            </motion.div>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center opacity-0 animate-fadeIn [animation-delay:500ms] [animation-fill-mode:forwards]">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] as any, delay: 0.5 }}
+              className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+            >
               <button
                 onClick={scrollToUpload}
                 className="group relative px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 w-full sm:w-auto"
@@ -71,10 +87,15 @@ export default function Home() {
               >
                 Try Demo
               </button>
-            </div>
+            </motion.div>
 
             {/* Trust indicators */}
-            <div className="pt-8 opacity-0 animate-fadeIn [animation-delay:700ms] [animation-fill-mode:forwards]">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] as any, delay: 0.7 }}
+              className="pt-8"
+            >
               <div className="flex flex-wrap justify-center items-center gap-6 text-sm text-gray-500">
                 <div className="flex items-center gap-2">
                   <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
@@ -95,14 +116,17 @@ export default function Home() {
                   <span>AI-powered</span>
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
 
         {/* Upload Section - Integrated elegantly */}
-        <div
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] as any, delay: 0.9 }}
           id="upload-section"
-          className="pt-16 sm:pt-24 pb-16 opacity-0 animate-slideUp [animation-delay:900ms] [animation-fill-mode:forwards]"
+          className="pt-16 sm:pt-24 pb-16"
         >
           <div className="max-w-4xl mx-auto">
             <UploadSection
@@ -110,13 +134,18 @@ export default function Home() {
               onTextPaste={handleTextPaste}
             />
           </div>
-        </div>
+        </motion.div>
 
         {/* Footer */}
         <footer className="mt-32 pb-12 text-center">
-          <p className="text-sm text-gray-400 opacity-0 animate-fadeIn [animation-delay:1100ms] [animation-fill-mode:forwards]">
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] as any, delay: 1.1 }}
+            className="text-sm text-gray-400"
+          >
             Built with ❤️ using Next.js + OpenAI
-          </p>
+          </motion.p>
         </footer>
       </div>
     </div>

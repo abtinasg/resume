@@ -13,26 +13,8 @@ const config: Config = {
         neutral: "#6B7280",
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
-      },
-      animation: {
-        'fadeIn': 'fadeIn 0.6s ease-out forwards',
-        'slideUp': 'slideUp 0.7s ease-out forwards',
-        'glow': 'glow 2s ease-in-out infinite alternate',
-      },
-      keyframes: {
-        fadeIn: {
-          '0%': { opacity: '0', transform: 'translateY(10px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
-        },
-        slideUp: {
-          '0%': { opacity: '0', transform: 'translateY(30px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
-        },
-        glow: {
-          '0%': { boxShadow: '0 0 20px rgba(59, 130, 246, 0.3)' },
-          '100%': { boxShadow: '0 0 40px rgba(59, 130, 246, 0.6)' },
-        },
+        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        inter: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
       },
     },
   },
