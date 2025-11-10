@@ -10,7 +10,7 @@ const MAX_TEXT_LENGTH = 15000;
 const ResumeAnalyzeSchema = z.object({
   resumeText: z
     .string()
-    .min(15, 'Resume text is too short (minimum 15 characters)')
+    .min(1, 'Resume text cannot be empty')
     .max(
       MAX_TEXT_LENGTH,
       `Resume text is too long (maximum ${MAX_TEXT_LENGTH} characters)`
@@ -128,10 +128,13 @@ export async function POST(req: NextRequest) {
 
     if (validatedInput.format === 'pdf') {
       try {
+        console.log('[API] Starting PDF extraction...');
         const extractionResult = await extractTextFromBase64PDF(validatedInput.resumeText);
+        console.log(`[API] Extraction result: status=${extractionResult.status}, chars=${extractionResult.characterCount}, method=${extractionResult.method}`);
 
-        // Check extraction status
-        if (extractionResult.status === 'failed') {
+        // Check extraction status - only reject if completely failed with no text
+        if (extractionResult.status === 'failed' && extractionResult.characterCount === 0) {
+          console.error('[API] PDF extraction completely failed');
           return NextResponse.json<ErrorResponse>(
             {
               success: false,
@@ -144,24 +147,24 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        // Handle partial extraction - still proceed if we have enough text
+        // Handle partial extraction - still proceed if we have any text
         if (extractionResult.status === 'partial') {
           console.log(`[API] ⚠️ Partial extraction: ${extractionResult.message}`);
 
-          // Check if partial text is still usable (very lenient threshold)
-          if (extractionResult.characterCount < 15) {
+          // Accept even very short extractions (minimum 1 character)
+          if (extractionResult.characterCount < 1) {
             return NextResponse.json<ErrorResponse>(
               {
                 success: false,
                 error: {
                   code: 'PDF_INSUFFICIENT_CONTENT',
-                  message: extractionResult.message || 'PDF does not contain enough text content (minimum 15 characters required)',
+                  message: 'Could not extract any text from PDF. Please try a different file.',
                 },
               },
               { status: 400 }
             );
           }
-          // If we have enough text, continue with partial extraction
+          // Proceed with whatever text we got
           console.log(`[API] Proceeding with partial extraction (${extractionResult.characterCount} characters)`);
         }
 
@@ -182,17 +185,23 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        if (resumeText.length < 15) {
+        // Only reject if completely empty
+        if (resumeText.length < 1) {
           return NextResponse.json<ErrorResponse>(
             {
               success: false,
               error: {
                 code: 'PDF_INSUFFICIENT_CONTENT',
-                message: 'PDF does not contain enough text content (minimum 15 characters required)',
+                message: 'Could not extract any text from PDF. Please try a different file.',
               },
             },
             { status: 400 }
           );
+        }
+
+        // Log if text is very short (but still proceed)
+        if (resumeText.length < 50) {
+          console.log(`[API] ⚠️ Warning: Extracted text is very short (${resumeText.length} chars), but proceeding with analysis`);
         }
 
         // Log successful extraction

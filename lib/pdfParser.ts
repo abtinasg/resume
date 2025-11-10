@@ -36,8 +36,8 @@ export interface PDFExtractionResult {
 // CONSTANTS
 // ============================================================================
 
-const MIN_SUCCESS_LENGTH = 50; // Minimum characters for automatic fallback (lowered for better compatibility)
-const MIN_PARTIAL_LENGTH = 15; // Minimum for partial success (lowered to accept more PDFs)
+const MIN_SUCCESS_LENGTH = 10; // Minimum characters for automatic fallback (very lenient)
+const MIN_PARTIAL_LENGTH = 5; // Minimum for partial success (very lenient to accept all PDFs)
 const OCR_MAX_PAGES = 3; // Process up to 3 pages for performance
 const OCR_SCALES = [1.5, 2.0, 3.0]; // Dynamic scaling for OCR
 const PREVIEW_LENGTH = 150; // Characters to show in logs
@@ -400,65 +400,72 @@ export async function extractTextFromBuffer(
     let ocrConfidence: number | undefined;
 
     // ===== STAGE 1: PDF-PARSE =====
+    console.log("[PDF Parser] Stage 1: Trying pdf-parse...");
     const pdfParseText = await extractWithPdfParse(pdfBuffer);
     if (pdfParseText.length > 0) {
       extractedTexts.push(pdfParseText);
       finalMethod = "pdf-parse";
+      console.log(`[PDF Parser] ✓ pdf-parse extracted ${pdfParseText.length} chars`);
+    } else {
+      console.log(`[PDF Parser] ✗ pdf-parse extracted nothing`);
     }
 
-    // Check if we need fallback
-    const currentBest = mergeTexts(extractedTexts);
-    const needsFallback = currentBest.length < MIN_SUCCESS_LENGTH;
-
-    // ===== STAGE 2: PDFJS (always try for better extraction) =====
-    if (needsFallback || currentBest.length < 100) {
-      console.log(
-        `[PDF Parser] ${needsFallback ? "Text too short" : "Trying additional extraction"} (${currentBest.length} chars), trying pdfjs...`
-      );
-      const pdfjsText = await extractWithPDFJS(pdfBuffer);
-      if (pdfjsText.length > 0) {
-        extractedTexts.push(pdfjsText);
-        if (pdfjsText.length > pdfParseText.length) {
-          finalMethod = "pdfjs";
-        }
+    // ===== STAGE 2: PDFJS (ALWAYS TRY - more reliable than pdf-parse) =====
+    console.log("[PDF Parser] Stage 2: Trying pdfjs...");
+    const pdfjsText = await extractWithPDFJS(pdfBuffer);
+    if (pdfjsText.length > 0) {
+      extractedTexts.push(pdfjsText);
+      // Prefer pdfjs if it gets more text
+      if (pdfjsText.length > pdfParseText.length) {
+        finalMethod = "pdfjs";
       }
+      console.log(`[PDF Parser] ✓ pdfjs extracted ${pdfjsText.length} chars`);
+    } else {
+      console.log(`[PDF Parser] ✗ pdfjs extracted nothing`);
     }
 
-    // Check again
-    const currentBest2 = mergeTexts(extractedTexts);
-    const stillNeedsFallback = currentBest2.length < MIN_SUCCESS_LENGTH;
+    // Check current status
+    const currentBest = mergeTexts(extractedTexts);
+    console.log(`[PDF Parser] Current best: ${currentBest.length} chars`);
 
-    // ===== STAGE 3: OCR (try if text is still insufficient) =====
-    if (stillNeedsFallback || currentBest2.length < 100) {
-      console.log(
-        `[PDF Parser] ${stillNeedsFallback ? "Still too short" : "Trying OCR for better coverage"} (${currentBest2.length} chars), trying OCR...`
-      );
+    // ===== STAGE 3: OCR (only if we have very little text) =====
+    const needsOCR = currentBest.length < 50;
+    if (needsOCR) {
+      console.log(`[PDF Parser] Stage 3: Text too short (${currentBest.length} chars), trying OCR...`);
       const ocrResult = await extractWithOCR(pdfBuffer);
       if (ocrResult.text.length > 0) {
         extractedTexts.push(ocrResult.text);
         ocrConfidence = ocrResult.confidence;
-        if (ocrResult.text.length > currentBest2.length) {
+        if (ocrResult.text.length > currentBest.length) {
           finalMethod = "ocr";
         }
+        console.log(`[PDF Parser] ✓ OCR extracted ${ocrResult.text.length} chars (confidence: ${(ocrResult.confidence * 100).toFixed(0)}%)`);
+      } else {
+        console.log(`[PDF Parser] ✗ OCR extracted nothing`);
       }
+    } else {
+      console.log(`[PDF Parser] Skipping OCR (already have ${currentBest.length} chars)`);
     }
 
-    // Check again
-    const currentBest3 = mergeTexts(extractedTexts);
-    const stillNeedsFallback2 = currentBest3.length < MIN_SUCCESS_LENGTH;
+    // Check current status again
+    const currentBest2 = mergeTexts(extractedTexts);
+    console.log(`[PDF Parser] After OCR: ${currentBest2.length} chars`);
 
-    // ===== STAGE 4: METADATA (final fallback) =====
-    if (stillNeedsFallback2) {
-      console.log(
-        `[PDF Parser] Still too short (${currentBest3.length} chars), trying metadata...`
-      );
+    // ===== STAGE 4: METADATA (final fallback only if really needed) =====
+    if (currentBest2.length < MIN_SUCCESS_LENGTH) {
+      console.log(`[PDF Parser] Stage 4: Still short (${currentBest2.length} chars), trying metadata...`);
       const metadataText = await extractMetadata(pdfBuffer);
       if (metadataText.length > 0) {
         extractedTexts.push(metadataText);
-        if (metadataText.length > currentBest3.length) {
+        if (metadataText.length > currentBest2.length) {
           finalMethod = "metadata";
         }
+        console.log(`[PDF Parser] ✓ metadata extracted ${metadataText.length} chars`);
+      } else {
+        console.log(`[PDF Parser] ✗ metadata extracted nothing`);
       }
+    } else {
+      console.log(`[PDF Parser] Skipping metadata (already have ${currentBest2.length} chars)`);
     }
 
     // ===== MERGE ALL EXTRACTIONS =====
