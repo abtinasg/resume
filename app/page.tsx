@@ -3,34 +3,12 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import UploadSection from '@/components/UploadSection';
-import ResultsTabs from '@/components/ResultsTabs';
+import ResultsContainer from '@/components/results/ResultsContainer';
 import FeaturesSection from '@/components/FeaturesSection';
 import DemoSection from '@/components/DemoSection';
 import AboutSection from '@/components/AboutSection';
 import ContactSection from '@/components/ContactSection';
-
-interface AnalysisResult {
-  score: number;
-  summary: {
-    overall: string;
-    topStrength: string;
-    topWeakness: string;
-  };
-  strengths: Array<{
-    title: string;
-    description: string;
-    example: string;
-    category: 'content' | 'format' | 'ats';
-  }>;
-  suggestions: Array<{
-    title: string;
-    description: string;
-    priority: 'high' | 'medium' | 'low';
-    beforeExample: string;
-    afterExample: string;
-    actionSteps: string[];
-  }>;
-}
+import type { AnalysisResult } from '@/lib/types/analysis';
 
 export default function Home() {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
@@ -283,7 +261,7 @@ export default function Home() {
                   </div>
                 </motion.div>
 
-                {/* Results Tabs */}
+                {/* Results Section */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -291,7 +269,11 @@ export default function Home() {
                   id="results-section"
                   className="mt-12"
                 >
-                  <ResultsTabs analysis={analysis} onReset={handleReset} />
+                  <ResultsContainer
+                    data={analysis}
+                    isLoading={false}
+                    onReset={handleReset}
+                  />
                 </motion.div>
               </>
             ) : (
