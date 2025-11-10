@@ -273,88 +273,133 @@ JavaScript, TypeScript, React, Node.js, Python, AWS, Docker`;
             <Alert message={error} mode="error" />
           )}
 
-          {/* Dropzone Area */}
-          <div
-            {...getRootProps()}
-            className={`
-              relative border-2 border-dashed rounded-2xl p-8 md:p-10 text-center cursor-pointer
-              transition-all duration-300 ease-out
-              ${
-                isDragActive
-                  ? 'border-blue-400 bg-blue-50/40 scale-[1.02] shadow-md'
-                  : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50/40 hover:shadow-md'
-              }
-              ${isAnalyzing ? 'opacity-50 cursor-not-allowed' : ''}
-            `}
-          >
-            <input {...getInputProps()} />
+          {/* Dropzone Area with Enhanced Microinteractions */}
+          <div className="relative">
+            {/* Ambient glow on hover/drag */}
+            <div
+              className={`absolute -inset-1 bg-gradient-to-r from-brand-indigo to-brand-teal rounded-3xl opacity-0 blur-xl transition-all duration-500 ${
+                isDragActive ? 'opacity-30' : 'group-hover:opacity-20'
+              }`}
+            />
 
-            {isAnalyzing ? (
-              <div className="space-y-3">
-                <div className="flex justify-center">
-                  <svg
-                    className="animate-spin h-12 w-12 text-blue-500"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                </div>
-                <p className="text-blue-500 font-medium">Analyzing your resume...</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {/* Document Icon with hover animation */}
+            <div
+              {...getRootProps()}
+              className={`
+                group relative border-2 border-dashed rounded-3xl p-8 md:p-10 text-center cursor-pointer
+                transition-all duration-500 ease-out overflow-hidden
+                ${
+                  isDragActive
+                    ? 'border-brand-indigo bg-brand-indigo/5 scale-[1.02] shadow-glow'
+                    : 'border-gray-300 hover:border-brand-indigo hover:bg-gray-50 hover:scale-[1.01]'
+                }
+                ${isAnalyzing ? 'opacity-50 cursor-not-allowed' : ''}
+              `}
+            >
+              <input {...getInputProps()} />
+
+              {isAnalyzing ? (
                 <motion.div
-                  className="flex justify-center"
-                  whileHover={{ scale: 1.1 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="space-y-4"
                 >
-                  <svg
-                    className="w-14 h-14 text-blue-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
+                  <div className="flex justify-center">
+                    <div className="relative">
+                      {/* Spinning ring */}
+                      <svg
+                        className="animate-spin h-14 w-14 text-brand-indigo"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-20"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      {/* Pulsing glow */}
+                      <div className="absolute inset-0 bg-brand-indigo/30 blur-xl rounded-full animate-pulse" />
+                    </div>
+                  </div>
+                  <motion.p
+                    animate={{ opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="text-brand-indigo font-semibold"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
+                    Analyzing your resume...
+                  </motion.p>
                 </motion.div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Document Icon with enhanced hover animation */}
+                  <motion.div
+                    className="flex justify-center"
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  >
+                    <div className="relative">
+                      <svg
+                        className="w-16 h-16 text-brand-indigo transition-colors duration-300"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      {/* Glow effect on hover */}
+                      <div className="absolute inset-0 bg-brand-indigo/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    </div>
+                  </motion.div>
 
-                {/* Text */}
-                <div className="space-y-1">
-                  <p className="text-gray-900 font-medium text-base md:text-lg">
-                    {isDragActive ? (
-                      'Drop your resume here'
-                    ) : (
-                      <>
-                        <span className="text-blue-500">Click to upload</span> or
-                        drag & drop
-                      </>
-                    )}
-                  </p>
-                  <p className="text-xs md:text-sm text-gray-500">PDF only (Max 5MB)</p>
+                  {/* Text */}
+                  <div className="space-y-2">
+                    <p className="text-gray-900 font-semibold text-base md:text-lg">
+                      {isDragActive ? (
+                        <motion.span
+                          initial={{ scale: 0.95 }}
+                          animate={{ scale: 1.05 }}
+                          transition={{ repeat: Infinity, duration: 1, repeatType: "reverse" }}
+                          className="text-brand-indigo"
+                        >
+                          Drop your resume here
+                        </motion.span>
+                      ) : (
+                        <>
+                          <span className="text-brand-indigo hover:text-brand-teal transition-colors duration-300">Click to upload</span> or drag & drop
+                        </>
+                      )}
+                    </p>
+                    <p className="text-xs md:text-sm text-gray-500">PDF only (Max 5MB)</p>
+                  </div>
+
+                  {/* Upload hint on hover */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    whileHover={{ opacity: 1 }}
+                    className="pt-2"
+                  >
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-brand-indigo/5 rounded-full border border-brand-indigo/20">
+                      <div className="w-2 h-2 bg-brand-indigo rounded-full animate-pulse" />
+                      <span className="text-xs text-brand-indigo font-medium">Ready to analyze</span>
+                    </div>
+                  </motion.div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Separator */}
@@ -384,13 +429,40 @@ JavaScript, TypeScript, React, Node.js, Python, AWS, Docker`;
             />
 
             <div className="flex flex-col sm:flex-row gap-3">
-              <Button
-                onClick={handleTextSubmit}
-                disabled={isAnalyzing || !pastedText.trim()}
-                className="flex-1"
-              >
-                {isAnalyzing ? 'Analyzing...' : 'Analyze Resume'}
-              </Button>
+              <motion.div className="flex-1">
+                <Button
+                  onClick={handleTextSubmit}
+                  disabled={isAnalyzing || !pastedText.trim()}
+                  className="w-full group relative overflow-hidden"
+                >
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    {isAnalyzing ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        Analyze Resume
+                        <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                      </>
+                    )}
+                  </span>
+                  {/* Pulse effect on hover when enabled */}
+                  {!isAnalyzing && pastedText.trim() && (
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-brand-indigo to-purple-600 opacity-0 group-hover:opacity-100"
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  )}
+                </Button>
+              </motion.div>
 
               <Button
                 variant="secondary"
