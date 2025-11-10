@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import UploadSection from '@/components/UploadSection';
+import ResultsTabs from '@/components/ResultsTabs';
 
 interface AnalysisResult {
   score: number;
@@ -28,18 +29,33 @@ interface AnalysisResult {
 }
 
 export default function Home() {
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const [isAnalyzed, setIsAnalyzed] = useState(false);
 
   const handleAnalyzeComplete = (data: AnalysisResult) => {
-    setAnalysisResult(data);
+    setAnalysis(data);
+    setIsAnalyzed(true);
     console.log('Analysis complete:', data);
-    // TODO: Display the results using a ResultsTab component
+  };
+
+  const handleReset = () => {
+    setAnalysis(null);
+    setIsAnalyzed(false);
   };
 
   const scrollToUpload = () => {
     const uploadSection = document.getElementById('upload-section');
     uploadSection?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
+
+  // Smooth scroll to results after analysis completes
+  useEffect(() => {
+    if (isAnalyzed) {
+      setTimeout(() => {
+        document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' });
+      }, 400);
+    }
+  }, [isAnalyzed]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#F9FAFB] to-[#FFFFFF] relative overflow-hidden">
@@ -147,7 +163,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Upload Section - Integrated elegantly with glow effect */}
+        {/* Upload Section or Results Section */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -156,24 +172,85 @@ export default function Home() {
           className="py-16"
         >
           <div className="max-w-4xl mx-auto px-6 md:px-12 relative">
-            <UploadSection
-              onAnalyzeComplete={handleAnalyzeComplete}
-            />
+            {isAnalyzed ? (
+              <>
+                {/* Success Card */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="w-full max-w-xl mx-auto px-4 py-8"
+                >
+                  <div className="relative">
+                    {/* Blue glow effect behind the card */}
+                    <div className="absolute inset-0 bg-blue-100/40 blur-3xl opacity-50 rounded-3xl" />
 
-            {/* Trust message */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] as any, delay: 0.5 }}
-              className="mt-6 text-center"
-            >
-              <p className="text-sm text-gray-400 flex items-center justify-center gap-2">
-                <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                </svg>
-                <span>Your resume is processed securely and never stored.</span>
-              </p>
-            </motion.div>
+                    {/* Success card */}
+                    <div className="relative bg-white shadow-lg rounded-2xl p-6 md:p-8 space-y-6 text-center">
+                      {/* Success icon */}
+                      <div className="flex justify-center">
+                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                          <svg
+                            className="w-8 h-8 text-green-500"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 tracking-tight">
+                          Analysis Complete!
+                        </h2>
+                        <p className="text-sm md:text-base text-gray-500 leading-relaxed">
+                          Your resume has been analyzed successfully. Check out the results below.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Results Tabs */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                  id="results-section"
+                  className="mt-12"
+                >
+                  <ResultsTabs analysis={analysis} onReset={handleReset} />
+                </motion.div>
+              </>
+            ) : (
+              <>
+                <UploadSection
+                  onAnalyzeComplete={handleAnalyzeComplete}
+                />
+
+                {/* Trust message */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] as any, delay: 0.5 }}
+                  className="mt-6 text-center"
+                >
+                  <p className="text-sm text-gray-400 flex items-center justify-center gap-2">
+                    <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                    </svg>
+                    <span>Your resume is processed securely and never stored.</span>
+                  </p>
+                </motion.div>
+              </>
+            )}
           </div>
         </motion.div>
 
