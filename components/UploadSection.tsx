@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { motion } from 'framer-motion';
 import Button from '@/components/ui/button';
 import Alert from '@/components/ui/alert';
 
@@ -110,145 +111,155 @@ JavaScript, TypeScript, React, Node.js, Python, AWS, Docker`;
   };
 
   return (
-    <div className="w-full max-w-lg mx-auto px-4 py-8">
-      <div className="bg-white shadow-md rounded-2xl p-6 space-y-6">
-        {/* Header */}
-        <div className="text-center space-y-2">
-          <h2 className="text-2xl font-bold text-[#111827]">
-            Upload Your Resume
-          </h2>
-          <p className="text-sm text-gray-600">
-            Get instant AI-powered feedback to improve your resume
-          </p>
-        </div>
+    <div className="w-full max-w-xl mx-auto px-4 py-8">
+      <div className="relative">
+        {/* Blue glow effect behind the card */}
+        <div className="absolute inset-0 bg-blue-100/40 blur-3xl opacity-50 rounded-3xl" />
 
-        {/* Error Alert */}
-        {error && (
-          <Alert message={error} mode="error" />
-        )}
+        {/* Main card */}
+        <div className="relative bg-white shadow-lg rounded-2xl p-6 md:p-8 space-y-6">
+          {/* Header */}
+          <div className="text-center space-y-2">
+            <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 tracking-tight">
+              Upload Your Resume
+            </h2>
+            <p className="text-sm md:text-base text-gray-500 leading-relaxed">
+              Get instant AI-powered feedback to improve your resume
+            </p>
+          </div>
 
-        {/* Dropzone Area */}
-        <div
-          {...getRootProps()}
-          className={`
-            relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer
-            transition-all duration-200 ease-in-out
-            ${
-              isDragActive
-                ? 'border-[#3B82F6] bg-blue-50 scale-[1.02]'
-                : 'border-gray-300 hover:border-[#3B82F6] hover:bg-gray-50'
-            }
-            ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}
-          `}
-        >
-          <input {...getInputProps()} />
-
-          {isUploading ? (
-            <div className="space-y-3">
-              <div className="flex justify-center">
-                <svg
-                  className="animate-spin h-10 w-10 text-[#3B82F6]"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-              </div>
-              <p className="text-[#3B82F6] font-medium">Processing...</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {/* Document Icon */}
-              <div className="flex justify-center">
-                <svg
-                  className="w-12 h-12 text-[#3B82F6]"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-              </div>
-
-              {/* Text */}
-              <div className="space-y-1">
-                <p className="text-[#111827] font-medium">
-                  {isDragActive ? (
-                    'Drop your resume here'
-                  ) : (
-                    <>
-                      <span className="text-[#3B82F6]">Click to upload</span> or
-                      drag & drop
-                    </>
-                  )}
-                </p>
-                <p className="text-xs text-gray-500">PDF only (Max 5MB)</p>
-              </div>
-            </div>
+          {/* Error Alert */}
+          {error && (
+            <Alert message={error} mode="error" />
           )}
-        </div>
 
-        {/* Separator */}
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300"></div>
+          {/* Dropzone Area */}
+          <div
+            {...getRootProps()}
+            className={`
+              relative border-2 border-dashed rounded-2xl p-8 md:p-10 text-center cursor-pointer
+              transition-all duration-300 ease-out
+              ${
+                isDragActive
+                  ? 'border-blue-400 bg-blue-50/40 scale-[1.02] shadow-md'
+                  : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50/40 hover:shadow-md'
+              }
+              ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}
+            `}
+          >
+            <input {...getInputProps()} />
+
+            {isUploading ? (
+              <div className="space-y-3">
+                <div className="flex justify-center">
+                  <svg
+                    className="animate-spin h-12 w-12 text-blue-500"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                </div>
+                <p className="text-blue-500 font-medium">Processing...</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {/* Document Icon with hover animation */}
+                <motion.div
+                  className="flex justify-center"
+                  whileHover={{ scale: 1.1 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                >
+                  <svg
+                    className="w-14 h-14 text-blue-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                </motion.div>
+
+                {/* Text */}
+                <div className="space-y-1">
+                  <p className="text-gray-900 font-medium text-base md:text-lg">
+                    {isDragActive ? (
+                      'Drop your resume here'
+                    ) : (
+                      <>
+                        <span className="text-blue-500">Click to upload</span> or
+                        drag & drop
+                      </>
+                    )}
+                  </p>
+                  <p className="text-xs md:text-sm text-gray-500">PDF only (Max 5MB)</p>
+                </div>
+              </div>
+            )}
           </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-4 bg-white text-gray-500">
-              or paste your resume below
-            </span>
+
+          {/* Separator */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-white text-gray-500">
+                or paste your resume below
+              </span>
+            </div>
           </div>
-        </div>
 
-        {/* Textarea */}
-        <div className="space-y-3">
-          <textarea
-            value={pastedText}
-            onChange={(e) => {
-              setPastedText(e.target.value);
-              setError('');
-            }}
-            placeholder="Paste your resume text here..."
-            disabled={isUploading}
-            className="w-full min-h-[200px] max-h-[400px] px-4 py-3 border border-gray-300 rounded-xl resize-y focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent text-[#111827] text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
-          />
-
-          <div className="flex gap-3">
-            <Button
-              onClick={handleTextSubmit}
-              disabled={isUploading || !pastedText.trim()}
-              className="flex-1"
-            >
-              {isUploading ? 'Processing...' : 'Analyze Resume'}
-            </Button>
-
-            <Button
-              variant="secondary"
-              onClick={handleTryExample}
+          {/* Textarea */}
+          <div className="space-y-4">
+            <textarea
+              value={pastedText}
+              onChange={(e) => {
+                setPastedText(e.target.value);
+                setError('');
+              }}
+              placeholder="Paste your resume text here..."
               disabled={isUploading}
-            >
-              Try Example
-            </Button>
+              className="w-full min-h-[200px] max-h-[400px] px-4 py-3 border border-gray-300 rounded-xl resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed transition-all placeholder:text-gray-400"
+              style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
+            />
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button
+                onClick={handleTextSubmit}
+                disabled={isUploading || !pastedText.trim()}
+                className="flex-1"
+              >
+                {isUploading ? 'Processing...' : 'Analyze Resume'}
+              </Button>
+
+              <Button
+                variant="secondary"
+                onClick={handleTryExample}
+                disabled={isUploading}
+              >
+                Try Example
+              </Button>
+            </div>
           </div>
         </div>
       </div>
