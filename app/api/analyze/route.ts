@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
         const extractionResult = await extractTextFromBase64PDF(validatedInput.resumeText);
 
         // Check extraction status
-        if (extractionResult.status === 'warning') {
+        if (extractionResult.status === 'failed') {
           return NextResponse.json<ErrorResponse>(
             {
               success: false,
@@ -142,6 +142,27 @@ export async function POST(req: NextRequest) {
             },
             { status: 400 }
           );
+        }
+
+        // Handle partial extraction - still proceed if we have enough text
+        if (extractionResult.status === 'partial') {
+          console.log(`[API] ⚠️ Partial extraction: ${extractionResult.message}`);
+
+          // Check if partial text is still usable
+          if (extractionResult.characterCount < 50) {
+            return NextResponse.json<ErrorResponse>(
+              {
+                success: false,
+                error: {
+                  code: 'PDF_INSUFFICIENT_CONTENT',
+                  message: extractionResult.message || 'PDF does not contain enough text content (minimum 50 characters required)',
+                },
+              },
+              { status: 400 }
+            );
+          }
+          // If we have enough text, continue with partial extraction
+          console.log(`[API] Proceeding with partial extraction (${extractionResult.characterCount} characters)`);
         }
 
         // Get extracted text
@@ -175,7 +196,11 @@ export async function POST(req: NextRequest) {
         }
 
         // Log successful extraction
-        console.log(`[API] PDF extraction successful via ${extractionResult.method}: ${extractionResult.characterCount} characters`);
+        const statusEmoji = extractionResult.status === 'success' ? '✓' : '⚠️';
+        console.log(`[API] ${statusEmoji} PDF extraction ${extractionResult.status} via ${extractionResult.method}: ${extractionResult.characterCount} characters`);
+        if (extractionResult.confidence !== undefined) {
+          console.log(`[API] OCR confidence: ${(extractionResult.confidence * 100).toFixed(0)}%`);
+        }
       } catch (error) {
         return NextResponse.json<ErrorResponse>(
           {
