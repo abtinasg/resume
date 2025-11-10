@@ -43,6 +43,167 @@ import {
 } from './analyzers';
 import { getKeywordsForRole, STANDARD_SECTION_HEADERS } from './keywords';
 
+// ==================== PRO: Dynamic Role-Based Weights ====================
+
+/**
+ * Role-specific weight configurations
+ * Each role emphasizes different components based on what matters most
+ */
+export const ROLE_WEIGHTS: Record<string, {
+  contentQuality: number;
+  atsCompatibility: number;
+  formatStructure: number;
+  impactMetrics: number;
+}> = {
+  'Product Manager': {
+    contentQuality: 50, // High emphasis on content (strategic thinking, outcomes)
+    atsCompatibility: 30, // Moderate ATS focus
+    formatStructure: 10, // Less critical
+    impactMetrics: 10,  // Impact shown through content
+  },
+  'Software Engineer': {
+    contentQuality: 35, // Moderate content emphasis
+    atsCompatibility: 40, // High ATS (technical keywords crucial)
+    formatStructure: 15, // Clean format important
+    impactMetrics: 10,  // Metrics matter but less than keywords
+  },
+  'Frontend Engineer': {
+    contentQuality: 35,
+    atsCompatibility: 40, // Framework/tool keywords critical
+    formatStructure: 15,
+    impactMetrics: 10,
+  },
+  'Backend Engineer': {
+    contentQuality: 35,
+    atsCompatibility: 40, // Technology stack keywords crucial
+    formatStructure: 15,
+    impactMetrics: 10,
+  },
+  'Data Analyst': {
+    contentQuality: 40, // Analytical thinking in content
+    atsCompatibility: 35, // Tool/technology keywords important
+    formatStructure: 15,
+    impactMetrics: 10,
+  },
+  'Data Scientist': {
+    contentQuality: 40,
+    atsCompatibility: 35, // ML/AI keywords important
+    formatStructure: 15,
+    impactMetrics: 10,
+  },
+  'DevOps Engineer': {
+    contentQuality: 35,
+    atsCompatibility: 40, // Infrastructure/cloud keywords crucial
+    formatStructure: 15,
+    impactMetrics: 10,
+  },
+  'UX Designer': {
+    contentQuality: 45, // Design thinking and process crucial
+    atsCompatibility: 30,
+    formatStructure: 15, // Visual presentation matters
+    impactMetrics: 10,
+  },
+  'Marketing Manager': {
+    contentQuality: 45, // Strategy and campaigns in content
+    atsCompatibility: 30,
+    formatStructure: 15,
+    impactMetrics: 10, // ROI/metrics important
+  },
+  'Sales Manager': {
+    contentQuality: 40,
+    atsCompatibility: 30,
+    formatStructure: 15,
+    impactMetrics: 15, // Revenue numbers very important
+  },
+  'General': {
+    contentQuality: 40, // Default balanced weights
+    atsCompatibility: 35,
+    formatStructure: 15,
+    impactMetrics: 10,
+  },
+};
+
+/**
+ * Get role-specific weights for scoring
+ *
+ * @param jobRole - Target job role
+ * @returns Weight configuration for the role
+ */
+export function getRoleWeights(jobRole: string): {
+  contentQuality: number;
+  atsCompatibility: number;
+  formatStructure: number;
+  impactMetrics: number;
+} {
+  // Try exact match
+  if (ROLE_WEIGHTS[jobRole]) {
+    return ROLE_WEIGHTS[jobRole];
+  }
+
+  // Try case-insensitive match
+  const roleKey = Object.keys(ROLE_WEIGHTS).find(
+    key => key.toLowerCase() === jobRole.toLowerCase()
+  );
+
+  if (roleKey) {
+    return ROLE_WEIGHTS[roleKey];
+  }
+
+  // Try partial match
+  const partialMatch = Object.keys(ROLE_WEIGHTS).find(key =>
+    jobRole.toLowerCase().includes(key.toLowerCase()) ||
+    key.toLowerCase().includes(jobRole.toLowerCase())
+  );
+
+  if (partialMatch) {
+    return ROLE_WEIGHTS[partialMatch];
+  }
+
+  // Default to General
+  return ROLE_WEIGHTS['General'];
+}
+
+/**
+ * Apply adaptive adjustment to weights based on variance
+ *
+ * @param baseWeights - Base weight configuration
+ * @param scoreVariance - Score variance (0-1)
+ * @returns Adjusted weights
+ */
+export function applyAdaptiveWeights(
+  baseWeights: {
+    contentQuality: number;
+    atsCompatibility: number;
+    formatStructure: number;
+    impactMetrics: number;
+  },
+  scoreVariance: number = 0.1
+): {
+  contentQuality: number;
+  atsCompatibility: number;
+  formatStructure: number;
+  impactMetrics: number;
+} {
+  const adjustedWeights = { ...baseWeights };
+
+  // Apply small adjustments based on variance
+  // This helps adapt to edge cases
+  Object.keys(adjustedWeights).forEach(key => {
+    const k = key as keyof typeof adjustedWeights;
+    const adjustment = (Math.random() - 0.5) * scoreVariance * 2;
+    adjustedWeights[k] = Math.max(5, Math.min(60, adjustedWeights[k] + adjustment));
+  });
+
+  // Normalize to sum to 100
+  const total = Object.values(adjustedWeights).reduce((a, b) => a + b, 0);
+  Object.keys(adjustedWeights).forEach(key => {
+    const k = key as keyof typeof adjustedWeights;
+    adjustedWeights[k] = Math.round((adjustedWeights[k] / total) * 100);
+  });
+
+  return adjustedWeights;
+}
+
 // ==================== 1. CONTENT QUALITY (40%) ====================
 
 /**
@@ -601,13 +762,37 @@ export function calculateImpactScore(resumeText: string): ComponentScore {
 /**
  * Calculate overall score from component scores
  * Uses weighted contributions from each component
+ *
+ * @param components - Component scores
+ * @param customWeights - Optional custom weights (for adaptive scoring)
+ * @returns Overall score (0-100)
  */
-export function calculateOverallScore(components: {
-  contentQuality: ComponentScore;
-  atsCompatibility: ComponentScore;
-  formatStructure: ComponentScore;
-  impactMetrics: ComponentScore;
-}): number {
+export function calculateOverallScore(
+  components: {
+    contentQuality: ComponentScore;
+    atsCompatibility: ComponentScore;
+    formatStructure: ComponentScore;
+    impactMetrics: ComponentScore;
+  },
+  customWeights?: {
+    contentQuality: number;
+    atsCompatibility: number;
+    formatStructure: number;
+    impactMetrics: number;
+  }
+): number {
+  if (customWeights) {
+    // Use custom weights (adaptive or role-specific)
+    const totalWeightedScore =
+      (components.contentQuality.score * customWeights.contentQuality) / 100 +
+      (components.atsCompatibility.score * customWeights.atsCompatibility) / 100 +
+      (components.formatStructure.score * customWeights.formatStructure) / 100 +
+      (components.impactMetrics.score * customWeights.impactMetrics) / 100;
+
+    return Math.round(totalWeightedScore);
+  }
+
+  // Use default weighted contributions from component scores
   const totalWeightedScore =
     components.contentQuality.weightedContribution +
     components.atsCompatibility.weightedContribution +
