@@ -14,6 +14,12 @@ export function generatePROAnalysisPrompt(
   resumeText: string,
   scoringResult: ScoringResult
 ): string {
+  // Type-safe breakdown accessors
+  const contentQuality = scoringResult.componentScores.contentQuality.breakdown as import('./scoring/types').ContentQualityBreakdown;
+  const atsCompatibility = scoringResult.componentScores.atsCompatibility.breakdown as import('./scoring/types').ATSCompatibilityBreakdown;
+  const formatStructure = scoringResult.componentScores.formatStructure.breakdown as import('./scoring/types').FormatStructureBreakdown;
+  const impactMetrics = scoringResult.componentScores.impactMetrics.breakdown as import('./scoring/types').ImpactMetricsBreakdown;
+
   return `You are an expert resume reviewer and career coach with deep knowledge of ATS systems,
 recruiting best practices, and modern hiring trends.
 
@@ -26,22 +32,22 @@ COMPREHENSIVE SCORING ANALYSIS:
 
 COMPONENT BREAKDOWN:
 1. Content Quality: ${scoringResult.componentScores.contentQuality.score}/100 (${scoringResult.componentScores.contentQuality.weight}% weight)
-   - Achievement Quantification: ${scoringResult.componentScores.contentQuality.breakdown.achievementQuantification.score}/100
-     ${scoringResult.componentScores.contentQuality.breakdown.achievementQuantification.details}
-   - Action Verb Strength: ${scoringResult.componentScores.contentQuality.breakdown.actionVerbStrength.score}/100
-     Strong verbs: ${scoringResult.componentScores.contentQuality.breakdown.actionVerbStrength.strongVerbsFound.join(', ')}
-     Weak verbs to replace: ${scoringResult.componentScores.contentQuality.breakdown.actionVerbStrength.weakVerbsFound.join(', ')}
+   - Achievement Quantification: ${contentQuality.achievementQuantification.score}/100
+     ${contentQuality.achievementQuantification.details}
+   - Action Verb Strength: ${contentQuality.actionVerbStrength.score}/100
+     Strong verbs: ${contentQuality.actionVerbStrength.strongVerbsFound.join(', ')}
+     Weak verbs to replace: ${contentQuality.actionVerbStrength.weakVerbsFound.join(', ')}
 
 2. ATS Compatibility: ${scoringResult.componentScores.atsCompatibility.score}/100 (${scoringResult.componentScores.atsCompatibility.weight}% weight)
-   - Keyword Density: ${scoringResult.componentScores.atsCompatibility.breakdown.keywordDensity.score}/100
+   - Keyword Density: ${atsCompatibility.keywordDensity.score}/100
    - Missing Critical Keywords: ${scoringResult.atsDetailedReport.keywordGapAnalysis.mustHave.missing.slice(0, 5).join(', ')}
    - Format Issues: ${scoringResult.atsDetailedReport.formatIssues.length} issue(s) detected
 
 3. Format & Structure: ${scoringResult.componentScores.formatStructure.score}/100 (${scoringResult.componentScores.formatStructure.weight}% weight)
-   - Length: ${scoringResult.componentScores.formatStructure.breakdown.lengthOptimization.pageCount} pages (${scoringResult.componentScores.formatStructure.breakdown.lengthOptimization.verdict})
+   - Length: ${formatStructure.lengthOptimization.pageCount} pages (${formatStructure.lengthOptimization.verdict})
 
 4. Impact & Metrics: ${scoringResult.componentScores.impactMetrics.score}/100 (${scoringResult.componentScores.impactMetrics.weight}% weight)
-   - Quantified Results: ${scoringResult.componentScores.impactMetrics.breakdown.quantifiedResults.percentage}% of bullets
+   - Quantified Results: ${impactMetrics.quantifiedResults.percentage}% of bullets
 
 IMPROVEMENT PRIORITIES:
 ${scoringResult.improvementRoadmap.toReach80.slice(0, 5).map((action, i) =>
@@ -79,7 +85,7 @@ Provide a comprehensive, actionable review in the following JSON format:
       "suggestions": ["Specific suggestion"]
     },
     "formatting": {
-      "score": ${scoringResult.componentScores.atsCompatibility.breakdown.formatCompatibility.score},
+      "score": ${atsCompatibility.formatCompatibility.score},
       "issues": ${JSON.stringify(scoringResult.atsDetailedReport.formatIssues.map(i => i.issue))}
     }
   },
@@ -293,6 +299,9 @@ export function generateAIActionPrompt(
   resumeText: string,
   scoringResult: ScoringResult
 ): string {
+  // Type-safe breakdown accessors
+  const contentQuality = scoringResult.componentScores.contentQuality.breakdown as import('./scoring/types').ContentQualityBreakdown;
+
   const bullets = resumeText
     .split('\n')
     .filter(line => line.trim().match(/^[-•*]\s+/))
@@ -307,9 +316,9 @@ CURRENT BULLET POINTS (sample):
 ${bullets.map((b, i) => `${i + 1}. ${b.trim()}`).join('\n')}
 
 SCORING CONTEXT:
-- Achievement Quantification: ${scoringResult.componentScores.contentQuality.breakdown.achievementQuantification.percentage}% quantified
+- Achievement Quantification: ${contentQuality.achievementQuantification.percentage}% quantified
 - ATS Keywords Missing: ${scoringResult.atsDetailedReport.keywordGapAnalysis.mustHave.missing.slice(0, 5).join(', ')}
-- Weak Action Verbs Found: ${scoringResult.componentScores.contentQuality.breakdown.actionVerbStrength.weakVerbsFound.join(', ')}
+- Weak Action Verbs Found: ${contentQuality.actionVerbStrength.weakVerbsFound.join(', ')}
 
 Provide a JSON response with:
 {

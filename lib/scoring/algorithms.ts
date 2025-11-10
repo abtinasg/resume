@@ -727,7 +727,7 @@ export function calculateImpactScore(resumeText: string): ComponentScore {
     return count + (resumeText.toLowerCase().match(new RegExp(word, 'g')) || []).length;
   }, 0);
 
-  const recognitionGrowth: SubComponentScore & { promotions?: number } = {
+  const recognitionGrowth: SubComponentScore & { promotions: number } = {
     score: Math.min(recognitionCount * 20, 100),
     calculation: `${recognitionCount} recognition mentions`,
     promotions: recognitionCount,
