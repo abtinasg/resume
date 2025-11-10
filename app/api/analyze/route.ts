@@ -8,15 +8,15 @@ export const runtime = 'nodejs';
 const MAX_TEXT_LENGTH = 15000;
 
 const ResumeAnalyzeSchema = z.object({
-  resumeText: z
-    .string()
-    .min(15, 'Resume text is too short (minimum 15 characters)')
-    .max(
-      MAX_TEXT_LENGTH,
-      `Resume text is too long (maximum ${MAX_TEXT_LENGTH} characters)`
-    ),
+  resumeText: z.string().min(1, 'Resume content missing'),
   format: z.enum(['pdf', 'text']),
-});
+}).refine(
+  (data) => data.format === 'pdf' || data.resumeText.length >= 15,
+  { message: 'Resume text is too short (minimum 15 characters for text input)', path: ['resumeText'] }
+).refine(
+  (data) => data.format === 'pdf' || data.resumeText.length <= MAX_TEXT_LENGTH,
+  { message: `Resume text is too long (maximum ${MAX_TEXT_LENGTH} characters)`, path: ['resumeText'] }
+);
 
 type ResumeAnalyzeInput = z.infer<typeof ResumeAnalyzeSchema>;
 
@@ -167,6 +167,7 @@ export async function POST(req: NextRequest) {
 
         // Get extracted text
         resumeText = extractionResult.text;
+        console.log('[API] Extracted text length:', resumeText.length);
 
         // Validate extracted text length
         if (resumeText.length > MAX_TEXT_LENGTH) {
