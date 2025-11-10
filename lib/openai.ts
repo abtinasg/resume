@@ -30,10 +30,13 @@ function customLookup(
     try {
       attempt++;
       const result = await lookupAsync(hostname, options);
-      if (typeof result === 'object' && 'address' in result) {
-        callback(null, result.address, result.family);
+      if (typeof result === 'object' && result && 'address' in result && 'family' in result) {
+        callback(null, result.address as string, result.family as number);
+      } else if (typeof result === 'string') {
+        callback(null, result, 4);
       } else {
-        callback(null, result as string, 4);
+        // Handle array case or unexpected types
+        callback(null, (result as unknown) as string, 4);
       }
     } catch (error: any) {
       // Retry on EAI_AGAIN error
@@ -100,7 +103,7 @@ function getOpenAIClient(): OpenAI {
       timeout: TIMEOUT_MS,
       maxRetries: MAX_RETRIES,
       httpAgent,
-    });
+    } as any);
 
     console.log('[OpenAI] Client initialized successfully');
   }
