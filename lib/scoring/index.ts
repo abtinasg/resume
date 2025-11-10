@@ -367,8 +367,217 @@ export async function calculatePROScore(
   return result;
 }
 
+// ==================== PRO VERSION - Enhanced Scoring ====================
+
+/**
+ * Calculate PRO+ score with adaptive logic, JD matching, and AI insights
+ *
+ * This is the enhanced version that includes:
+ * - Role-specific dynamic weights
+ * - Job description matching (optional)
+ * - Adaptive scoring logic
+ * - AI-generated summary and action layers
+ * - Role-specific insights
+ *
+ * @param resumeText - Full text content of the resume
+ * @param options - Configuration options for PRO scoring
+ * @returns Complete PRO scoring result with all enhancements
+ *
+ * @example
+ * ```typescript
+ * const result = await calculatePROPlusScore(resumeText, {
+ *   jobRole: "Product Manager",
+ *   jobDescription: jdText,
+ *   includeAIInsights: true,
+ *   useAdaptiveWeights: true
+ * });
+ * ```
+ */
+export async function calculatePROPlusScore(
+  resumeText: string,
+  options: {
+    jobRole?: string;
+    jobDescription?: string;
+    includeAIInsights?: boolean;
+    useAdaptiveWeights?: boolean;
+    customWeights?: {
+      contentQuality: number;
+      atsCompatibility: number;
+      formatStructure: number;
+      impactMetrics: number;
+    };
+  } = {}
+): Promise<any> { // Returns ProScoringResult
+  const startTime = Date.now();
+
+  const {
+    jobRole = 'General',
+    jobDescription,
+    includeAIInsights = false,
+    useAdaptiveWeights = true,
+    customWeights,
+  } = options;
+
+  // Import PRO modules dynamically to avoid circular dependencies
+  const { getRoleWeights, applyAdaptiveWeights } = await import('./algorithms');
+  const { analyzeJDMatch } = await import('./jd-optimizer');
+  const { getActiveWeights } = await import('./logic-tuner');
+  const { generateResumeInsights, generateRoleInsights } = await import('../prompts-pro');
+
+  // Step 1: Get base scoring result
+  const baseResult = await calculatePROScore(resumeText, jobRole);
+
+  // Step 2: Determine weights to use
+  let weightsToUse = customWeights || getRoleWeights(jobRole);
+  const isRoleSpecific = !customWeights;
+
+  // Step 3: Apply adaptive weights if enabled
+  if (useAdaptiveWeights && !customWeights) {
+    const activeConfig = getActiveWeights();
+    if (activeConfig.role_overrides && activeConfig.role_overrides[jobRole]) {
+      weightsToUse = activeConfig.role_overrides[jobRole];
+    } else {
+      weightsToUse = activeConfig.weights;
+    }
+  }
+
+  // Step 4: Recalculate overall score with adaptive weights
+  const { calculateOverallScore } = await import('./algorithms');
+  const adaptiveOverallScore = calculateOverallScore(
+    baseResult.componentScores,
+    weightsToUse
+  );
+  const adaptiveGrade = calculateGrade(adaptiveOverallScore);
+
+  // Step 5: Job Description Matching (if provided)
+  let jdMatchAnalysis;
+  if (jobDescription && jobDescription.trim().length > 50) {
+    try {
+      const jdResult = await analyzeJDMatch(resumeText, jobDescription);
+
+      jdMatchAnalysis = {
+        matchScore: jdResult.match_score,
+        missingCritical: jdResult.missing_critical,
+        underrepresented: jdResult.underrepresented,
+        irrelevant: jdResult.irrelevant,
+        suggestedPhrases: jdResult.suggested_phrases,
+        keywordAnalysis: {
+          totalJDKeywords: jdResult.keyword_analysis.total_jd_keywords,
+          matchedKeywords: jdResult.keyword_analysis.matched_keywords,
+          matchRatio: jdResult.keyword_analysis.match_ratio,
+        },
+        categoryScores: jdResult.category_scores,
+      };
+    } catch (error) {
+      console.error('[PRO+] JD matching failed:', error);
+      jdMatchAnalysis = undefined;
+    }
+  }
+
+  // Step 6: AI Insights (if enabled)
+  let aiSummary;
+  let aiSuggestions;
+  if (includeAIInsights) {
+    try {
+      const insights = await generateResumeInsights(resumeText, baseResult);
+      aiSummary = {
+        executiveSummary: insights.summary.executive_summary,
+        topStrengths: insights.summary.top_strengths,
+        weakestSections: insights.summary.weakest_sections,
+        performanceLevel: insights.summary.performance_level,
+        seniorityLevel: insights.summary.seniority_level,
+      };
+
+      aiSuggestions = {
+        bulletRewrites: insights.actions.bullet_rewrites,
+        sectionImprovements: insights.actions.section_improvements,
+        quickWins: insights.actions.quick_wins,
+        keywordActions: insights.actions.keyword_actions,
+      };
+    } catch (error) {
+      console.error('[PRO+] AI insights generation failed:', error);
+      aiSummary = undefined;
+      aiSuggestions = undefined;
+    }
+  }
+
+  // Step 7: Role-Specific Insights
+  let roleSpecificInsights;
+  try {
+    const roleInsights = generateRoleInsights(resumeText, jobRole, baseResult);
+    roleSpecificInsights = {
+      role: roleInsights.role,
+      marketFitScore: roleInsights.market_fit_score,
+      bestSuitedFor: roleInsights.best_suited_for,
+      skillGaps: roleInsights.skill_gaps,
+      competitiveAdvantages: roleInsights.competitive_advantages,
+      estimatedSalaryRange: roleInsights.estimated_salary_range,
+    };
+  } catch (error) {
+    console.error('[PRO+] Role insights generation failed:', error);
+    roleSpecificInsights = undefined;
+  }
+
+  // Step 8: Build adaptive weights metadata
+  const adaptiveWeights = {
+    configId: useAdaptiveWeights ? getActiveWeights().id : 'custom',
+    weights: {
+      contentQuality: weightsToUse.contentQuality,
+      atsCompatibility: weightsToUse.atsCompatibility,
+      formatStructure: weightsToUse.formatStructure,
+      impactMetrics: weightsToUse.impactMetrics,
+    },
+    isRoleSpecific,
+    varianceAdjustment: useAdaptiveWeights ? 0.05 : 0,
+    source: customWeights
+      ? 'user-tuned'
+      : useAdaptiveWeights
+      ? 'adaptive'
+      : isRoleSpecific
+      ? 'role-specific'
+      : 'default',
+  };
+
+  // Calculate processing time
+  const processingTime = Date.now() - startTime;
+
+  // Step 9: Build complete PRO result
+  const proResult = {
+    // Base scoring result
+    ...baseResult,
+
+    // Override with adaptive scores
+    overallScore: adaptiveOverallScore,
+    grade: adaptiveGrade,
+
+    // PRO enhancements
+    jdMatch: jdMatchAnalysis,
+    aiSummary,
+    aiSuggestions,
+    adaptiveWeights,
+    roleSpecificInsights,
+
+    // Update metadata
+    metadata: {
+      ...baseResult.metadata,
+      processingTime,
+      proVersion: 'v2.0',
+      featuresEnabled: {
+        jdMatching: !!jdMatchAnalysis,
+        aiInsights: includeAIInsights,
+        adaptiveWeights: useAdaptiveWeights,
+        roleSpecific: isRoleSpecific,
+      },
+    },
+  };
+
+  return proResult;
+}
+
 // Export all types and utilities
 export * from './types';
 export * from './keywords';
 export * from './analyzers';
 export * from './algorithms';
+export * from './jd-optimizer';
+export * from './logic-tuner';

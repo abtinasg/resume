@@ -237,3 +237,226 @@ and increase their chances of passing ATS screening and landing interviews. Your
 - Balanced (strengths and areas for improvement)
 - Professional and constructive
 - Based on current hiring trends and best practices`;
+
+// ==================== PRO: AI Interpretation Layers ====================
+
+/**
+ * Generate AI Summary Layer prompt
+ * Creates high-level interpretation of resume performance
+ */
+export function generateAISummaryPrompt(
+  resumeText: string,
+  scoringResult: ScoringResult
+): string {
+  return `You are an expert resume analyst. Provide a high-level executive summary of this resume.
+
+RESUME TEXT:
+${resumeText}
+
+SCORING DATA:
+- Overall Score: ${scoringResult.overallScore}/100 (${scoringResult.grade})
+- Content Quality: ${scoringResult.componentScores.contentQuality.score}/100
+- ATS Compatibility: ${scoringResult.componentScores.atsCompatibility.score}/100
+- Format & Structure: ${scoringResult.componentScores.formatStructure.score}/100
+- Impact & Metrics: ${scoringResult.componentScores.impactMetrics.score}/100
+- ATS Pass Probability: ${scoringResult.atsPassProbability}%
+
+Provide a JSON response with:
+{
+  "executive_summary": "2-3 sentence professional summary",
+  "top_strengths": [
+    {
+      "title": "Strength title",
+      "description": "Why this is strong",
+      "evidence": "Specific example from resume"
+    }
+  ],
+  "weakest_sections": [
+    {
+      "section": "Section name",
+      "issue": "What's wrong",
+      "impact": "Why it matters"
+    }
+  ],
+  "performance_level": "Exceptional|Strong|Good|Fair|Needs Work",
+  "seniority_level": "Entry-Level|Mid-Level|Senior|Lead|Executive"
+}
+
+Be concise, specific, and actionable. Focus on the most impactful insights.`;
+}
+
+/**
+ * Generate AI Action Layer prompt
+ * Creates specific rewrite suggestions and improvements
+ */
+export function generateAIActionPrompt(
+  resumeText: string,
+  scoringResult: ScoringResult
+): string {
+  const bullets = resumeText
+    .split('\n')
+    .filter(line => line.trim().match(/^[-•*]\s+/))
+    .slice(0, 10);
+
+  return `You are an expert resume writer. Analyze this resume and provide specific, actionable improvements.
+
+RESUME TEXT:
+${resumeText}
+
+CURRENT BULLET POINTS (sample):
+${bullets.map((b, i) => `${i + 1}. ${b.trim()}`).join('\n')}
+
+SCORING CONTEXT:
+- Achievement Quantification: ${scoringResult.componentScores.contentQuality.breakdown.achievementQuantification.percentage}% quantified
+- ATS Keywords Missing: ${scoringResult.atsDetailedReport.keywordGapAnalysis.mustHave.missing.slice(0, 5).join(', ')}
+- Weak Action Verbs Found: ${scoringResult.componentScores.contentQuality.breakdown.actionVerbStrength.weakVerbsFound.join(', ')}
+
+Provide a JSON response with:
+{
+  "bullet_rewrites": [
+    {
+      "original": "Current bullet point",
+      "improved": "Rewritten version with metrics and strong verbs",
+      "reason": "Why this is better",
+      "impact_gain": "Expected improvement"
+    }
+  ],
+  "section_improvements": [
+    {
+      "section": "Section name",
+      "current_issue": "What's wrong now",
+      "recommendation": "How to fix it",
+      "example": "Concrete example"
+    }
+  ],
+  "quick_wins": [
+    {
+      "action": "Specific action to take",
+      "effort": "Low|Medium|High",
+      "impact": "Low|Medium|High",
+      "estimated_score_gain": 5
+    }
+  ],
+  "keyword_actions": [
+    {
+      "keyword": "Missing keyword",
+      "location": "Where to add it",
+      "suggested_phrase": "Example phrase using the keyword"
+    }
+  ]
+}
+
+Provide 3-5 bullet rewrites, 2-3 section improvements, 3-5 quick wins, and 3-5 keyword actions.
+Focus on HIGH IMPACT changes that will most improve the ATS pass rate and overall score.`;
+}
+
+/**
+ * Generate comprehensive resume insights combining scoring + AI analysis
+ *
+ * This is the main PRO function that combines both layers:
+ * - Summary Layer: High-level interpretation
+ * - Action Layer: Specific improvements
+ *
+ * @param resumeText - Full resume text
+ * @param scoringResult - Complete scoring result
+ * @returns Promise with both AI layers (can be called with AI model)
+ */
+export async function generateResumeInsights(
+  resumeText: string,
+  scoringResult: ScoringResult
+): Promise<{
+  summary: any; // AISummaryLayer
+  actions: any; // AIActionLayer
+}> {
+  // Generate prompts
+  const summaryPrompt = generateAISummaryPrompt(resumeText, scoringResult);
+  const actionPrompt = generateAIActionPrompt(resumeText, scoringResult);
+
+  // TODO: In production, call AI model with these prompts
+  // Example:
+  // const summaryResponse = await callAI(summaryPrompt);
+  // const actionResponse = await callAI(actionPrompt);
+
+  // For now, return placeholder structure
+  const summary = {
+    executive_summary: `This ${scoringResult.metadata?.jobRole || 'candidate'} resume scores ${scoringResult.overallScore}/100, demonstrating ${scoringResult.grade}-level quality. ${
+      scoringResult.overallScore >= 80
+        ? 'Strong ATS compatibility and content quality.'
+        : scoringResult.overallScore >= 70
+        ? 'Good foundation with room for keyword and metric improvements.'
+        : 'Significant improvements needed in ATS optimization and achievement quantification.'
+    }`,
+    top_strengths: [
+      {
+        title: 'Content Structure',
+        description: `Well-organized with ${scoringResult.metadata?.resumeStats?.totalBullets || 0} bullet points`,
+        evidence: 'Clear experience section with consistent formatting',
+      },
+    ],
+    weakest_sections: [
+      {
+        section: 'Keywords',
+        issue: `Missing ${scoringResult.atsDetailedReport.keywordGapAnalysis.mustHave.missing.length} critical keywords`,
+        impact: 'May fail ATS screening for target role',
+      },
+    ],
+    performance_level:
+      scoringResult.overallScore >= 90
+        ? 'Exceptional'
+        : scoringResult.overallScore >= 80
+        ? 'Strong'
+        : scoringResult.overallScore >= 70
+        ? 'Good'
+        : scoringResult.overallScore >= 60
+        ? 'Fair'
+        : 'Needs Work',
+    seniority_level: 'Mid-Level', // TODO: Detect from resume
+  };
+
+  const actions = {
+    bullet_rewrites: [],
+    section_improvements: [],
+    quick_wins: [
+      {
+        action: `Add ${scoringResult.atsDetailedReport.keywordGapAnalysis.mustHave.missing.slice(0, 3).join(', ')} to skills or experience`,
+        effort: 'Low',
+        impact: 'High',
+        estimated_score_gain: 8,
+      },
+    ],
+    keyword_actions: scoringResult.atsDetailedReport.keywordGapAnalysis.mustHave.missing
+      .slice(0, 5)
+      .map(keyword => ({
+        keyword,
+        location: 'Skills section or relevant experience bullet',
+        suggested_phrase: `Incorporate "${keyword}" naturally into project descriptions`,
+      })),
+  };
+
+  return { summary, actions };
+}
+
+/**
+ * Generate role-specific insights based on job role and market trends
+ *
+ * @param resumeText - Resume text
+ * @param jobRole - Target job role
+ * @param scoringResult - Scoring result
+ * @returns Role-specific insights and recommendations
+ */
+export function generateRoleInsights(
+  resumeText: string,
+  jobRole: string,
+  scoringResult: ScoringResult
+): any {
+  // Placeholder for role-specific analysis
+  // In production, this would use AI to analyze market fit
+
+  return {
+    role: jobRole,
+    market_fit_score: Math.min(scoringResult.overallScore + 5, 95),
+    best_suited_for: [jobRole, `Senior ${jobRole}`, `Lead ${jobRole}`],
+    skill_gaps: scoringResult.atsDetailedReport.keywordGapAnalysis.mustHave.missing.slice(0, 5),
+    competitive_advantages: scoringResult.atsDetailedReport.keywordGapAnalysis.mustHave.foundKeywords.slice(0, 3),
+  };
+}

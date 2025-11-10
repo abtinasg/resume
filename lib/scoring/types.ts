@@ -488,3 +488,176 @@ export interface ResumeTextAnalysis {
   /** Estimated years of experience */
   yearsExperience: number;
 }
+
+// ==================== PRO VERSION - Enhanced Types ====================
+
+/**
+ * PRO Version: Complete scoring result with AI insights and JD matching
+ */
+export interface ProScoringResult extends ScoringResult {
+  /** Job description match analysis (if JD provided) */
+  jdMatch?: JDMatchAnalysis;
+
+  /** AI-generated summary and insights */
+  aiSummary?: AISummaryLayer;
+
+  /** AI-generated improvement suggestions */
+  aiSuggestions?: AIActionLayer;
+
+  /** Adaptive weights used for this scoring */
+  adaptiveWeights: AdaptiveWeights;
+
+  /** Role-specific insights */
+  roleSpecificInsights?: RoleInsights;
+}
+
+/**
+ * Job Description Match Analysis
+ */
+export interface JDMatchAnalysis {
+  /** Overall JD match score (0-100) */
+  matchScore: number;
+
+  /** Critical keywords missing from resume */
+  missingCritical: string[];
+
+  /** Keywords present but underrepresented */
+  underrepresented: string[];
+
+  /** Keywords in resume but not in JD */
+  irrelevant: string[];
+
+  /** AI-suggested phrases to add */
+  suggestedPhrases: string[];
+
+  /** Detailed keyword breakdown */
+  keywordAnalysis: {
+    totalJDKeywords: number;
+    matchedKeywords: number;
+    matchRatio: number;
+  };
+
+  /** Category-specific scores */
+  categoryScores?: {
+    technicalSkills: number;
+    softSkills: number;
+    toolsTechnologies: number;
+    domainKnowledge: number;
+  };
+}
+
+/**
+ * AI Summary Layer - High-level interpretation
+ */
+export interface AISummaryLayer {
+  /** 2-3 sentence executive summary */
+  executiveSummary: string;
+
+  /** Top 3 strengths identified */
+  topStrengths: Array<{
+    title: string;
+    description: string;
+    evidence: string;
+  }>;
+
+  /** Weakest sections with explanations */
+  weakestSections: Array<{
+    section: string;
+    issue: string;
+    impact: string;
+  }>;
+
+  /** Overall performance assessment */
+  performanceLevel: 'Exceptional' | 'Strong' | 'Good' | 'Fair' | 'Needs Work';
+
+  /** Seniority level detected */
+  seniorityLevel: 'Entry-Level' | 'Mid-Level' | 'Senior' | 'Lead' | 'Executive';
+}
+
+/**
+ * AI Action Layer - Specific rewrites and improvements
+ */
+export interface AIActionLayer {
+  /** Bullet point rewrites */
+  bulletRewrites: Array<{
+    original: string;
+    improved: string;
+    reason: string;
+    impactGain: string;
+  }>;
+
+  /** Section-specific improvements */
+  sectionImprovements: Array<{
+    section: string;
+    currentIssue: string;
+    recommendation: string;
+    example: string;
+  }>;
+
+  /** Quick wins (high impact, low effort) */
+  quickWins: Array<{
+    action: string;
+    effort: 'Low' | 'Medium' | 'High';
+    impact: 'Low' | 'Medium' | 'High';
+    estimatedScoreGain: number;
+  }>;
+
+  /** Keyword optimization actions */
+  keywordActions?: Array<{
+    keyword: string;
+    location: string;
+    suggestedPhrase: string;
+  }>;
+}
+
+/**
+ * Adaptive Weights Configuration
+ */
+export interface AdaptiveWeights {
+  /** Configuration used for this scoring */
+  configId: string;
+
+  /** Component weights used */
+  weights: {
+    contentQuality: number;
+    atsCompatibility: number;
+    formatStructure: number;
+    impactMetrics: number;
+  };
+
+  /** Whether these are role-specific weights */
+  isRoleSpecific: boolean;
+
+  /** Adjustment applied based on variance */
+  varianceAdjustment?: number;
+
+  /** Source of weights */
+  source: 'default' | 'role-specific' | 'adaptive' | 'user-tuned';
+}
+
+/**
+ * Role-Specific Insights
+ */
+export interface RoleInsights {
+  /** Job role analyzed for */
+  role: string;
+
+  /** Market fit score (0-100) */
+  marketFitScore: number;
+
+  /** Best suited positions */
+  bestSuitedFor: string[];
+
+  /** Skill gaps for this role */
+  skillGaps: string[];
+
+  /** Competitive advantages */
+  competitiveAdvantages: string[];
+
+  /** Salary range estimate (if applicable) */
+  estimatedSalaryRange?: {
+    min: number;
+    max: number;
+    currency: string;
+  };
+}
