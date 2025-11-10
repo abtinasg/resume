@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import UploadSection from '@/components/UploadSection';
 import ResultsTabs from '@/components/ResultsTabs';
+import FeaturesSection from '@/components/FeaturesSection';
+import AboutSection from '@/components/AboutSection';
+import ContactSection from '@/components/ContactSection';
 
 interface AnalysisResult {
   score: number;
@@ -253,6 +256,15 @@ export default function Home() {
             )}
           </div>
         </motion.div>
+
+        {/* Features Section */}
+        <FeaturesSection />
+
+        {/* About Section */}
+        <AboutSection />
+
+        {/* Contact Section */}
+        <ContactSection />
 
         {/* Footer Section */}
         <motion.footer
