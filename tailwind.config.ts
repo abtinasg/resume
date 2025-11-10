@@ -24,6 +24,7 @@ const config: Config = {
       backgroundImage: {
         'glow-gradient': 'radial-gradient(circle at center, rgba(99, 102, 241, 0.15), transparent 70%)',
         'ambient-light': 'radial-gradient(ellipse at top, rgba(99, 102, 241, 0.1), transparent 50%)',
+        'gradient-radial': 'radial-gradient(circle, var(--tw-gradient-stops))',
       },
       boxShadow: {
         'glow': '0 0 40px rgba(99, 102, 241, 0.3)',
