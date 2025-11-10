@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { analyzeResumeWithAI } from '@/lib/openai';
+import { analyzeResumePro, ResumeAnalysisPro } from '@/lib/openai';
 import { extractTextFromBase64PDF } from '@/lib/pdfParser';
 
 export const runtime = 'nodejs';
@@ -20,30 +20,46 @@ const ResumeAnalyzeSchema = z.object({
 
 type ResumeAnalyzeInput = z.infer<typeof ResumeAnalyzeSchema>;
 
+// Zod schema for validating Pro analysis response
+const ResumeAnalysisProSchema = z.object({
+  overview: z.object({
+    summary: z.string().min(1),
+    overall_score: z.number().min(0).max(100),
+    seniority_level: z.string().min(1),
+    fit_for_roles: z.array(z.string()).min(1),
+  }),
+  sections: z.object({
+    experience: z.object({
+      score: z.number().min(0).max(100),
+      strengths: z.array(z.string()),
+      issues: z.array(z.string()),
+    }),
+    skills: z.object({
+      score: z.number().min(0).max(100),
+      missing_technologies: z.array(z.string()),
+    }),
+    education: z.object({
+      score: z.number().min(0).max(100),
+      suggestions: z.array(z.string()),
+    }),
+    formatting: z.object({
+      score: z.number().min(0).max(100),
+      issues: z.array(z.string()),
+    }),
+  }),
+  ats_analysis: z.object({
+    keyword_density: z.object({
+      total_keywords: z.number().min(0),
+      top_keywords: z.array(z.string()),
+    }),
+    ats_pass_rate: z.number().min(0).max(100),
+  }),
+  improvement_actions: z.array(z.string()).min(1),
+});
+
 interface SuccessResponse {
   success: true;
-  data: {
-    score: number;
-    summary: {
-      overall: string;
-      topStrength: string;
-      topWeakness: string;
-    };
-    strengths: Array<{
-      title: string;
-      description: string;
-      example: string;
-      category: 'content' | 'format' | 'ats';
-    }>;
-    suggestions: Array<{
-      title: string;
-      description: string;
-      priority: 'high' | 'medium' | 'low';
-      beforeExample: string;
-      afterExample: string;
-      actionSteps: string[];
-    }>;
-  };
+  data: ResumeAnalysisPro;
   processingTime: number;
   timestamp: string;
 }
@@ -157,10 +173,27 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Analyze resume with OpenAI
-    let analysis;
+    // Analyze resume with OpenAI Pro
+    let analysis: ResumeAnalysisPro;
     try {
-      analysis = await analyzeResumeWithAI(resumeText);
+      analysis = await analyzeResumePro(resumeText);
+
+      // Validate response with Zod schema
+      try {
+        ResumeAnalysisProSchema.parse(analysis);
+      } catch (validationError) {
+        console.error('[API] ✗ Analysis validation failed:', validationError);
+        return NextResponse.json<ErrorResponse>(
+          {
+            success: false,
+            error: {
+              code: 'VALIDATION_ERROR',
+              message: 'Analysis response validation failed. Please try again.',
+            },
+          },
+          { status: 500 }
+        );
+      }
     } catch (error) {
       return NextResponse.json<ErrorResponse>(
         {

@@ -10,8 +10,8 @@ let openaiClient: OpenAI | null = null;
 const lookupAsync = promisify(dnsLookup);
 
 // Model configuration with fallback
-const PRIMARY_MODEL = 'gpt-4o-mini';
-const FALLBACK_MODEL = 'gpt-3.5-turbo';
+const PRIMARY_MODEL = 'gpt-5-turbo';
+const FALLBACK_MODEL = 'gpt-4o-mini';
 const TIMEOUT_MS = 30000; // 30 seconds
 const MAX_RETRIES = 2;
 
@@ -364,6 +364,261 @@ Respond ONLY with valid JSON, no additional text.`;
 
     // Unknown error type
     console.error('[OpenAI] ✗ Unknown error type:', error);
+    throw new Error('OPENAI_ERROR: Unknown error occurred');
+  }
+}
+
+// ============================================================================
+// PRO VERSION - Multi-dimensional Resume Analysis
+// ============================================================================
+
+export interface ResumeAnalysisPro {
+  overview: {
+    summary: string;
+    overall_score: number;
+    seniority_level: string;
+    fit_for_roles: string[];
+  };
+  sections: {
+    experience: {
+      score: number;
+      strengths: string[];
+      issues: string[];
+    };
+    skills: {
+      score: number;
+      missing_technologies: string[];
+    };
+    education: {
+      score: number;
+      suggestions: string[];
+    };
+    formatting: {
+      score: number;
+      issues: string[];
+    };
+  };
+  ats_analysis: {
+    keyword_density: {
+      total_keywords: number;
+      top_keywords: string[];
+    };
+    ats_pass_rate: number;
+  };
+  improvement_actions: string[];
+}
+
+/**
+ * Analyze resume with comprehensive Pro-level multi-dimensional feedback
+ * @param resumeText - The resume text to analyze
+ * @returns Promise<ResumeAnalysisPro> - Structured Pro analysis result
+ * @throws Error with specific error codes for different failure scenarios
+ */
+export async function analyzeResumePro(
+  resumeText: string
+): Promise<ResumeAnalysisPro> {
+  const overallStartTime = Date.now();
+
+  const prompt = `You are an expert AI recruiter and resume analyst. Analyze the following resume and provide comprehensive, multi-dimensional feedback.
+
+Resume:
+${resumeText}
+
+Provide a detailed analysis in the following JSON structure (respond ONLY with valid JSON, no additional text):
+
+{
+  "overview": {
+    "summary": "2-3 sentence professional summary of the candidate's profile",
+    "overall_score": <number 0-100>,
+    "seniority_level": "Entry-Level | Mid-Level | Senior | Lead | Executive",
+    "fit_for_roles": ["Top 3 most suitable job titles/positions"]
+  },
+  "sections": {
+    "experience": {
+      "score": <number 0-100>,
+      "strengths": ["List 2-4 specific strong points in experience section"],
+      "issues": ["List 2-4 specific problems or gaps in experience section"]
+    },
+    "skills": {
+      "score": <number 0-100>,
+      "missing_technologies": ["List 3-5 relevant technologies or skills that are missing or should be highlighted"]
+    },
+    "education": {
+      "score": <number 0-100>,
+      "suggestions": ["List 2-3 suggestions to improve education section"]
+    },
+    "formatting": {
+      "score": <number 0-100>,
+      "issues": ["List 2-4 formatting or structural issues"]
+    }
+  },
+  "ats_analysis": {
+    "keyword_density": {
+      "total_keywords": <number>,
+      "top_keywords": ["List 8-10 most important keywords found in the resume"]
+    },
+    "ats_pass_rate": <number 0-100>
+  },
+  "improvement_actions": ["List 5-8 specific, actionable improvement steps prioritized by impact"]
+}
+
+Analysis Guidelines:
+1. **Overview**: Provide honest, professional assessment of candidate's level and market fit
+2. **Experience Score**: Evaluate depth, relevance, impact metrics, achievement quantification
+3. **Skills Score**: Assess technical breadth, relevance to modern standards, organization
+4. **Education Score**: Consider relevance, presentation, certifications, continuous learning
+5. **Formatting Score**: Evaluate ATS compatibility, readability, consistency, white space
+6. **ATS Analysis**: Identify industry keywords, measure density, predict ATS system performance
+7. **Improvement Actions**: Prioritize high-impact changes, be specific and actionable
+
+Be professional, concise, and constructive. Focus on tangible improvements.
+
+Respond ONLY with the JSON object, no markdown formatting or additional text.`;
+
+  try {
+    // Get OpenAI client (validates API key)
+    const openai = getOpenAIClient();
+
+    // Call OpenAI with fallback support
+    const completion = await callOpenAIWithFallback(
+      openai,
+      [
+        {
+          role: 'system',
+          content:
+            'You are an expert AI recruiter and resume analyst. Provide detailed, professional multi-dimensional feedback in valid JSON format only. No markdown, no additional text.',
+        },
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      0.7,
+      3000
+    );
+
+    // Extract and validate response content
+    const responseContent = completion.choices[0]?.message?.content;
+
+    if (!responseContent) {
+      console.error('[OpenAI Pro] ✗ Empty response from API');
+      throw new Error('OPENAI_ERROR: Empty response from OpenAI');
+    }
+
+    // Clean response content (remove markdown code blocks if present)
+    let cleanedContent = responseContent.trim();
+    if (cleanedContent.startsWith('```json')) {
+      cleanedContent = cleanedContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (cleanedContent.startsWith('```')) {
+      cleanedContent = cleanedContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+
+    // Parse JSON response
+    let analysis: ResumeAnalysisPro;
+    try {
+      analysis = JSON.parse(cleanedContent) as ResumeAnalysisPro;
+    } catch (parseError) {
+      console.error('[OpenAI Pro] ✗ Failed to parse JSON response:', parseError);
+      console.error('[OpenAI Pro] Response content:', cleanedContent.substring(0, 200));
+      throw new Error('OPENAI_ERROR: Invalid JSON response from OpenAI');
+    }
+
+    // Validate response structure
+    if (
+      !analysis.overview ||
+      typeof analysis.overview.summary !== 'string' ||
+      typeof analysis.overview.overall_score !== 'number' ||
+      typeof analysis.overview.seniority_level !== 'string' ||
+      !Array.isArray(analysis.overview.fit_for_roles) ||
+      !analysis.sections ||
+      !analysis.sections.experience ||
+      typeof analysis.sections.experience.score !== 'number' ||
+      !Array.isArray(analysis.sections.experience.strengths) ||
+      !Array.isArray(analysis.sections.experience.issues) ||
+      !analysis.sections.skills ||
+      typeof analysis.sections.skills.score !== 'number' ||
+      !Array.isArray(analysis.sections.skills.missing_technologies) ||
+      !analysis.sections.education ||
+      typeof analysis.sections.education.score !== 'number' ||
+      !Array.isArray(analysis.sections.education.suggestions) ||
+      !analysis.sections.formatting ||
+      typeof analysis.sections.formatting.score !== 'number' ||
+      !Array.isArray(analysis.sections.formatting.issues) ||
+      !analysis.ats_analysis ||
+      !analysis.ats_analysis.keyword_density ||
+      typeof analysis.ats_analysis.keyword_density.total_keywords !== 'number' ||
+      !Array.isArray(analysis.ats_analysis.keyword_density.top_keywords) ||
+      typeof analysis.ats_analysis.ats_pass_rate !== 'number' ||
+      !Array.isArray(analysis.improvement_actions)
+    ) {
+      console.error('[OpenAI Pro] ✗ Invalid response structure:', {
+        hasOverview: !!analysis.overview,
+        hasSections: !!analysis.sections,
+        hasAtsAnalysis: !!analysis.ats_analysis,
+        hasImprovementActions: Array.isArray(analysis.improvement_actions),
+      });
+      throw new Error('OPENAI_ERROR: Invalid response structure from OpenAI');
+    }
+
+    // Validate that critical arrays are not empty
+    if (
+      analysis.overview.fit_for_roles.length === 0 ||
+      analysis.improvement_actions.length === 0
+    ) {
+      console.error('[OpenAI Pro] ✗ Empty critical arrays in response');
+      throw new Error('OPENAI_ERROR: Incomplete analysis from OpenAI');
+    }
+
+    const totalProcessingTime = Date.now() - overallStartTime;
+    console.log(`[OpenAI Pro] ✓ Analysis completed successfully in ${totalProcessingTime}ms`);
+    console.log(
+      `[OpenAI Pro] Response stats: overall_score=${analysis.overview.overall_score}, ats_pass_rate=${analysis.ats_analysis.ats_pass_rate}, actions=${analysis.improvement_actions.length}`
+    );
+
+    return analysis;
+  } catch (error) {
+    const totalProcessingTime = Date.now() - overallStartTime;
+
+    // Handle specific error types
+    if (error instanceof Error) {
+      // If it's already a formatted error, re-throw it
+      if (error.name === 'MISSING_API_KEY' || error.message.startsWith('OPENAI_ERROR:')) {
+        throw error;
+      }
+
+      // Log detailed error information
+      console.error(`[OpenAI Pro] ✗ Analysis failed after ${totalProcessingTime}ms:`, {
+        name: error.name,
+        message: error.message,
+        stack: error.stack?.split('\n').slice(0, 3).join('\n'),
+      });
+
+      // Handle timeout errors
+      if (error.message.includes('timeout') || error.message.includes('timed out')) {
+        throw new Error('OPENAI_ERROR: Request timed out after 30 seconds');
+      }
+
+      // Handle rate limit errors
+      if (error.message.includes('rate_limit') || error.message.includes('429')) {
+        throw new Error('OPENAI_ERROR: Rate limit exceeded, please try again later');
+      }
+
+      // Handle authentication errors
+      if (error.message.includes('401') || error.message.includes('authentication')) {
+        throw new Error('OPENAI_ERROR: Invalid API key');
+      }
+
+      // Handle insufficient quota errors
+      if (error.message.includes('insufficient_quota') || error.message.includes('quota')) {
+        throw new Error('OPENAI_ERROR: API quota exceeded');
+      }
+
+      // Generic OpenAI error
+      throw new Error(`OPENAI_ERROR: ${error.message}`);
+    }
+
+    // Unknown error type
+    console.error('[OpenAI Pro] ✗ Unknown error type:', error);
     throw new Error('OPENAI_ERROR: Unknown error occurred');
   }
 }
