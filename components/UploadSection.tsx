@@ -6,23 +6,112 @@ import { motion } from 'framer-motion';
 import Button from '@/components/ui/button';
 import Alert from '@/components/ui/alert';
 
+interface AnalysisResult {
+  score: number;
+  summary: {
+    overall: string;
+    topStrength: string;
+    topWeakness: string;
+  };
+  strengths: Array<{
+    title: string;
+    description: string;
+    example: string;
+    category: 'content' | 'format' | 'ats';
+  }>;
+  suggestions: Array<{
+    title: string;
+    description: string;
+    priority: 'high' | 'medium' | 'low';
+    beforeExample: string;
+    afterExample: string;
+    actionSteps: string[];
+  }>;
+}
+
 interface UploadSectionProps {
-  onFileSelect: (file: File) => void;
-  onTextPaste: (text: string) => void;
+  onAnalyzeComplete: (data: AnalysisResult) => void;
 }
 
 const UploadSection: React.FC<UploadSectionProps> = ({
-  onFileSelect,
-  onTextPaste,
+  onAnalyzeComplete,
 }) => {
   const [error, setError] = useState<string>('');
-  const [isUploading, setIsUploading] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [pastedText, setPastedText] = useState('');
+  const [analysisComplete, setAnalysisComplete] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
   const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
 
+  // Convert file to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remove the data:application/pdf;base64, prefix
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  // Handle API call to analyze resume
+  const analyzeResume = useCallback(async (text: string, format: 'text' | 'pdf') => {
+    setIsAnalyzing(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          resumeText: text,
+          format: format,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setAnalysisComplete(true);
+        onAnalyzeComplete(result.data);
+      } else {
+        // Handle error responses with user-friendly messages
+        const errorCode = result.error?.code || 'UNKNOWN_ERROR';
+        const errorMessage = result.error?.message || 'An unexpected error occurred';
+
+        switch (errorCode) {
+          case 'VALIDATION_ERROR':
+            setError('Your resume text is too short. Please provide more content.');
+            break;
+          case 'OPENAI_ERROR':
+            setError('AI analysis service is currently unavailable. Please try again.');
+            break;
+          case 'PDF_PARSE_ERROR':
+          case 'PDF_TOO_LARGE':
+          case 'PDF_INSUFFICIENT_CONTENT':
+            setError('Invalid file format or file too large. Please try a different file.');
+            break;
+          default:
+            setError(errorMessage);
+        }
+      }
+    } catch (err) {
+      console.error('Error analyzing resume:', err);
+      setError('Network error. Please check your connection and try again.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [onAnalyzeComplete]);
+
   const onDrop = useCallback(
-    (acceptedFiles: File[], rejectedFiles: any[]) => {
+    async (acceptedFiles: File[], rejectedFiles: any[]) => {
       setError('');
 
       // Handle rejected files
@@ -48,16 +137,19 @@ const UploadSection: React.FC<UploadSectionProps> = ({
           return;
         }
 
-        setIsUploading(true);
+        setUploadedFile(file);
 
-        // Simulate processing delay (in real app, this would be actual processing)
-        setTimeout(() => {
-          onFileSelect(file);
-          setIsUploading(false);
-        }, 1000);
+        try {
+          // Convert PDF to base64 and analyze
+          const base64Content = await fileToBase64(file);
+          await analyzeResume(base64Content, 'pdf');
+        } catch (err) {
+          console.error('Error processing file:', err);
+          setError('Failed to process PDF file. Please try again.');
+        }
       }
     },
-    [onFileSelect]
+    [MAX_FILE_SIZE, analyzeResume]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -67,22 +159,23 @@ const UploadSection: React.FC<UploadSectionProps> = ({
     },
     maxSize: MAX_FILE_SIZE,
     multiple: false,
-    disabled: isUploading,
+    disabled: isAnalyzing || analysisComplete,
   });
 
-  const handleTextSubmit = () => {
+  const handleTextSubmit = async () => {
     if (!pastedText.trim()) {
       setError('Please paste some text first.');
       return;
     }
 
-    setError('');
-    setIsUploading(true);
+    await analyzeResume(pastedText, 'text');
+  };
 
-    setTimeout(() => {
-      onTextPaste(pastedText);
-      setIsUploading(false);
-    }, 500);
+  const handleAnalyzeAnother = () => {
+    setAnalysisComplete(false);
+    setError('');
+    setPastedText('');
+    setUploadedFile(null);
   };
 
   const handleTryExample = () => {
@@ -109,6 +202,53 @@ JavaScript, TypeScript, React, Node.js, Python, AWS, Docker`;
 
     setPastedText(exampleResume);
   };
+
+  // If analysis is complete, show success message and "Analyze Another" button
+  if (analysisComplete) {
+    return (
+      <div className="w-full max-w-xl mx-auto px-4 py-8">
+        <div className="relative">
+          {/* Blue glow effect behind the card */}
+          <div className="absolute inset-0 bg-blue-100/40 blur-3xl opacity-50 rounded-3xl" />
+
+          {/* Success card */}
+          <div className="relative bg-white shadow-lg rounded-2xl p-6 md:p-8 space-y-6 text-center">
+            {/* Success icon */}
+            <div className="flex justify-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                <svg
+                  className="w-8 h-8 text-green-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 tracking-tight">
+                Analysis Complete!
+              </h2>
+              <p className="text-sm md:text-base text-gray-500 leading-relaxed">
+                Your resume has been analyzed successfully. Scroll down to see the results.
+              </p>
+            </div>
+
+            <Button onClick={handleAnalyzeAnother}>
+              Analyze Another Resume
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-xl mx-auto px-4 py-8">
@@ -144,12 +284,12 @@ JavaScript, TypeScript, React, Node.js, Python, AWS, Docker`;
                   ? 'border-blue-400 bg-blue-50/40 scale-[1.02] shadow-md'
                   : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50/40 hover:shadow-md'
               }
-              ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}
+              ${isAnalyzing ? 'opacity-50 cursor-not-allowed' : ''}
             `}
           >
             <input {...getInputProps()} />
 
-            {isUploading ? (
+            {isAnalyzing ? (
               <div className="space-y-3">
                 <div className="flex justify-center">
                   <svg
@@ -173,7 +313,7 @@ JavaScript, TypeScript, React, Node.js, Python, AWS, Docker`;
                     ></path>
                   </svg>
                 </div>
-                <p className="text-blue-500 font-medium">Processing...</p>
+                <p className="text-blue-500 font-medium">Analyzing your resume...</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -238,7 +378,7 @@ JavaScript, TypeScript, React, Node.js, Python, AWS, Docker`;
                 setError('');
               }}
               placeholder="Paste your resume text here..."
-              disabled={isUploading}
+              disabled={isAnalyzing}
               className="w-full min-h-[200px] max-h-[400px] px-4 py-3 border border-gray-300 rounded-xl resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed transition-all placeholder:text-gray-400"
               style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
             />
@@ -246,16 +386,16 @@ JavaScript, TypeScript, React, Node.js, Python, AWS, Docker`;
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
                 onClick={handleTextSubmit}
-                disabled={isUploading || !pastedText.trim()}
+                disabled={isAnalyzing || !pastedText.trim()}
                 className="flex-1"
               >
-                {isUploading ? 'Processing...' : 'Analyze Resume'}
+                {isAnalyzing ? 'Analyzing...' : 'Analyze Resume'}
               </Button>
 
               <Button
                 variant="secondary"
                 onClick={handleTryExample}
-                disabled={isUploading}
+                disabled={isAnalyzing}
               >
                 Try Example
               </Button>

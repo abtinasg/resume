@@ -1,17 +1,39 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import UploadSection from '@/components/UploadSection';
 
-export default function Home() {
-  const handleFileSelect = (file: File) => {
-    console.log('File selected:', file.name);
-    // TODO: Process the uploaded file
+interface AnalysisResult {
+  score: number;
+  summary: {
+    overall: string;
+    topStrength: string;
+    topWeakness: string;
   };
+  strengths: Array<{
+    title: string;
+    description: string;
+    example: string;
+    category: 'content' | 'format' | 'ats';
+  }>;
+  suggestions: Array<{
+    title: string;
+    description: string;
+    priority: 'high' | 'medium' | 'low';
+    beforeExample: string;
+    afterExample: string;
+    actionSteps: string[];
+  }>;
+}
 
-  const handleTextPaste = (text: string) => {
-    console.log('Text pasted, length:', text.length);
-    // TODO: Process the pasted text
+export default function Home() {
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+
+  const handleAnalyzeComplete = (data: AnalysisResult) => {
+    setAnalysisResult(data);
+    console.log('Analysis complete:', data);
+    // TODO: Display the results using a ResultsTab component
   };
 
   const scrollToUpload = () => {
@@ -135,8 +157,7 @@ export default function Home() {
         >
           <div className="max-w-4xl mx-auto px-6 md:px-12 relative">
             <UploadSection
-              onFileSelect={handleFileSelect}
-              onTextPaste={handleTextPaste}
+              onAnalyzeComplete={handleAnalyzeComplete}
             />
 
             {/* Trust message */}
