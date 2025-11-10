@@ -12,11 +12,11 @@
     "framer-motion": "^12.23.24",
     "next": "^14.2.18",
     "openai": "^6.8.1",
-    "pdf-parse": "^2.4.5",
+    "pdf-parse": "^1.1.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-dropzone": "^14.3.8",
-    "zod": "^4.1.12"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^20",
