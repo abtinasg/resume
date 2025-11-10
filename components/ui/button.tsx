@@ -17,11 +17,24 @@ const Button: React.FC<ButtonProps> = ({
   type = 'button',
   className = '',
 }) => {
-  const baseStyles = 'px-6 py-3 rounded-xl font-medium transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed';
+  const baseStyles = 'group relative px-6 py-3 rounded-xl font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base';
 
   const variantStyles = {
-    primary: 'bg-[#3B82F6] text-white hover:bg-[#2563EB]',
-    secondary: 'bg-white text-[#374151] border border-gray-300 hover:bg-gray-50',
+    primary: `
+      bg-gradient-to-r from-blue-500 to-indigo-500 text-white
+      shadow-lg shadow-blue-100
+      hover:shadow-xl hover:shadow-blue-200
+      hover:scale-[1.02] hover:-translate-y-0.5
+      active:scale-[0.98] active:translate-y-0
+      overflow-hidden
+    `,
+    secondary: `
+      bg-white text-gray-700 border-2 border-gray-200
+      shadow-sm
+      hover:shadow-md hover:border-blue-300 hover:text-blue-500
+      hover:scale-[1.02] hover:-translate-y-0.5
+      active:scale-[0.98] active:translate-y-0
+    `,
   };
 
   return (
@@ -31,7 +44,10 @@ const Button: React.FC<ButtonProps> = ({
       disabled={disabled}
       className={`${baseStyles} ${variantStyles[variant]} ${className}`}
     >
-      {children}
+      {variant === 'primary' && (
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
+      )}
+      <span className="relative z-10">{children}</span>
     </button>
   );
 };
