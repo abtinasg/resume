@@ -36,8 +36,8 @@ export interface PDFExtractionResult {
 // CONSTANTS
 // ============================================================================
 
-const MIN_SUCCESS_LENGTH = 200; // Minimum characters for automatic fallback
-const MIN_PARTIAL_LENGTH = 100; // Minimum for partial success
+const MIN_SUCCESS_LENGTH = 50; // Minimum characters for automatic fallback (lowered for better compatibility)
+const MIN_PARTIAL_LENGTH = 15; // Minimum for partial success (lowered to accept more PDFs)
 const OCR_MAX_PAGES = 3; // Process up to 3 pages for performance
 const OCR_SCALES = [1.5, 2.0, 3.0]; // Dynamic scaling for OCR
 const PREVIEW_LENGTH = 150; // Characters to show in logs
@@ -159,16 +159,26 @@ async function extractWithPDFJS(pdfBuffer: Buffer): Promise<string> {
       const page = await pdf.getPage(pageNum);
       const textContent = await page.getTextContent();
 
-      // Build text from items with better spacing
-      const pageText = textContent.items
-        .map((item: any) => {
-          // Handle both text items and whitespace items
-          if ("str" in item) {
-            return item.str;
+      // Build text from items with improved spacing logic
+      let pageText = "";
+      let lastY = -1;
+
+      textContent.items.forEach((item: any, index: number) => {
+        if ("str" in item && item.str.trim()) {
+          const currentY = item.transform?.[5] || 0;
+
+          // Add newline if we're on a different line (Y coordinate changed significantly)
+          if (lastY !== -1 && Math.abs(currentY - lastY) > 2) {
+            pageText += "\n";
+          } else if (pageText.length > 0 && !pageText.endsWith(" ") && !pageText.endsWith("\n")) {
+            // Add space if needed
+            pageText += " ";
           }
-          return "";
-        })
-        .join(" ");
+
+          pageText += item.str;
+          lastY = currentY;
+        }
+      });
 
       if (pageText.trim().length > 0) {
         textParts.push(pageText);
@@ -400,10 +410,10 @@ export async function extractTextFromBuffer(
     const currentBest = mergeTexts(extractedTexts);
     const needsFallback = currentBest.length < MIN_SUCCESS_LENGTH;
 
-    // ===== STAGE 2: PDFJS (if needed) =====
-    if (needsFallback) {
+    // ===== STAGE 2: PDFJS (always try for better extraction) =====
+    if (needsFallback || currentBest.length < 100) {
       console.log(
-        `[PDF Parser] Text too short (${currentBest.length} chars), trying pdfjs...`
+        `[PDF Parser] ${needsFallback ? "Text too short" : "Trying additional extraction"} (${currentBest.length} chars), trying pdfjs...`
       );
       const pdfjsText = await extractWithPDFJS(pdfBuffer);
       if (pdfjsText.length > 0) {
@@ -418,10 +428,10 @@ export async function extractTextFromBuffer(
     const currentBest2 = mergeTexts(extractedTexts);
     const stillNeedsFallback = currentBest2.length < MIN_SUCCESS_LENGTH;
 
-    // ===== STAGE 3: OCR (if needed) =====
-    if (stillNeedsFallback) {
+    // ===== STAGE 3: OCR (try if text is still insufficient) =====
+    if (stillNeedsFallback || currentBest2.length < 100) {
       console.log(
-        `[PDF Parser] Still too short (${currentBest2.length} chars), trying OCR...`
+        `[PDF Parser] ${stillNeedsFallback ? "Still too short" : "Trying OCR for better coverage"} (${currentBest2.length} chars), trying OCR...`
       );
       const ocrResult = await extractWithOCR(pdfBuffer);
       if (ocrResult.text.length > 0) {
@@ -437,7 +447,7 @@ export async function extractTextFromBuffer(
     const currentBest3 = mergeTexts(extractedTexts);
     const stillNeedsFallback2 = currentBest3.length < MIN_SUCCESS_LENGTH;
 
-    // ===== STAGE 4: METADATA (if needed) =====
+    // ===== STAGE 4: METADATA (final fallback) =====
     if (stillNeedsFallback2) {
       console.log(
         `[PDF Parser] Still too short (${currentBest3.length} chars), trying metadata...`

@@ -10,7 +10,7 @@ const MAX_TEXT_LENGTH = 15000;
 const ResumeAnalyzeSchema = z.object({
   resumeText: z
     .string()
-    .min(50, 'Resume text is too short (minimum 50 characters)')
+    .min(15, 'Resume text is too short (minimum 15 characters)')
     .max(
       MAX_TEXT_LENGTH,
       `Resume text is too long (maximum ${MAX_TEXT_LENGTH} characters)`
@@ -148,14 +148,14 @@ export async function POST(req: NextRequest) {
         if (extractionResult.status === 'partial') {
           console.log(`[API] ⚠️ Partial extraction: ${extractionResult.message}`);
 
-          // Check if partial text is still usable
-          if (extractionResult.characterCount < 50) {
+          // Check if partial text is still usable (very lenient threshold)
+          if (extractionResult.characterCount < 15) {
             return NextResponse.json<ErrorResponse>(
               {
                 success: false,
                 error: {
                   code: 'PDF_INSUFFICIENT_CONTENT',
-                  message: extractionResult.message || 'PDF does not contain enough text content (minimum 50 characters required)',
+                  message: extractionResult.message || 'PDF does not contain enough text content (minimum 15 characters required)',
                 },
               },
               { status: 400 }
@@ -182,13 +182,13 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        if (resumeText.length < 50) {
+        if (resumeText.length < 15) {
           return NextResponse.json<ErrorResponse>(
             {
               success: false,
               error: {
                 code: 'PDF_INSUFFICIENT_CONTENT',
-                message: 'PDF does not contain enough text content (minimum 50 characters required)',
+                message: 'PDF does not contain enough text content (minimum 15 characters required)',
               },
             },
             { status: 400 }
