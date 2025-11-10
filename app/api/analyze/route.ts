@@ -128,21 +128,24 @@ export async function POST(req: NextRequest) {
 
     if (validatedInput.format === 'pdf') {
       try {
-        resumeText = await extractTextFromBase64PDF(validatedInput.resumeText);
+        const extractionResult = await extractTextFromBase64PDF(validatedInput.resumeText);
 
-        // Check for fallback message (indicates parsing failed or empty PDF)
-        if (resumeText.startsWith('[Empty or non-readable PDF file')) {
+        // Check extraction status
+        if (extractionResult.status === 'warning') {
           return NextResponse.json<ErrorResponse>(
             {
               success: false,
               error: {
-                code: 'PDF_INSUFFICIENT_CONTENT',
-                message: 'PDF does not contain enough readable text. Please ensure your PDF is text-based (not a scanned image) and contains at least 30 characters of content.',
+                code: 'PDF_EXTRACTION_FAILED',
+                message: extractionResult.message,
               },
             },
             { status: 400 }
           );
         }
+
+        // Get extracted text
+        resumeText = extractionResult.text;
 
         // Validate extracted text length
         if (resumeText.length > MAX_TEXT_LENGTH) {
@@ -170,6 +173,9 @@ export async function POST(req: NextRequest) {
             { status: 400 }
           );
         }
+
+        // Log successful extraction
+        console.log(`[API] PDF extraction successful via ${extractionResult.method}: ${extractionResult.characterCount} characters`);
       } catch (error) {
         return NextResponse.json<ErrorResponse>(
           {
