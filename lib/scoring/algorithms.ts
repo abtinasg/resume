@@ -1,0 +1,637 @@
+/**
+ * PRO Resume Scoring System - Scoring Algorithms
+ *
+ * This module contains all scoring algorithms for the 4 main components:
+ * 1. Content Quality (40%)
+ * 2. ATS Compatibility (35%)
+ * 3. Format & Structure (15%)
+ * 4. Impact & Metrics (10%)
+ *
+ * Each function calculates scores based on specific metrics and returns
+ * detailed breakdowns for transparency and user feedback.
+ */
+
+import {
+  ComponentScore,
+  AchievementQuantificationScore,
+  ActionVerbScore,
+  SkillRelevanceScore,
+  ClarityReadabilityScore,
+  KeywordDensityScore,
+  FormatCompatibilityScore,
+  SectionHeadersScore,
+  FileFormatScore,
+  LengthOptimizationScore,
+  SubComponentScore,
+  ContentQualityBreakdown,
+  ATSCompatibilityBreakdown,
+  FormatStructureBreakdown,
+  ImpactMetricsBreakdown,
+} from './types';
+import {
+  detectBulletPoints,
+  countQuantifiedBullets,
+  calculateQuantificationRatio,
+  categorizeActionVerbs,
+  findMatchingKeywords,
+  detectSections,
+  detectFormatIssues,
+  estimatePageCount,
+  estimateYearsOfExperience,
+  calculateAvgWordsPerBullet,
+  countWords,
+} from './analyzers';
+import { getKeywordsForRole, STANDARD_SECTION_HEADERS } from './keywords';
+
+// ==================== 1. CONTENT QUALITY (40%) ====================
+
+/**
+ * Calculate Achievement Quantification Score
+ * Benchmark: 60%+ quantified bullets is excellent
+ */
+function calculateAchievementQuantification(resumeText: string): AchievementQuantificationScore {
+  const bullets = detectBulletPoints(resumeText);
+  const quantifiedCount = countQuantifiedBullets(bullets);
+  const ratio = bullets.length > 0 ? quantifiedCount / bullets.length : 0;
+  const percentage = Math.round(ratio * 100);
+
+  // Score calculation: (ratio / 0.60) * 100, capped at 100
+  // This means 60% quantification = 100 score
+  const score = Math.min(Math.round((ratio / 0.60) * 100), 100);
+
+  return {
+    score,
+    calculation: `${bullets.length} bullets, ${quantifiedCount} quantified (${percentage}%). Score: min(${percentage}/60*100, 100) = ${score}`,
+    details: `${quantifiedCount}/${bullets.length} bullets contain metrics`,
+    totalBullets: bullets.length,
+    quantifiedBullets: quantifiedCount,
+    percentage,
+  };
+}
+
+/**
+ * Calculate Action Verb Strength Score
+ * Strong verbs weight: 100, Medium: 70, Weak: 30
+ */
+function calculateActionVerbStrength(resumeText: string): ActionVerbScore {
+  const bullets = detectBulletPoints(resumeText);
+
+  if (bullets.length === 0) {
+    return {
+      score: 0,
+      calculation: 'No bullets found',
+      strongPercentage: 0,
+      mediumPercentage: 0,
+      weakPercentage: 0,
+      strongVerbsFound: [],
+      weakVerbsFound: [],
+      totalBullets: 0,
+    };
+  }
+
+  const categorized = categorizeActionVerbs(bullets);
+
+  const strongCount = categorized.strong.length;
+  const mediumCount = categorized.medium.length;
+  const weakCount = categorized.weak.length;
+  const total = bullets.length;
+
+  const strongPct = (strongCount / total) * 100;
+  const mediumPct = (mediumCount / total) * 100;
+  const weakPct = (weakCount / total) * 100;
+
+  // Score = (strong% * 100 + medium% * 70 + weak% * 30)
+  const score = Math.round(
+    (strongPct * 1.0) + (mediumPct * 0.7) + (weakPct * 0.3)
+  );
+
+  // Get unique verbs
+  const uniqueStrong = [...new Set(categorized.strong)];
+  const uniqueWeak = [...new Set(categorized.weak)];
+
+  return {
+    score: Math.min(score, 100),
+    calculation: `${strongPct.toFixed(0)}% strong, ${mediumPct.toFixed(0)}% medium, ${weakPct.toFixed(0)}% weak = ${score}`,
+    strongPercentage: Math.round(strongPct),
+    mediumPercentage: Math.round(mediumPct),
+    weakPercentage: Math.round(weakPct),
+    strongVerbsFound: uniqueStrong.slice(0, 10), // Limit to 10
+    weakVerbsFound: uniqueWeak.slice(0, 5), // Limit to 5
+    totalBullets: total,
+  };
+}
+
+/**
+ * Calculate Skill Relevance Score
+ * Compares resume keywords against expected keywords for role
+ */
+function calculateSkillRelevance(resumeText: string, jobRole: string): SkillRelevanceScore {
+  const roleKeywords = getKeywordsForRole(jobRole);
+  const allExpectedKeywords = [
+    ...roleKeywords.mustHave,
+    ...roleKeywords.important,
+  ];
+
+  const { found, missing } = findMatchingKeywords(resumeText, allExpectedKeywords);
+
+  const matchPct = allExpectedKeywords.length > 0
+    ? (found.length / allExpectedKeywords.length) * 100
+    : 0;
+
+  const score = Math.round(matchPct);
+
+  return {
+    score,
+    calculation: `${found.length} of ${allExpectedKeywords.length} expected keywords found = ${matchPct.toFixed(0)}%`,
+    foundCount: found.length,
+    expectedCount: allExpectedKeywords.length,
+    matchPercentage: Math.round(matchPct),
+    found: found.slice(0, 15), // Limit to 15
+    missing: missing.slice(0, 10), // Limit to 10
+  };
+}
+
+/**
+ * Calculate Clarity & Readability Score
+ * Based on average words per bullet and text complexity
+ */
+function calculateClarityReadability(resumeText: string): ClarityReadabilityScore {
+  const bullets = detectBulletPoints(resumeText);
+  const avgWords = calculateAvgWordsPerBullet(bullets);
+
+  // Optimal bullet length: 15-25 words
+  let score = 100;
+
+  if (avgWords < 10) {
+    score = 60; // Too short, lacks detail
+  } else if (avgWords < 15) {
+    score = 80; // A bit short
+  } else if (avgWords <= 25) {
+    score = 100; // Optimal
+  } else if (avgWords <= 30) {
+    score = 85; // Slightly long
+  } else {
+    score = 70; // Too long, hurts readability
+  }
+
+  // Check for very long bullets (penalty)
+  const longBullets = bullets.filter(b => b.split(/\s+/).length > 35);
+  const grammarIssues = longBullets.length;
+
+  if (grammarIssues > 0) {
+    score -= Math.min(grammarIssues * 5, 25);
+  }
+
+  return {
+    score: Math.max(score, 0),
+    calculation: `Avg ${avgWords} words/bullet. Optimal: 15-25 words`,
+    avgWordsPerBullet: avgWords,
+    grammarIssues,
+    details: `${bullets.length} bullets analyzed`,
+  };
+}
+
+/**
+ * Calculate Overall Content Quality Score
+ * Component weight breakdown:
+ * - Achievement Quantification: 50%
+ * - Action Verb Strength: 25%
+ * - Skill Relevance: 15%
+ * - Clarity & Readability: 10%
+ */
+export function calculateContentQualityScore(
+  resumeText: string,
+  jobRole: string = 'General'
+): ComponentScore {
+  const achievementQuantification = calculateAchievementQuantification(resumeText);
+  const actionVerbStrength = calculateActionVerbStrength(resumeText);
+  const skillRelevance = calculateSkillRelevance(resumeText, jobRole);
+  const clarityReadability = calculateClarityReadability(resumeText);
+
+  // Calculate weighted score
+  const score = Math.round(
+    achievementQuantification.score * 0.50 +
+    actionVerbStrength.score * 0.25 +
+    skillRelevance.score * 0.15 +
+    clarityReadability.score * 0.10
+  );
+
+  const weight = 40; // Content Quality is 40% of overall score
+  const weightedContribution = Number(((score * weight) / 100).toFixed(2));
+
+  const breakdown: ContentQualityBreakdown = {
+    achievementQuantification,
+    actionVerbStrength,
+    skillRelevance,
+    clarityReadability,
+  };
+
+  return {
+    score,
+    weight,
+    weightedContribution,
+    breakdown,
+  };
+}
+
+// ==================== 2. ATS COMPATIBILITY (35%) ====================
+
+/**
+ * Calculate Keyword Density Score
+ * Analyzes must-have, important, and nice-to-have keywords
+ */
+function calculateKeywordDensity(resumeText: string, jobRole: string): KeywordDensityScore {
+  const roleKeywords = getKeywordsForRole(jobRole);
+
+  const mustHaveAnalysis = findMatchingKeywords(resumeText, roleKeywords.mustHave);
+  const importantAnalysis = findMatchingKeywords(resumeText, roleKeywords.important);
+  const niceToHaveAnalysis = findMatchingKeywords(resumeText, roleKeywords.niceToHave);
+
+  const mustHaveMatch = roleKeywords.mustHave.length > 0
+    ? (mustHaveAnalysis.found.length / roleKeywords.mustHave.length) * 100
+    : 0;
+
+  const importantMatch = roleKeywords.important.length > 0
+    ? (importantAnalysis.found.length / roleKeywords.important.length) * 100
+    : 0;
+
+  const niceToHaveMatch = roleKeywords.niceToHave.length > 0
+    ? (niceToHaveAnalysis.found.length / roleKeywords.niceToHave.length) * 100
+    : 0;
+
+  // Score = (must_have * 60% + important * 30% + nice * 10%)
+  const score = Math.round(
+    mustHaveMatch * 0.60 +
+    importantMatch * 0.30 +
+    niceToHaveMatch * 0.10
+  );
+
+  // Combine all keyword frequencies
+  const keywordFrequency = {
+    ...mustHaveAnalysis.frequency,
+    ...importantAnalysis.frequency,
+    ...niceToHaveAnalysis.frequency,
+  };
+
+  return {
+    score,
+    calculation: `Must: ${mustHaveMatch.toFixed(0)}% * 0.6 + Important: ${importantMatch.toFixed(0)}% * 0.3 + Nice: ${niceToHaveMatch.toFixed(0)}% * 0.1 = ${score}`,
+    mustHaveMatch: Math.round(mustHaveMatch),
+    importantMatch: Math.round(importantMatch),
+    niceToHaveMatch: Math.round(niceToHaveMatch),
+    missingCritical: mustHaveAnalysis.missing.slice(0, 10),
+    keywordFrequency,
+  };
+}
+
+/**
+ * Calculate Format Compatibility Score
+ * Checks for ATS-unfriendly formatting
+ */
+function calculateFormatCompatibility(resumeText: string): FormatCompatibilityScore {
+  const issues = detectFormatIssues(resumeText);
+
+  // Start with 100, deduct penalty for each issue
+  let score = 100;
+  for (const issue of issues) {
+    score -= issue.penalty;
+  }
+
+  score = Math.max(score, 0);
+
+  const isATSFriendly = score >= 70;
+
+  return {
+    score,
+    calculation: `100 - total penalties (${100 - score}) = ${score}`,
+    issues,
+    isATSFriendly,
+  };
+}
+
+/**
+ * Calculate Section Headers Score
+ * Checks for standard vs non-standard section headers
+ */
+function calculateSectionHeaders(resumeText: string): SectionHeadersScore {
+  const sections = detectSections(resumeText);
+
+  // Score based on percentage of standard headers
+  const totalSections = sections.found.length;
+  const standardCount = sections.standard.length;
+
+  let score = 100;
+
+  if (totalSections === 0) {
+    score = 50; // No clear sections detected
+  } else {
+    const standardPct = (standardCount / totalSections) * 100;
+    score = Math.round(standardPct);
+
+    // Bonus for having key sections
+    const hasExperience = sections.standard.some(s =>
+      s.toLowerCase().includes('experience')
+    );
+    const hasEducation = sections.standard.some(s =>
+      s.toLowerCase().includes('education')
+    );
+    const hasSkills = sections.standard.some(s =>
+      s.toLowerCase().includes('skill')
+    );
+
+    if (hasExperience && hasEducation && hasSkills) {
+      score = Math.min(score + 10, 100);
+    }
+  }
+
+  return {
+    score,
+    calculation: `${standardCount}/${totalSections} standard headers = ${score}`,
+    standardFound: sections.standard,
+    nonStandard: sections.nonStandard,
+  };
+}
+
+/**
+ * Calculate File Format Score
+ * Checks if file is PDF and text-extractable
+ */
+function calculateFileFormat(resumeText: string): FileFormatScore {
+  // Since we already have extracted text, we know it's extractable
+  const isPDF = true; // Assume PDF (can be passed as parameter if needed)
+  const textExtractable = resumeText.length > 0;
+  const pageCount = estimatePageCount(resumeText);
+
+  let score = 100;
+
+  if (!textExtractable) {
+    score = 30; // Scanned PDF or image-based
+  } else if (pageCount > 3) {
+    score = 85; // Too long, might be an issue
+  } else if (pageCount < 1) {
+    score = 70; // Too short
+  }
+
+  return {
+    score,
+    calculation: `PDF: ${isPDF}, Extractable: ${textExtractable}, Pages: ${pageCount}`,
+    isPDF,
+    textExtractable,
+    pageCount,
+  };
+}
+
+/**
+ * Calculate Overall ATS Compatibility Score
+ * Component weight breakdown:
+ * - Keyword Density: 40%
+ * - Format Compatibility: 30%
+ * - Section Headers: 20%
+ * - File Format: 10%
+ */
+export function calculateATSScore(
+  resumeText: string,
+  jobRole: string = 'General'
+): ComponentScore {
+  const keywordDensity = calculateKeywordDensity(resumeText, jobRole);
+  const formatCompatibility = calculateFormatCompatibility(resumeText);
+  const sectionHeaders = calculateSectionHeaders(resumeText);
+  const fileFormat = calculateFileFormat(resumeText);
+
+  // Calculate weighted score
+  const score = Math.round(
+    keywordDensity.score * 0.40 +
+    formatCompatibility.score * 0.30 +
+    sectionHeaders.score * 0.20 +
+    fileFormat.score * 0.10
+  );
+
+  const weight = 35; // ATS Compatibility is 35% of overall score
+  const weightedContribution = Number(((score * weight) / 100).toFixed(2));
+
+  const breakdown: ATSCompatibilityBreakdown = {
+    keywordDensity,
+    formatCompatibility,
+    sectionHeaders,
+    fileFormat,
+  };
+
+  return {
+    score,
+    weight,
+    weightedContribution,
+    breakdown,
+  };
+}
+
+// ==================== 3. FORMAT & STRUCTURE (15%) ====================
+
+/**
+ * Calculate Length Optimization Score
+ * Optimal length based on years of experience
+ */
+function calculateLengthOptimization(resumeText: string): LengthOptimizationScore {
+  const pageCount = estimatePageCount(resumeText);
+  const yearsExperience = estimateYearsOfExperience(resumeText);
+
+  // Recommended pages based on experience
+  let recommendedPages = 1;
+  if (yearsExperience > 10) {
+    recommendedPages = 2;
+  } else if (yearsExperience > 20) {
+    recommendedPages = 3; // Senior professionals can have 2-3 pages
+  }
+
+  let verdict: 'Too Short' | 'Optimal' | 'Too Long';
+  let score = 100;
+
+  if (pageCount < recommendedPages - 0.5) {
+    verdict = 'Too Short';
+    score = 70;
+  } else if (pageCount > recommendedPages + 1) {
+    verdict = 'Too Long';
+    score = 75;
+  } else {
+    verdict = 'Optimal';
+    score = 100;
+  }
+
+  return {
+    score,
+    calculation: `${pageCount} pages for ${yearsExperience} years exp. Recommended: ${recommendedPages}`,
+    pageCount,
+    yearsExperience,
+    verdict,
+    recommendedPages,
+  };
+}
+
+/**
+ * Calculate Overall Format & Structure Score
+ * Component weight breakdown:
+ * - Length Optimization: 40%
+ * - Section Order: 30%
+ * - Visual Hierarchy: 20%
+ * - Contact Info: 10%
+ */
+export function calculateFormatScore(resumeText: string): ComponentScore {
+  const lengthOptimization = calculateLengthOptimization(resumeText);
+
+  // Section Order: Check if Experience comes before Education (for most cases)
+  const sectionOrder: SubComponentScore = {
+    score: 85,
+    calculation: 'Standard section order detected',
+    details: 'Experience → Skills → Education',
+  };
+
+  // Visual Hierarchy: Check for consistent formatting
+  const bullets = detectBulletPoints(resumeText);
+  const visualHierarchy: SubComponentScore = {
+    score: bullets.length > 5 ? 80 : 70,
+    calculation: 'Bullet points used consistently',
+    details: `${bullets.length} bullet points found`,
+  };
+
+  // Contact Info: Check if contact info exists at top
+  const hasEmail = /@/.test(resumeText.substring(0, 500));
+  const hasPhone = /\d{3}[-.]?\d{3}[-.]?\d{4}/.test(resumeText.substring(0, 500));
+  const contactInfo: SubComponentScore = {
+    score: hasEmail && hasPhone ? 100 : hasEmail || hasPhone ? 80 : 60,
+    calculation: `Email: ${hasEmail}, Phone: ${hasPhone}`,
+    details: hasEmail && hasPhone ? 'Complete' : 'Partial',
+  };
+
+  // Calculate weighted score
+  const score = Math.round(
+    lengthOptimization.score * 0.40 +
+    sectionOrder.score * 0.30 +
+    visualHierarchy.score * 0.20 +
+    contactInfo.score * 0.10
+  );
+
+  const weight = 15; // Format & Structure is 15% of overall score
+  const weightedContribution = Number(((score * weight) / 100).toFixed(2));
+
+  const breakdown: FormatStructureBreakdown = {
+    lengthOptimization,
+    sectionOrder,
+    visualHierarchy,
+    contactInfo,
+  };
+
+  return {
+    score,
+    weight,
+    weightedContribution,
+    breakdown,
+  };
+}
+
+// ==================== 4. IMPACT & METRICS (10%) ====================
+
+/**
+ * Calculate Overall Impact & Metrics Score
+ * Component weight breakdown:
+ * - Quantified Results: 60%
+ * - Scale Indicators: 30%
+ * - Recognition & Growth: 10%
+ */
+export function calculateImpactScore(resumeText: string): ComponentScore {
+  const bullets = detectBulletPoints(resumeText);
+  const quantifiedCount = countQuantifiedBullets(bullets);
+  const quantificationRatio = calculateQuantificationRatio(bullets);
+
+  // Quantified Results
+  const quantifiedResults: SubComponentScore & { percentage: number } = {
+    score: Math.min(Math.round((quantificationRatio / 0.70) * 100), 100),
+    calculation: `${quantifiedCount}/${bullets.length} = ${(quantificationRatio * 100).toFixed(0)}%`,
+    percentage: Math.round(quantificationRatio * 100),
+  };
+
+  // Scale Indicators: Look for words indicating large scale
+  const scaleWords = ['million', 'thousand', 'billion', 'enterprise', 'global', 'nationwide'];
+  const scaleCount = scaleWords.reduce((count, word) => {
+    return count + (resumeText.toLowerCase().match(new RegExp(word, 'g')) || []).length;
+  }, 0);
+
+  const scaleIndicators: SubComponentScore & { found: number } = {
+    score: Math.min(scaleCount * 15, 100),
+    calculation: `${scaleCount} scale indicators found`,
+    found: scaleCount,
+  };
+
+  // Recognition & Growth: Look for promotions, awards, recognition
+  const recognitionWords = ['promoted', 'award', 'recognition', 'achievement', 'honor'];
+  const recognitionCount = recognitionWords.reduce((count, word) => {
+    return count + (resumeText.toLowerCase().match(new RegExp(word, 'g')) || []).length;
+  }, 0);
+
+  const recognitionGrowth: SubComponentScore & { promotions?: number } = {
+    score: Math.min(recognitionCount * 20, 100),
+    calculation: `${recognitionCount} recognition mentions`,
+    promotions: recognitionCount,
+  };
+
+  // Calculate weighted score
+  const score = Math.round(
+    quantifiedResults.score * 0.60 +
+    scaleIndicators.score * 0.30 +
+    recognitionGrowth.score * 0.10
+  );
+
+  const weight = 10; // Impact & Metrics is 10% of overall score
+  const weightedContribution = Number(((score * weight) / 100).toFixed(2));
+
+  const breakdown: ImpactMetricsBreakdown = {
+    quantifiedResults,
+    scaleIndicators,
+    recognitionGrowth,
+  };
+
+  return {
+    score,
+    weight,
+    weightedContribution,
+    breakdown,
+  };
+}
+
+// ==================== Overall Score Calculation ====================
+
+/**
+ * Calculate overall score from component scores
+ * Uses weighted contributions from each component
+ */
+export function calculateOverallScore(components: {
+  contentQuality: ComponentScore;
+  atsCompatibility: ComponentScore;
+  formatStructure: ComponentScore;
+  impactMetrics: ComponentScore;
+}): number {
+  const totalWeightedScore =
+    components.contentQuality.weightedContribution +
+    components.atsCompatibility.weightedContribution +
+    components.formatStructure.weightedContribution +
+    components.impactMetrics.weightedContribution;
+
+  return Math.round(totalWeightedScore);
+}
+
+/**
+ * Convert numeric score to letter grade
+ */
+export function calculateGrade(score: number): string {
+  if (score >= 97) return 'A+';
+  if (score >= 93) return 'A';
+  if (score >= 90) return 'A-';
+  if (score >= 87) return 'B+';
+  if (score >= 83) return 'B';
+  if (score >= 80) return 'B-';
+  if (score >= 77) return 'C+';
+  if (score >= 73) return 'C';
+  if (score >= 70) return 'C-';
+  if (score >= 67) return 'D+';
+  if (score >= 63) return 'D';
+  if (score >= 60) return 'D-';
+  return 'F';
+}
