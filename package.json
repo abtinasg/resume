@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "framer-motion": "^12.23.24",
+    "https-proxy-agent": "^7.0.6",
     "next": "^14.2.18",
     "openai": "^6.8.1",
     "pdf-parse": "^1.1.1",
