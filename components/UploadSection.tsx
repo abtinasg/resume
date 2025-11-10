@@ -5,7 +5,6 @@ import { useDropzone } from 'react-dropzone';
 import { motion } from 'framer-motion';
 import Button from '@/components/ui/button';
 import Alert from '@/components/ui/alert';
-import LoadingProgress from '@/components/LoadingProgress';
 import type { AnalysisResult, ApiAnalysisResponse } from '@/lib/types/analysis';
 import { transformApiToAnalysisResult } from '@/lib/transformAnalysis';
 
@@ -255,11 +254,6 @@ JavaScript, TypeScript, React, Node.js, Python, AWS, Docker`;
             <Alert message={error} mode="error" />
           )}
 
-          {/* Show LoadingProgress when analyzing */}
-          {isAnalyzing ? (
-            <LoadingProgress />
-          ) : (
-            <>
           {/* Dropzone Area with Enhanced Microinteractions */}
           <div className="relative">
             {/* Ambient glow on hover/drag */}
@@ -284,7 +278,49 @@ JavaScript, TypeScript, React, Node.js, Python, AWS, Docker`;
             >
               <input {...getInputProps()} />
 
-              <div className="space-y-4">
+              {isAnalyzing ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="space-y-4"
+                >
+                  <div className="flex justify-center">
+                    <div className="relative">
+                      {/* Spinning ring */}
+                      <svg
+                        className="animate-spin h-14 w-14 text-brand-indigo"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-20"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      {/* Pulsing glow */}
+                      <div className="absolute inset-0 bg-brand-indigo/30 blur-xl rounded-full animate-pulse" />
+                    </div>
+                  </div>
+                  <motion.p
+                    animate={{ opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="text-brand-indigo font-semibold"
+                  >
+                    Analyzing your resume...
+                  </motion.p>
+                </motion.div>
+              ) : (
+                <div className="space-y-4">
                   {/* Document Icon with enhanced hover animation */}
                   <motion.div
                     className="flex justify-center"
@@ -343,6 +379,7 @@ JavaScript, TypeScript, React, Node.js, Python, AWS, Docker`;
                     </div>
                   </motion.div>
                 </div>
+              )}
             </div>
           </div>
 
@@ -417,8 +454,6 @@ JavaScript, TypeScript, React, Node.js, Python, AWS, Docker`;
               </Button>
             </div>
           </div>
-            </>
-          )}
         </div>
       </div>
     </div>
