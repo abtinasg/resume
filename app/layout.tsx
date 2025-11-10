@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import Navbar from "@/components/Navbar";
 
 export const metadata: Metadata = {
   title: "ResumeIQ",
@@ -22,9 +23,7 @@ export default function RootLayout({
         />
       </head>
       <body className="font-inter antialiased">
-        <header className="bg-white border-b border-gray-200 px-6 py-4">
-          <h1 className="text-2xl font-bold text-gray-900">ResumeIQ</h1>
-        </header>
+        <Navbar />
         <main>{children}</main>
       </body>
     </html>
