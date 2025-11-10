@@ -1,17 +1,22 @@
-import { PDFParse } from 'pdf-parse';
+/**
+ * PDF Parser with dynamic import for Next.js compatibility
+ * Uses pdf-parse to extract text from PDF buffers
+ */
 
 export async function extractTextFromPDF(
   pdfBuffer: Buffer
 ): Promise<string> {
   try {
-    const parser = new PDFParse({ data: pdfBuffer });
-    const result = await parser.getText();
+    // Dynamic import to avoid Next.js build issues with pdf-parse
+    const pdfParse = (await import('pdf-parse')).default;
 
-    if (!result.text || result.text.trim().length === 0) {
+    const data = await pdfParse(pdfBuffer);
+
+    if (!data.text || data.text.trim().length === 0) {
       throw new Error('No text content found in PDF');
     }
 
-    return result.text.trim();
+    return data.text.trim();
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`PDF parsing failed: ${error.message}`);
@@ -25,8 +30,23 @@ export async function extractTextFromBase64PDF(
 ): Promise<string> {
   try {
     // Remove data URI prefix if present
-    const base64Data = base64String.replace(/^data:application\/pdf;base64,/, '');
+    const base64Data = base64String.replace(
+      /^data:application\/pdf;base64,/,
+      ''
+    );
+
+    // Validate base64 string
+    if (!base64Data || base64Data.length === 0) {
+      throw new Error('Invalid or empty base64 string');
+    }
+
+    // Convert base64 to buffer
     const buffer = Buffer.from(base64Data, 'base64');
+
+    if (buffer.length === 0) {
+      throw new Error('Failed to decode base64 PDF data');
+    }
+
     return await extractTextFromPDF(buffer);
   } catch (error) {
     if (error instanceof Error) {
