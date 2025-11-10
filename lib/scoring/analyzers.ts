@@ -284,8 +284,11 @@ export function findMatchingKeywords(
   for (const keyword of expectedKeywords) {
     const normalizedKeyword = keyword.toLowerCase();
 
+    // Escape special regex characters in the keyword
+    const escapedKeyword = normalizedKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
     // Check if keyword exists in text (as whole word or phrase)
-    const keywordPattern = new RegExp(`\\b${normalizedKeyword.replace(/\s+/g, '\\s+')}\\b`, 'i');
+    const keywordPattern = new RegExp(`\\b${escapedKeyword.replace(/\s+/g, '\\s+')}\\b`, 'i');
     const isFound = keywordPattern.test(normalizedText);
 
     if (isFound) {
