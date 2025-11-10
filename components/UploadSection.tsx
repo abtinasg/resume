@@ -5,29 +5,8 @@ import { useDropzone } from 'react-dropzone';
 import { motion } from 'framer-motion';
 import Button from '@/components/ui/button';
 import Alert from '@/components/ui/alert';
-
-interface AnalysisResult {
-  score: number;
-  summary: {
-    overall: string;
-    topStrength: string;
-    topWeakness: string;
-  };
-  strengths: Array<{
-    title: string;
-    description: string;
-    example: string;
-    category: 'content' | 'format' | 'ats';
-  }>;
-  suggestions: Array<{
-    title: string;
-    description: string;
-    priority: 'high' | 'medium' | 'low';
-    beforeExample: string;
-    afterExample: string;
-    actionSteps: string[];
-  }>;
-}
+import type { AnalysisResult, ApiAnalysisResponse } from '@/lib/types/analysis';
+import { transformApiToAnalysisResult } from '@/lib/transformAnalysis';
 
 interface UploadSectionProps {
   onAnalyzeComplete: (data: AnalysisResult) => void;
@@ -79,8 +58,10 @@ const UploadSection: React.FC<UploadSectionProps> = ({
       const result = await response.json();
 
       if (result.success) {
+        // Transform API response to UI format
+        const transformedData = transformApiToAnalysisResult(result.data);
         setAnalysisComplete(true);
-        onAnalyzeComplete(result.data);
+        onAnalyzeComplete(transformedData);
       } else {
         // Handle error responses with user-friendly messages
         const errorCode = result.error?.code || 'UNKNOWN_ERROR';
