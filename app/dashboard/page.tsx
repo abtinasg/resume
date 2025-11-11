@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Card from "@/components/ui/card";
 import Button from "@/components/ui/button";
 import Badge from "@/components/ui/badge";
+import { useAuthStore } from "@/lib/store/authStore";
 
 interface Resume {
   id: string;
@@ -21,9 +22,21 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
+  // Get auth state from store
+  const { isAuthenticated, isLoading: authLoading } = useAuthStore();
+
+  // Redirect to login if not authenticated
   useEffect(() => {
-    fetchResumes();
-  }, []);
+    if (!authLoading && !isAuthenticated) {
+      router.push('/auth/login');
+    }
+  }, [authLoading, isAuthenticated, router]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchResumes();
+    }
+  }, [isAuthenticated]);
 
   const fetchResumes = async () => {
     try {
@@ -106,6 +119,27 @@ export default function DashboardPage() {
 
     return <Badge variant={status.variant}>{status.text}</Badge>;
   };
+
+  // Show loading while checking authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Checking authentication...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render dashboard if not authenticated (will redirect)
+  if (!isAuthenticated) {
+    return null;
+  }
 
   if (loading) {
     return (

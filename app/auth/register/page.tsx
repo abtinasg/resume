@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuthStore } from '@/lib/store/authStore';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -13,6 +14,16 @@ export default function RegisterPage() {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Get auth state and checkAuth function from the auth store
+  const { isAuthenticated, isLoading: authLoading, checkAuth } = useAuthStore();
+
+  // Redirect to dashboard if already authenticated
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, isAuthenticated, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -58,8 +69,11 @@ export default function RegisterPage() {
         return;
       }
 
-      // Redirect to profile page after successful registration
-      router.push('/profile');
+      // Update auth state after successful registration
+      await checkAuth();
+
+      // Redirect to dashboard after successful registration
+      router.push('/dashboard');
       router.refresh();
     } catch (err) {
       setError('An error occurred. Please try again.');

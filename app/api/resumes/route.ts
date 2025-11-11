@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
       data: {
         userId: user.userId,
         fileName: fileName || "Untitled Resume",
-        score: score !== undefined ? parseFloat(score) : null,
+        score: score !== undefined ? parseFloat(score) : 0,
         summary: summary || null,
         data: data || null,
       },

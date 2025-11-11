@@ -4,13 +4,15 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/lib/store/authStore';
 
 export default function Navbar() {
   const router = useRouter();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+
+  // Use auth store instead of local state
+  const { isAuthenticated, isLoading, logout } = useAuthStore();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -21,30 +23,10 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    checkAuthStatus();
-  }, []);
-
-  const checkAuthStatus = async () => {
-    try {
-      const response = await fetch('/api/auth/me');
-      setIsAuthenticated(response.ok);
-    } catch (error) {
-      setIsAuthenticated(false);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      setIsAuthenticated(false);
-      router.push('/');
-      router.refresh();
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
+    await logout();
+    router.push('/');
+    router.refresh();
   };
 
   const navLinks = [

@@ -1,14 +1,25 @@
 'use client';
 
-import { useState, FormEvent, Suspense } from 'react';
+import { useState, useEffect, FormEvent, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuthStore } from '@/lib/store/authStore';
 
 function LoginForm() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Get auth state and checkAuth function from the auth store
+  const { isAuthenticated, isLoading: authLoading, checkAuth } = useAuthStore();
+
+  // Redirect to dashboard if already authenticated
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, isAuthenticated, router]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -24,8 +35,12 @@ function LoginForm() {
       });
 
       if (response.ok) {
-        // Successful login - redirect to dashboard
+        // Update auth state after successful login
+        await checkAuth();
+
+        // Redirect to dashboard
         router.push('/dashboard');
+        router.refresh();
         return;
       }
 
