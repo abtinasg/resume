@@ -865,38 +865,85 @@ export function calculate3DScore(
 } {
   const startTime = Date.now();
 
+  // ========== NULL-SAFETY: Return default score if no resume text ==========
+  if (!resumeText || resumeText.trim().length === 0) {
+    console.debug('[3D Score] Empty resume text - returning default score');
+    return {
+      structure: 0,
+      content: 0,
+      tailoring: 0,
+      overall: 0,
+      breakdown: {
+        structure: {
+          sectionsFound: [],
+          sectionsMissing: ['experience', 'skills', 'education', 'summary', 'contact'],
+          completenessPercentage: 0,
+        },
+        content: {
+          quantificationRatio: 0,
+          strongVerbPercentage: 0,
+          clarityScore: 0,
+          impactScore: 0,
+        },
+        tailoring: {
+          keywordMatchPercentage: 0,
+          missingKeywords: [],
+        },
+      },
+    };
+  }
+
+  console.debug('[3D Score] Starting calculation for job role:', jobRole);
+
   // ========== STRUCTURE SCORE (0-40) ==========
   // Based on completeness of standard sections
 
   const sections = detectSections(resumeText);
+
+  // NULL-SAFETY: Ensure sections object has proper structure
+  const sectionsArray = sections?.found || [];
+  console.debug('[3D Score] Sections detected:', sectionsArray.length);
+
   const essentialSections = ['experience', 'skills', 'education', 'summary', 'contact'];
   const sectionsFound = essentialSections.filter(section =>
-    sections.some(s => s.toLowerCase().includes(section))
+    sectionsArray.some(s => s.toLowerCase().includes(section))
   );
   const sectionsMissing = essentialSections.filter(section =>
-    !sections.some(s => s.toLowerCase().includes(section))
+    !sectionsArray.some(s => s.toLowerCase().includes(section))
   );
 
   // Score: 8 points per essential section (5 sections × 8 = 40)
   const structureScore = Math.round((sectionsFound.length / essentialSections.length) * 40);
   const completenessPercentage = Math.round((sectionsFound.length / essentialSections.length) * 100);
 
+  console.debug('[3D Score] Structure - Found:', sectionsFound, 'Missing:', sectionsMissing, 'Score:', structureScore);
+
   // ========== CONTENT SCORE (0-60) ==========
   // Based on clarity, metrics, action verbs, and impact
 
   const bullets = detectBulletPoints(resumeText);
-  const quantifiedBullets = countQuantifiedBullets(bullets);
+  console.debug('[3D Score] Bullets detected:', bullets.length);
+
+  // NULL-SAFETY: Handle empty bullets array
+  const quantifiedBullets = bullets.length > 0 ? countQuantifiedBullets(bullets) : 0;
   const quantificationRatio = bullets.length > 0 ? quantifiedBullets / bullets.length : 0;
+  console.debug('[3D Score] Quantification:', quantifiedBullets, '/', bullets.length, '=', Math.round(quantificationRatio * 100) + '%');
 
   const verbAnalysis = categorizeActionVerbs(bullets);
-  const totalVerbs = verbAnalysis.strong.length + verbAnalysis.medium.length + verbAnalysis.weak.length;
+  // NULL-SAFETY: Ensure verb analysis has proper structure
+  const strongVerbs = verbAnalysis?.strong || [];
+  const mediumVerbs = verbAnalysis?.medium || [];
+  const weakVerbs = verbAnalysis?.weak || [];
+  const totalVerbs = strongVerbs.length + mediumVerbs.length + weakVerbs.length;
   const strongVerbPercentage = totalVerbs > 0
-    ? (verbAnalysis.strong.length / totalVerbs) * 100
+    ? (strongVerbs.length / totalVerbs) * 100
     : 0;
+  console.debug('[3D Score] Action verbs - Strong:', strongVerbs.length, 'Medium:', mediumVerbs.length, 'Weak:', weakVerbs.length);
 
   const avgWordsPerBullet = calculateAvgWordsPerBullet(bullets);
   const isOptimalLength = avgWordsPerBullet >= 15 && avgWordsPerBullet <= 25;
   const clarityScore = isOptimalLength ? 100 : Math.max(0, 100 - Math.abs(avgWordsPerBullet - 20) * 3);
+  console.debug('[3D Score] Clarity - Avg words per bullet:', avgWordsPerBullet, 'Optimal?', isOptimalLength, 'Score:', Math.round(clarityScore));
 
   // Impact score: combination of quantification and strong verbs
   const impactScore = (quantificationRatio * 100 * 0.6) + (strongVerbPercentage * 0.4);
@@ -912,6 +959,7 @@ export function calculate3DScore(
     ((clarityScore / 100) * 10) +
     ((impactScore / 100) * 5)
   );
+  console.debug('[3D Score] Content score:', contentScore, '/ 60');
 
   // ========== TAILORING SCORE (0-40) ==========
   // Based on match to job description (future feature)
@@ -922,13 +970,23 @@ export function calculate3DScore(
   let missingKeywords: string[] = [];
 
   if (jobDescription) {
+    console.debug('[3D Score] Tailoring - Job description provided, analyzing match');
     // Future: Implement JD matching logic here
     // For now, use basic keyword matching from existing system
     const keywords = getKeywordsForRole(jobRole);
     const foundKeywords = findMatchingKeywords(resumeText, keywords.mustHave);
-    keywordMatchPercentage = Math.round((foundKeywords.found.length / keywords.mustHave.length) * 100);
-    missingKeywords = foundKeywords.missing;
+
+    // NULL-SAFETY: Ensure keywords object has proper structure
+    const mustHaveCount = keywords?.mustHave?.length || 1; // Avoid division by zero
+    const foundCount = foundKeywords?.found?.length || 0;
+
+    keywordMatchPercentage = Math.round((foundCount / mustHaveCount) * 100);
+    missingKeywords = foundKeywords?.missing || [];
     tailoringScore = Math.round((keywordMatchPercentage / 100) * 40);
+
+    console.debug('[3D Score] Tailoring - Keywords matched:', foundCount, '/', mustHaveCount, 'Score:', tailoringScore);
+  } else {
+    console.debug('[3D Score] Tailoring - No job description provided, score: 0');
   }
 
   // ========== OVERALL SCORE (0-100) ==========
@@ -941,8 +999,14 @@ export function calculate3DScore(
   );
 
   const processingTime = Date.now() - startTime;
-  console.log(`[HYBRID 3D] Structure ${structureScore} | Content ${contentScore} | Tailoring ${tailoringScore} | Overall ${overallScore} (${processingTime}ms)`);
+  console.debug(`[3D Score] ===== FINAL RESULTS =====`);
+  console.debug(`[3D Score] Structure: ${structureScore}/40 (${Math.round((structureScore/40)*100)}%)`);
+  console.debug(`[3D Score] Content: ${contentScore}/60 (${Math.round((contentScore/60)*100)}%)`);
+  console.debug(`[3D Score] Tailoring: ${tailoringScore}/40 (${Math.round((tailoringScore/40)*100)}%)`);
+  console.debug(`[3D Score] Overall: ${overallScore}/100`);
+  console.debug(`[3D Score] Processing time: ${processingTime}ms`);
 
+  // Ensure consistent return type with all required fields
   return {
     structure: structureScore,
     content: contentScore,
