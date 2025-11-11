@@ -6,6 +6,7 @@ import Tabs from '@/components/ui/tabs';
 import Card from '@/components/ui/card';
 import Badge from '@/components/ui/badge';
 import Button from '@/components/ui/button';
+import AIReport from '@/components/AIReport';
 import type { AnalysisResult } from '@/lib/types/analysis';
 
 interface ResultsTabsProps {
@@ -292,7 +293,25 @@ const ResultsTabs: React.FC<ResultsTabsProps> = ({ analysis, onReset }) => {
   ];
 
   return (
-    <div className="w-full">
+    <div className="w-full space-y-8">
+      {/* AI Report Section */}
+      <AIReport verdict={analysis.ai_verdict ?? null} />
+
+      {/* Divider with heading for Local Scoring Results */}
+      {analysis.ai_verdict && (
+        <div className="relative py-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-200"></div>
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-white px-6 text-sm font-semibold text-gray-500 uppercase tracking-wider">
+              Detailed Breakdown
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Local Scoring Results */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
