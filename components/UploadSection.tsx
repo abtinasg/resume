@@ -21,6 +21,7 @@ const UploadSection: React.FC<UploadSectionProps> = ({
   const [pastedText, setPastedText] = useState('');
   const [analysisComplete, setAnalysisComplete] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [pdfDataUrl, setPdfDataUrl] = useState<string>('');
 
   const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
 
@@ -39,8 +40,21 @@ const UploadSection: React.FC<UploadSectionProps> = ({
     });
   };
 
+  // Convert file to data URL for PDF preview
+  const fileToDataUrl = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result as string;
+        resolve(result);
+      };
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
   // Handle API call to analyze resume
-  const analyzeResume = useCallback(async (text: string, format: 'text' | 'pdf') => {
+  const analyzeResume = useCallback(async (text: string, format: 'text' | 'pdf', pdfUrl?: string) => {
     setIsAnalyzing(true);
     setError('');
 
@@ -61,6 +75,10 @@ const UploadSection: React.FC<UploadSectionProps> = ({
       if (result.success) {
         // Transform unified hybrid API response to UI format
         const transformedData = transformApiToAnalysisResult(result);
+        // Add PDF URL if available
+        if (pdfUrl) {
+          transformedData.pdfUrl = pdfUrl;
+        }
         setAnalysisComplete(true);
         onAnalyzeComplete(transformedData);
       } else {
@@ -122,9 +140,12 @@ const UploadSection: React.FC<UploadSectionProps> = ({
         setUploadedFile(file);
 
         try {
-          // Convert PDF to base64 and analyze
+          // Convert PDF to base64 for analysis
           const base64Content = await fileToBase64(file);
-          await analyzeResume(base64Content, 'pdf');
+          // Convert PDF to data URL for preview
+          const dataUrl = await fileToDataUrl(file);
+          setPdfDataUrl(dataUrl);
+          await analyzeResume(base64Content, 'pdf', dataUrl);
         } catch (err) {
           console.error('Error processing file:', err);
           setError('Failed to process PDF file. Please try again.');
@@ -158,6 +179,7 @@ const UploadSection: React.FC<UploadSectionProps> = ({
     setError('');
     setPastedText('');
     setUploadedFile(null);
+    setPdfDataUrl('');
   };
 
   const handleTryExample = () => {

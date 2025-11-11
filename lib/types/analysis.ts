@@ -44,6 +44,8 @@ export interface AnalysisResult {
     content: number;
     tailoring: number;
   };
+  // PDF data for preview
+  pdfUrl?: string; // Base64 data URL or blob URL for PDF preview
 }
 
 /**
