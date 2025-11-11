@@ -4,6 +4,8 @@ import { extractTextFromBase64PDF } from '@/lib/pdfParser';
 import { calculate3DScore } from '@/lib/scoring/algorithms';
 import { build3DStrictAIPrompt } from '@/lib/prompts-pro';
 import { HYBRID_MODE, validateEnvironment } from '@/lib/env';
+import { verifyToken } from '@/lib/auth';
+import prisma from '@/lib/prisma';
 import OpenAI from 'openai';
 import type {
   ResumeScores,
@@ -511,6 +513,41 @@ export async function POST(req: NextRequest) {
       ai_status: response.ai_status,
       totalTime: `${totalTime}ms`,
     });
+
+    // Save resume to database if user is authenticated
+    try {
+      const token = req.cookies.get('token')?.value;
+      if (token) {
+        const user = verifyToken(token);
+
+        if (user) {
+          await prisma.resume.create({
+            data: {
+              userId: user.userId,
+              fileName: validatedInput.format === 'pdf' ? 'Uploaded Resume (PDF)' : 'Uploaded Resume (Text)',
+              score: response.overall_score,
+              summary: response.summary,
+              data: JSON.parse(JSON.stringify({
+                sections: response.sections,
+                actionables: response.actionables,
+                ai_status: response.ai_status,
+                metadata: response.metadata,
+                estimatedImprovementTime: response.estimatedImprovementTime,
+                targetScore: response.targetScore,
+                localScores: finalResult.localScores,
+                aiScores: finalResult.aiScores,
+              })),
+            },
+          });
+          console.log('[API 3D] ✓ Resume saved to database for user:', user.email);
+        } else {
+          console.log('[API 3D] ℹ️ Analysis completed without authentication - resume not saved');
+        }
+      }
+    } catch (dbError) {
+      // Don't fail the request if database save fails
+      console.error('[API 3D] ⚠️ Failed to save resume to database:', dbError);
+    }
 
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
