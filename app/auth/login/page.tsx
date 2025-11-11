@@ -37,10 +37,8 @@ function LoginForm() {
       if (response.ok) {
         // Update auth state after successful login
         await checkAuth();
-
-        // Redirect to dashboard
-        router.push('/dashboard');
-        router.refresh();
+        // Note: Don't manually redirect here - let the useEffect handle it
+        // This prevents double navigation and race conditions
         return;
       }
 
