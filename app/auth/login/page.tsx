@@ -1,21 +1,18 @@
 'use client';
 
 import { useState, FormEvent, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 function LoginForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError('');
-    setIsLoading(true);
+    setLoading(true);
 
     try {
       const response = await fetch('/api/auth/login', {
@@ -26,21 +23,19 @@ function LoginForm() {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || 'Login failed');
-        setIsLoading(false);
+      if (response.ok) {
+        // Successful login - redirect to dashboard
+        router.push('/dashboard');
         return;
       }
 
-      // Redirect to the original destination or profile page
-      const redirect = searchParams.get('redirect') || '/profile';
-      router.push(redirect);
-      router.refresh();
+      // Handle error response
+      const data = await response.json();
+      alert(data.error || 'Login failed');
+      setLoading(false);
     } catch (err) {
-      setError('An error occurred. Please try again.');
-      setIsLoading(false);
+      alert('An error occurred. Please try again.');
+      setLoading(false);
     }
   };
 
@@ -62,15 +57,6 @@ function LoginForm() {
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="flex">
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">{error}</h3>
-                </div>
-              </div>
-            </div>
-          )}
           <div className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
@@ -109,10 +95,10 @@ function LoginForm() {
           <div>
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={loading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {isLoading ? 'Signing in...' : 'Sign in'}
+              {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
 
