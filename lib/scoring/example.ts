@@ -49,27 +49,31 @@ export async function detailedAnalysisExample(resumeText: string) {
   console.log('\n=== DETAILED ANALYSIS ===');
 
   // Content Quality
+  const contentQuality = result.componentScores.contentQuality.breakdown as import('./types').ContentQualityBreakdown;
   console.log('\n1. Content Quality:', result.componentScores.contentQuality.score);
-  console.log('   - Achievement Quantification:', result.componentScores.contentQuality.breakdown.achievementQuantification.score);
-  console.log('     Details:', result.componentScores.contentQuality.breakdown.achievementQuantification.details);
-  console.log('   - Action Verb Strength:', result.componentScores.contentQuality.breakdown.actionVerbStrength.score);
-  console.log('     Strong verbs:', result.componentScores.contentQuality.breakdown.actionVerbStrength.strongVerbsFound.slice(0, 3).join(', '));
-  console.log('     Weak verbs:', result.componentScores.contentQuality.breakdown.actionVerbStrength.weakVerbsFound.slice(0, 3).join(', '));
+  console.log('   - Achievement Quantification:', contentQuality.achievementQuantification.score);
+  console.log('     Details:', contentQuality.achievementQuantification.details);
+  console.log('   - Action Verb Strength:', contentQuality.actionVerbStrength.score);
+  console.log('     Strong verbs:', contentQuality.actionVerbStrength.strongVerbsFound.slice(0, 3).join(', '));
+  console.log('     Weak verbs:', contentQuality.actionVerbStrength.weakVerbsFound.slice(0, 3).join(', '));
 
   // ATS Compatibility
+  const atsCompatibility = result.componentScores.atsCompatibility.breakdown as import('./types').ATSCompatibilityBreakdown;
   console.log('\n2. ATS Compatibility:', result.componentScores.atsCompatibility.score);
-  console.log('   - Keyword Density:', result.componentScores.atsCompatibility.breakdown.keywordDensity.score);
+  console.log('   - Keyword Density:', atsCompatibility.keywordDensity.score);
   console.log('   - Missing Critical Keywords:', result.atsDetailedReport.keywordGapAnalysis.mustHave.missing.slice(0, 5).join(', '));
   console.log('   - Format Issues:', result.atsDetailedReport.formatIssues.length);
 
   // Format & Structure
+  const formatStructure = result.componentScores.formatStructure.breakdown as import('./types').FormatStructureBreakdown;
   console.log('\n3. Format & Structure:', result.componentScores.formatStructure.score);
-  console.log('   - Page Count:', result.componentScores.formatStructure.breakdown.lengthOptimization.pageCount);
-  console.log('   - Verdict:', result.componentScores.formatStructure.breakdown.lengthOptimization.verdict);
+  console.log('   - Page Count:', formatStructure.lengthOptimization.pageCount);
+  console.log('   - Verdict:', formatStructure.lengthOptimization.verdict);
 
   // Impact & Metrics
+  const impactMetrics = result.componentScores.impactMetrics.breakdown as import('./types').ImpactMetricsBreakdown;
   console.log('\n4. Impact & Metrics:', result.componentScores.impactMetrics.score);
-  console.log('   - Quantified Results:', result.componentScores.impactMetrics.breakdown.quantifiedResults.percentage + '%');
+  console.log('   - Quantified Results:', impactMetrics.quantifiedResults.percentage + '%');
 
   return result;
 }
