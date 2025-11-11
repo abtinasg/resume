@@ -55,14 +55,39 @@ export class AIAnalysisError extends Error {
 }
 
 /**
+ * Truncate prompt to maximum character limit while preserving structure
+ *
+ * @param prompt - The prompt to truncate
+ * @param maxChars - Maximum characters (default: 12000)
+ * @returns Truncated prompt with indication if truncation occurred
+ */
+function truncatePrompt(prompt: string, maxChars: number = 12000): { prompt: string; wasTruncated: boolean } {
+  if (prompt.length <= maxChars) {
+    return { prompt, wasTruncated: false };
+  }
+
+  // Try to truncate intelligently at a section boundary
+  const truncated = prompt.substring(0, maxChars);
+  const lastNewlineIndex = truncated.lastIndexOf('\n\n');
+
+  // If we found a good break point, use it; otherwise use hard cut
+  const finalPrompt = lastNewlineIndex > maxChars * 0.8
+    ? truncated.substring(0, lastNewlineIndex) + '\n\n[Content truncated for length...]'
+    : truncated + '\n[Content truncated...]';
+
+  return { prompt: finalPrompt, wasTruncated: true };
+}
+
+/**
  * Analyze with AI - Generic helper for AI-powered analysis
  *
  * This function:
  * 1. Validates that OpenAI API key is configured
- * 2. Calls OpenAI API with the provided prompt
- * 3. Uses gpt-4o-mini model for cost-effective, fast responses
- * 4. Safely parses JSON response with validation
- * 5. Throws AIAnalysisError with specific error codes for better error handling
+ * 2. Truncates prompt to max 12k characters if needed
+ * 3. Calls OpenAI API with the provided prompt (60s timeout)
+ * 4. Uses gpt-4o-mini model for cost-effective, fast responses
+ * 5. Safely parses JSON response with validation
+ * 6. Throws AIAnalysisError with specific error codes for better error handling
  *
  * @param prompt - The complete prompt to send to the AI
  * @returns Promise<AIVerdictResponse> - Parsed JSON response from AI
@@ -93,10 +118,19 @@ export async function analyzeWithAI(prompt: string): Promise<AIVerdictResponse> 
     );
   }
 
+  // Truncate prompt if needed (max 12k chars for optimal performance)
+  const { prompt: truncatedPrompt, wasTruncated } = truncatePrompt(prompt, 12000);
+
+  if (wasTruncated) {
+    console.log('[AI Verdict] ⚠️ Prompt truncated from', prompt.length, 'to', truncatedPrompt.length, 'characters');
+  } else {
+    console.log('[AI Verdict] 📝 Prompt length:', prompt.length, 'characters');
+  }
+
   try {
     console.log('[AI Verdict] 🤖 Starting AI analysis with hybrid reasoning mode...');
 
-    // Call OpenAI API
+    // Call OpenAI API with 60s timeout for robust handling
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 0.3, // Lower temperature for more consistent, focused responses
@@ -107,11 +141,11 @@ export async function analyzeWithAI(prompt: string): Promise<AIVerdictResponse> 
         },
         {
           role: "user",
-          content: prompt,
+          content: truncatedPrompt,
         },
       ],
       response_format: { type: "json_object" }, // Ensure JSON response
-      timeout: 30000, // 30 second timeout
+      timeout: 60000, // 60 second timeout for reliability
     });
 
     // Extract content from response
@@ -331,8 +365,8 @@ export async function analyzeWithAIRetry(
 
       // Log retry attempt for transient errors
       if (attempt <= maxRetries) {
-        const waitTime = 1000 * attempt; // Exponential backoff: 1s, 2s, 3s...
-        console.warn(`[AI Verdict] ⚠ Transient error (${lastError.code}), retrying in ${waitTime}ms...`);
+        const waitTime = 1000 * Math.pow(2, attempt - 1); // True exponential backoff: 1s, 2s, 4s, 8s...
+        console.warn(`[AI Verdict] ⚠ Transient error (${lastError.code}), retrying in ${waitTime}ms (attempt ${attempt}/${maxRetries})...`);
         console.warn(`[AI Verdict] Error message:`, lastError.message);
         if (lastError.details) {
           console.warn(`[AI Verdict] Error details:`, lastError.details);

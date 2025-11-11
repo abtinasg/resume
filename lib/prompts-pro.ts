@@ -491,6 +491,32 @@ export function generateRoleInsights(
  * @returns Prompt string for AI analysis
  */
 export function buildFinalAIPrompt(resumeText: string, jobRole: string, scoringResult: any): string {
+  // Extract contextual insights from scoring result
+  const localScore = scoringResult.overallScore || 0;
+  const atsScore = scoringResult.componentScores?.atsCompatibility?.score || 0;
+  const contentScore = scoringResult.componentScores?.contentQuality?.score || 0;
+  const impactScore = scoringResult.componentScores?.impactMetrics?.score || 0;
+
+  // Type-safe breakdown accessors
+  const contentQuality = scoringResult.componentScores?.contentQuality?.breakdown as import('./scoring/types').ContentQualityBreakdown | undefined;
+  const atsCompatibility = scoringResult.componentScores?.atsCompatibility?.breakdown as import('./scoring/types').ATSCompatibilityBreakdown | undefined;
+
+  // Extract key metrics for context
+  const quantificationPercentage = contentQuality?.achievementQuantification?.percentage || 0;
+  const missingKeywords = scoringResult.atsDetailedReport?.keywordGapAnalysis?.mustHave?.missing || [];
+  const weakVerbs = contentQuality?.actionVerbStrength?.weakVerbsFound || [];
+  const formatIssues = scoringResult.atsDetailedReport?.formatIssues || [];
+
+  // Build contextual focus areas
+  const focusAreas: string[] = [];
+  if (atsScore < 70) focusAreas.push('ATS compatibility and keyword optimization');
+  if (quantificationPercentage < 50) focusAreas.push('achievement quantification and metrics');
+  if (weakVerbs.length > 3) focusAreas.push('action verb strength and impact language');
+  if (formatIssues.length > 2) focusAreas.push('formatting and structure issues');
+
+  // Determine score confidence level
+  const scoreRange = localScore >= 80 ? 'strong' : localScore >= 60 ? 'moderate' : 'needs improvement';
+
   return `
 You are an expert resume analyst operating in HYBRID REASONING MODE.
 
@@ -507,13 +533,26 @@ Your analysis should:
 
 ---
 
-### Resume Text
+### 📋 CONTEXT SUMMARY
+- **Target Role**: ${jobRole}
+- **Local Score**: ${localScore}/100 (${scoreRange} range)
+- **Primary Focus Areas**: ${focusAreas.length > 0 ? focusAreas.join('; ') : 'General optimization'}
+- **Key Metrics**:
+  * ATS Compatibility: ${atsScore}/100
+  * Content Quality: ${contentScore}/100
+  * Quantified Achievements: ${quantificationPercentage}%
+  * Missing Critical Keywords: ${missingKeywords.length} (${missingKeywords.slice(0, 3).join(', ')})
+  * Weak Action Verbs: ${weakVerbs.length} found
+  * Format Issues: ${formatIssues.length} detected
+
+---
+
+### 📄 Resume Text
 ${resumeText}
 
-### Job Role
-${jobRole}
+---
 
-### Local Scoring Data (for reference)
+### 📊 Local Scoring Data (for reference)
 ${JSON.stringify(scoringResult, null, 2)}
 
 ---
