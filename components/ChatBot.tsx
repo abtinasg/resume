@@ -152,6 +152,20 @@ export function ChatBot({ isOpen, onClose, resumeContext, autoOpenDelay = 3000 }
 
   if (!isOpen) return null;
 
+  // Suggested questions based on score
+  const suggestedQuestions = [
+    "Why did I get this score?",
+    "How can I improve my resume?",
+    "What keywords am I missing?",
+    "Can you rewrite my summary?",
+    resumeContext.overall_score < 90 ? "What would make this resume hit 90+ score?" : "How can I make this resume perfect?",
+  ];
+
+  const handleSuggestedQuestion = (question: string) => {
+    setInputMessage(question);
+    textareaRef.current?.focus();
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-end p-4 md:p-6">
       {/* Backdrop */}
@@ -186,9 +200,22 @@ export function ChatBot({ isOpen, onClose, resumeContext, autoOpenDelay = 3000 }
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-gray-400">
               <Bot className="w-12 h-12 mb-3 opacity-50" />
-              <p className="text-sm text-center">
+              <p className="text-sm text-center mb-4">
                 Start a conversation to get personalized resume advice
               </p>
+              {/* Suggested Questions */}
+              <div className="w-full space-y-2 mt-4">
+                <p className="text-xs font-semibold text-gray-500 mb-2">Try asking:</p>
+                {suggestedQuestions.slice(0, 3).map((question, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleSuggestedQuestion(question)}
+                    className="w-full text-left px-3 py-2 bg-gray-50 hover:bg-blue-50 rounded-lg text-xs text-gray-600 hover:text-blue-600 transition-colors border border-gray-100 hover:border-blue-200"
+                  >
+                    {question}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
