@@ -6,7 +6,7 @@ import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
 // Configure PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 interface ResumePreviewProps {
   pdfUrl?: string;
@@ -33,7 +33,7 @@ export default function ResumePreview({ pdfUrl }: ResumePreviewProps) {
   // If no PDF URL provided, show placeholder
   if (!pdfUrl) {
     return (
-      <div className="bg-gray-50 rounded-xl shadow-inner h-[90vh] flex items-center justify-center p-6">
+      <div className="bg-gray-50 rounded-xl shadow-inner h-[90vh] max-h-[80vh] flex items-center justify-center p-6">
         <div className="text-center space-y-4">
           <svg
             className="w-20 h-20 mx-auto text-gray-300"
@@ -60,7 +60,7 @@ export default function ResumePreview({ pdfUrl }: ResumePreviewProps) {
   }
 
   return (
-    <div className="bg-gray-50 rounded-xl shadow-inner overflow-hidden h-[90vh] flex flex-col">
+    <div className="bg-gray-50 rounded-xl shadow-inner overflow-hidden h-[90vh] max-h-[80vh] flex flex-col">
       {/* Header with controls */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-gray-700">Resume Preview</h3>

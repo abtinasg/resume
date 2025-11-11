@@ -309,6 +309,36 @@ const ResultsTabs: React.FC<ResultsTabsProps> = ({ analysis, onReset }) => {
 
   return (
     <div className="w-full space-y-8">
+      {/* 2-Column Responsive Layout: PDF Preview (Left) + Resume Coach Chat (Right) */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+      >
+        {/* Left Column - PDF Preview */}
+        <div className="lg:col-span-1">
+          <ResumePreview pdfUrl={analysis.pdfUrl} />
+        </div>
+
+        {/* Right Column - Resume Coach Chat */}
+        <div className="lg:col-span-1">
+          <ResumeCoachChatDocked analysis={analysis} />
+        </div>
+      </motion.div>
+
+      {/* Divider with heading for Scoring Breakdown */}
+      <div className="relative py-6">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-200"></div>
+        </div>
+        <div className="relative flex justify-center">
+          <span className="bg-white px-6 text-sm font-semibold text-gray-500 uppercase tracking-wider">
+            AI Analysis & Scoring Breakdown
+          </span>
+        </div>
+      </div>
+
       {/* AI Report Section - Full Width */}
       <AIReport
         verdict={analysis.ai_verdict ?? null}
@@ -317,39 +347,14 @@ const ResultsTabs: React.FC<ResultsTabsProps> = ({ analysis, onReset }) => {
         aiStatus={analysis.ai_status}
       />
 
-      {/* Divider with heading for Detailed Results */}
-      <div className="relative py-6">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-200"></div>
-        </div>
-        <div className="relative flex justify-center">
-          <span className="bg-white px-6 text-sm font-semibold text-gray-500 uppercase tracking-wider">
-            Detailed Analysis & Tools
-          </span>
-        </div>
-      </div>
-
-      {/* 3-Column Responsive Layout */}
+      {/* Detailed Analysis Tabs - Full Width */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+        transition={{ duration: 0.5, delay: 0.2 }}
+        className="w-full"
       >
-        {/* Left Column - Analysis Details */}
-        <div className="lg:col-span-1 overflow-y-auto">
-          <Tabs tabs={tabs} className="shadow-lg rounded-xl overflow-hidden" />
-        </div>
-
-        {/* Middle Column - Resume Coach Chat */}
-        <div className="lg:col-span-1">
-          <ResumeCoachChatDocked analysis={analysis} />
-        </div>
-
-        {/* Right Column - PDF Preview */}
-        <div className="lg:col-span-1">
-          <ResumePreview pdfUrl={analysis.pdfUrl} />
-        </div>
+        <Tabs tabs={tabs} className="shadow-lg rounded-xl overflow-hidden" />
       </motion.div>
 
       {/* Analyze Another Resume Button */}

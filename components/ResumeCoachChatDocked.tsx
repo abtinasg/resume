@@ -79,7 +79,7 @@ export default function ResumeCoachChatDocked({ analysis }: ResumeCoachChatDocke
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg h-[90vh] flex flex-col border border-gray-200">
+    <div className="bg-white rounded-xl shadow-lg h-[90vh] max-h-[80vh] flex flex-col border border-gray-200">
       {/* Header */}
       <div className="flex items-center justify-between bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 rounded-t-xl">
         <div className="flex items-center gap-2">
