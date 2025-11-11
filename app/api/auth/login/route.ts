@@ -52,7 +52,6 @@ export async function POST(request: NextRequest) {
     const token = generateToken({
       userId: user.id,
       email: user.email,
-      role: user.role,
     });
 
     // Create response with user data (excluding password)
@@ -63,8 +62,6 @@ export async function POST(request: NextRequest) {
         user: {
           id: user.id,
           email: user.email,
-          name: user.name,
-          role: user.role,
           createdAt: user.createdAt,
         },
       },

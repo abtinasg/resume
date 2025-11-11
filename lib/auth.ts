@@ -6,9 +6,8 @@ const SALT_ROUNDS = 10;
 
 // Interfaces
 export interface JWTPayload {
-  userId: string;
+  userId: number;
   email: string;
-  role: string;
 }
 
 export interface TokenData extends JWTPayload {

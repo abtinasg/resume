@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password, name } = body;
+    const { email, password } = body;
 
     // Validation
     if (!email || !password) {
@@ -60,8 +60,6 @@ export async function POST(request: NextRequest) {
       data: {
         email: email.toLowerCase(),
         password: hashedPassword,
-        name: name || null,
-        role: 'user',
       },
     });
 
@@ -69,7 +67,6 @@ export async function POST(request: NextRequest) {
     const token = generateToken({
       userId: user.id,
       email: user.email,
-      role: user.role,
     });
 
     // Create response with token in HttpOnly cookie
@@ -80,8 +77,6 @@ export async function POST(request: NextRequest) {
         user: {
           id: user.id,
           email: user.email,
-          name: user.name,
-          role: user.role,
           createdAt: user.createdAt,
         },
       },
