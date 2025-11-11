@@ -104,7 +104,7 @@ export default function ResumeCoachChat({ analysis }: ResumeCoachChatProps) {
           <div className="flex-1 overflow-y-auto p-3 space-y-2 text-sm">
             {messages.length === 0 && (
               <div className="text-gray-400 text-center py-8">
-                <p className="mb-2">👋 Hi! I'm your Resume Coach.</p>
+                <p className="mb-2">👋 Hi! I&apos;m your Resume Coach.</p>
                 <p className="text-xs">Ask me anything about your resume!</p>
               </div>
             )}

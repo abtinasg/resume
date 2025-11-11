@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
 export async function POST(req: Request) {
   try {
     const { message, analysis } = await req.json();
@@ -29,6 +27,9 @@ export async function POST(req: Request) {
         { status: 503 }
       );
     }
+
+    // Initialize OpenAI client only when needed
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
     // Build system prompt with analysis context
     const prompt = `

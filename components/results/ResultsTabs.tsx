@@ -1,13 +1,28 @@
 'use client';
 
 import React from 'react';
+import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import Tabs from '@/components/ui/tabs';
 import Card from '@/components/ui/card';
 import Badge from '@/components/ui/badge';
 import Button from '@/components/ui/button';
 import AIReport from '@/components/AIReport';
+import ResumeCoachChatDocked from '@/components/ResumeCoachChatDocked';
 import type { AnalysisResult } from '@/lib/types/analysis';
+
+// Dynamically import ResumePreview to avoid SSR issues with pdfjs
+const ResumePreview = dynamic(() => import('@/components/ResumePreview'), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-gray-50 rounded-xl shadow-inner h-[90vh] flex items-center justify-center">
+      <div className="text-center space-y-3">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" />
+        <p className="text-sm text-gray-500">Loading PDF viewer...</p>
+      </div>
+    </div>
+  ),
+});
 
 interface ResultsTabsProps {
   analysis: AnalysisResult;
@@ -294,7 +309,7 @@ const ResultsTabs: React.FC<ResultsTabsProps> = ({ analysis, onReset }) => {
 
   return (
     <div className="w-full space-y-8">
-      {/* AI Report Section */}
+      {/* AI Report Section - Full Width */}
       <AIReport
         verdict={analysis.ai_verdict ?? null}
         hybridScore={analysis.hybrid_score}
@@ -302,27 +317,39 @@ const ResultsTabs: React.FC<ResultsTabsProps> = ({ analysis, onReset }) => {
         aiStatus={analysis.ai_status}
       />
 
-      {/* Divider with heading for Local Scoring Results */}
-      {analysis.ai_verdict && (
-        <div className="relative py-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200"></div>
-          </div>
-          <div className="relative flex justify-center">
-            <span className="bg-white px-6 text-sm font-semibold text-gray-500 uppercase tracking-wider">
-              Detailed Breakdown
-            </span>
-          </div>
+      {/* Divider with heading for Detailed Results */}
+      <div className="relative py-6">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-200"></div>
         </div>
-      )}
+        <div className="relative flex justify-center">
+          <span className="bg-white px-6 text-sm font-semibold text-gray-500 uppercase tracking-wider">
+            Detailed Analysis & Tools
+          </span>
+        </div>
+      </div>
 
-      {/* Local Scoring Results */}
+      {/* 3-Column Responsive Layout */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
+        className="grid grid-cols-1 lg:grid-cols-3 gap-6"
       >
-        <Tabs tabs={tabs} className="shadow-lg rounded-xl overflow-hidden" />
+        {/* Left Column - Analysis Details */}
+        <div className="lg:col-span-1 overflow-y-auto">
+          <Tabs tabs={tabs} className="shadow-lg rounded-xl overflow-hidden" />
+        </div>
+
+        {/* Middle Column - Resume Coach Chat */}
+        <div className="lg:col-span-1">
+          <ResumeCoachChatDocked analysis={analysis} />
+        </div>
+
+        {/* Right Column - PDF Preview */}
+        <div className="lg:col-span-1">
+          <ResumePreview pdfUrl={analysis.pdfUrl} />
+        </div>
       </motion.div>
 
       {/* Analyze Another Resume Button */}
