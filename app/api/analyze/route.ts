@@ -398,23 +398,68 @@ export async function POST(req: NextRequest) {
           const errorMessage = aiError instanceof Error ? aiError.message : 'Unknown AI error';
           const errorDetails = aiError instanceof AIAnalysisError ? aiError.details : undefined;
 
+          // Map AI error codes to appropriate HTTP status codes
+          let httpStatus = 503; // Default: Service Unavailable
+          let responseCode = 'AI_UNAVAILABLE';
+
+          switch (errorCode) {
+            case 'MISSING_API_KEY':
+            case 'INVALID_API_KEY':
+              httpStatus = 401; // Unauthorized
+              responseCode = 'UNAUTHORIZED';
+              console.error('[API] 🔴 Authentication error - Invalid or missing OpenAI API key');
+              break;
+            case 'BAD_REQUEST':
+            case 'INVALID_JSON':
+            case 'INVALID_RESPONSE':
+              httpStatus = 400; // Bad Request
+              responseCode = 'BAD_REQUEST';
+              console.error('[API] ⚠️ Bad request - AI layer received invalid data');
+              break;
+            case 'TIMEOUT':
+              httpStatus = 408; // Request Timeout
+              responseCode = 'TIMEOUT';
+              console.error('[API] ⏱️ Request timeout - AI layer took too long to respond');
+              break;
+            case 'RATE_LIMIT':
+              httpStatus = 429; // Too Many Requests
+              responseCode = 'RATE_LIMIT_EXCEEDED';
+              console.error('[API] ⚠️ Rate limit exceeded - Too many requests to OpenAI');
+              break;
+            case 'MODEL_NOT_FOUND':
+              httpStatus = 404; // Not Found
+              responseCode = 'MODEL_NOT_FOUND';
+              console.error('[API] ⚠️ Model not found - OpenAI model unavailable');
+              break;
+            case 'NETWORK_ERROR':
+              httpStatus = 503; // Service Unavailable
+              responseCode = 'NETWORK_ERROR';
+              console.error('[API] 🌐 Network error - Cannot reach OpenAI API');
+              break;
+            default:
+              httpStatus = 503; // Service Unavailable
+              responseCode = 'AI_UNAVAILABLE';
+              console.error('[API] ❌ Unknown AI error');
+          }
+
           return NextResponse.json<ErrorResponse>(
             {
               success: false,
               error: {
-                code: 'AI_UNAVAILABLE',
-                message: 'AI layer failed or is unavailable. Hybrid mode requires both local scoring and AI validation.',
+                code: responseCode,
+                message: errorMessage,
                 details: {
                   aiErrorCode: errorCode,
                   aiErrorMessage: errorMessage,
                   aiErrorDetails: errorDetails,
                   localScoringCompleted: true,
                   localScore: scoringResult.overallScore,
+                  hint: 'Check console logs for detailed error information',
                 },
               },
               hybrid_mode: true,
             },
-            { status: 503 }
+            { status: httpStatus }
           );
         }
       } else {

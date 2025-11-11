@@ -183,56 +183,95 @@ export async function analyzeWithAI(prompt: string): Promise<AIVerdictResponse> 
       throw error;
     }
 
-    // Handle OpenAI SDK errors
+    // Extract comprehensive error details from OpenAI SDK error
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('[AI Verdict] ✗ OpenAI API error:', errorMessage);
+    const errorResponse = (error as any)?.response?.data || null;
+    const errorStatus = (error as any)?.status || (error as any)?.response?.status || null;
+    const errorCode = errorResponse?.error?.code || null;
+    const errorType = errorResponse?.error?.type || null;
 
-    // Check for specific error types
-    if (errorMessage.includes('API key') || errorMessage.includes('Incorrect API key') || errorMessage.includes('401')) {
+    // Log full error details for debugging
+    console.error('[AI] 🔴 OpenAI API error occurred:');
+    console.error('[AI] Error message:', errorMessage);
+    if (errorStatus) {
+      console.error('[AI] HTTP status:', errorStatus);
+    }
+    if (errorResponse) {
+      console.error('[AI] Response data:', JSON.stringify(errorResponse, null, 2));
+    }
+    if (errorCode) {
+      console.error('[AI] Error code:', errorCode);
+    }
+    if (errorType) {
+      console.error('[AI] Error type:', errorType);
+    }
+
+    // Check for authentication errors (401)
+    if (errorStatus === 401 || errorMessage.includes('API key') || errorMessage.includes('Incorrect API key') || errorMessage.includes('401') || errorCode === 'invalid_api_key') {
+      console.error('[AI] 🔴 Failed with 401 (invalid key)');
       throw new AIAnalysisError(
         'OpenAI API key is invalid or unauthorized',
         'INVALID_API_KEY',
-        { originalError: errorMessage }
+        { originalError: errorMessage, errorResponse, errorStatus }
       );
     }
 
-    if (errorMessage.includes('rate_limit') || errorMessage.includes('429')) {
+    // Check for rate limit errors (429)
+    if (errorStatus === 429 || errorMessage.includes('rate_limit') || errorMessage.includes('429') || errorCode === 'rate_limit_exceeded') {
+      console.error('[AI] ⚠️ Rate limit exceeded (429)');
       throw new AIAnalysisError(
         'OpenAI API rate limit exceeded. Please try again later.',
         'RATE_LIMIT',
-        { originalError: errorMessage }
+        { originalError: errorMessage, errorResponse, errorStatus }
       );
     }
 
-    if (errorMessage.includes('timeout') || errorMessage.includes('ETIMEDOUT') || errorMessage.includes('ECONNABORTED')) {
+    // Check for timeout errors
+    if (errorMessage.includes('timeout') || errorMessage.includes('ETIMEDOUT') || errorMessage.includes('ECONNABORTED') || errorCode === 'timeout') {
+      console.error('[AI] ⏱️ Request timeout');
       throw new AIAnalysisError(
         'OpenAI API request timed out. Please try again.',
         'TIMEOUT',
-        { originalError: errorMessage }
+        { originalError: errorMessage, errorResponse, errorStatus }
       );
     }
 
-    if (errorMessage.includes('network') || errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND')) {
+    // Check for network errors
+    if (errorMessage.includes('network') || errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND') || errorCode === 'connection_error') {
+      console.error('[AI] 🌐 Network error');
       throw new AIAnalysisError(
         'Network error connecting to OpenAI API. Please check your connection.',
         'NETWORK_ERROR',
-        { originalError: errorMessage }
+        { originalError: errorMessage, errorResponse, errorStatus }
       );
     }
 
-    if (errorMessage.includes('model') || errorMessage.includes('not found')) {
+    // Check for model not found errors (404)
+    if (errorStatus === 404 || errorMessage.includes('model') || errorMessage.includes('not found') || errorCode === 'model_not_found') {
+      console.error('[AI] ⚠️ Model not found');
       throw new AIAnalysisError(
         'OpenAI model not available or not found',
         'MODEL_NOT_FOUND',
-        { originalError: errorMessage }
+        { originalError: errorMessage, errorResponse, errorStatus }
       );
     }
 
-    // Generic error
+    // Check for bad request errors (400)
+    if (errorStatus === 400 || errorCode === 'invalid_request_error') {
+      console.error('[AI] ⚠️ Bad request (400)');
+      throw new AIAnalysisError(
+        `Invalid request to OpenAI API: ${errorMessage}`,
+        'BAD_REQUEST',
+        { originalError: errorMessage, errorResponse, errorStatus }
+      );
+    }
+
+    // Generic error - log full details
+    console.error('[AI] ❌ Unhandled error type');
     throw new AIAnalysisError(
       `AI analysis failed: ${errorMessage}`,
       'AI_ERROR',
-      { originalError: errorMessage }
+      { originalError: errorMessage, errorResponse, errorStatus, errorCode, errorType }
     );
   }
 }
@@ -279,10 +318,14 @@ export async function analyzeWithAIRetry(
         'INVALID_RESPONSE',
         'EMPTY_RESPONSE',
         'MODEL_NOT_FOUND',
+        'BAD_REQUEST',
       ];
 
       if (nonRetryableErrors.includes(lastError.code)) {
         console.error(`[AI Verdict] ✗ Non-retryable error (${lastError.code}):`, lastError.message);
+        if (lastError.details) {
+          console.error(`[AI Verdict] Error details:`, lastError.details);
+        }
         throw lastError;
       }
 
@@ -290,12 +333,20 @@ export async function analyzeWithAIRetry(
       if (attempt <= maxRetries) {
         const waitTime = 1000 * attempt; // Exponential backoff: 1s, 2s, 3s...
         console.warn(`[AI Verdict] ⚠ Transient error (${lastError.code}), retrying in ${waitTime}ms...`);
-        console.warn(`[AI Verdict] Error details:`, lastError.message);
+        console.warn(`[AI Verdict] Error message:`, lastError.message);
+        if (lastError.details) {
+          console.warn(`[AI Verdict] Error details:`, lastError.details);
+        }
 
         // Wait before retrying (exponential backoff)
         await new Promise(resolve => setTimeout(resolve, waitTime));
       } else {
-        console.error(`[AI Verdict] ✗ All ${maxRetries + 1} attempts failed. Last error:`, lastError.message);
+        console.error(`[AI Verdict] ✗ All ${maxRetries + 1} attempts failed`);
+        console.error(`[AI Verdict] Last error code: ${lastError.code}`);
+        console.error(`[AI Verdict] Last error message:`, lastError.message);
+        if (lastError.details) {
+          console.error(`[AI Verdict] Last error details:`, lastError.details);
+        }
       }
     }
   }
