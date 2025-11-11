@@ -4,7 +4,7 @@ import { analyzeResumePro, ResumeAnalysisPro } from '@/lib/openai';
 import { extractTextFromBase64PDF } from '@/lib/pdfParser';
 import { calculatePROScore, ScoringResult } from '@/lib/scoring';
 import { buildFinalAIPrompt } from '@/lib/prompts-pro';
-import { analyzeWithAIRetry, analyzeWithAIEnhanced, generateAIRewrites, AIVerdictResponse, AIAnalysisError } from '@/lib/openai/analyzeWithAI';
+import { analyzeWithAIRetry, analyzeWithAIEnhanced, generateAIRewrites, AIVerdictResponse, AIAnalysisError, BeforeAfterRewrite } from '@/lib/openai/analyzeWithAI';
 import { HYBRID_MODE, validateEnvironment } from '@/lib/env';
 
 export const runtime = 'nodejs';
@@ -61,24 +61,25 @@ const ResumeAnalysisProSchema = z.object({
   improvement_actions: z.array(z.string()).min(1),
 });
 
+interface UnifiedHybridResult {
+  score: number;
+  summary: string;
+  strengths: string[];
+  weaknesses: string[];
+  improvement_suggestions: string[];
+  rewrites: BeforeAfterRewrite[];
+}
+
 interface SuccessResponse {
   success: true;
-  data: ResumeAnalysisPro;
-  local_scoring?: {
-    overall_score: number;
-    grade: string;
-    component_scores: any;
-    ats_pass_probability: number;
-  };
-  ai_verdict: AIVerdictResponse;
-  ai_status: 'success' | 'fallback' | 'disabled';
-  ai_error?: {
-    code: string;
-    message: string;
-    timestamp: string;
-  };
-  hybrid_mode: boolean;
-  processingTime: number;
+  hybrid_mode: true;
+  score: number;
+  summary: string;
+  strengths: string[];
+  weaknesses: string[];
+  improvement_suggestions: string[];
+  rewrites: BeforeAfterRewrite[];
+  ai_status: 'success' | 'fallback';
   timestamp: string;
 }
 
@@ -89,7 +90,8 @@ interface ErrorResponse {
     message: string;
     details?: any;
   };
-  hybrid_mode?: boolean;
+  ai_status?: 'fallback';
+  timestamp?: string;
 }
 
 /**
@@ -174,6 +176,113 @@ function convertScoringResultToAnalysisPro(
   };
 }
 
+/**
+ * Merge Local Scoring and AI Verdict into a Unified Hybrid Result
+ *
+ * This function implements the true hybrid scoring system by:
+ * 1. Calculating final score as weighted average (40% local + 60% AI)
+ * 2. Merging strengths, weaknesses, and suggestions from both layers
+ * 3. Using AI-generated rewrites with reasoning
+ * 4. Producing a single, unified output for the user
+ *
+ * @param scoringResult - Local scoring result with component scores
+ * @param aiVerdict - AI analysis verdict with recommendations
+ * @returns UnifiedHybridResult - Single merged output
+ */
+function mergeHybridResult(
+  scoringResult: ScoringResult,
+  aiVerdict: AIVerdictResponse
+): UnifiedHybridResult {
+  // Step 1: Calculate unified score (40% local + 60% AI)
+  const localScore = scoringResult.overallScore;
+  const aiScore = aiVerdict.ai_final_score;
+  const unifiedScore = Math.round(localScore * 0.4 + aiScore * 0.6);
+
+  console.log('[Hybrid Merge] 🔄 Calculating unified score:', {
+    localScore,
+    aiScore,
+    unifiedScore,
+    formula: '(local * 0.4) + (ai * 0.6)',
+  });
+
+  // Step 2: Extract local strengths
+  const localStrengths: string[] = [];
+  const contentQualityBreakdown = scoringResult.componentScores.contentQuality.breakdown as import('@/lib/scoring/types').ContentQualityBreakdown;
+
+  // Add quantifiable strengths
+  if (contentQualityBreakdown.achievementQuantification.percentage >= 50) {
+    localStrengths.push(`${contentQualityBreakdown.achievementQuantification.percentage}% of achievements are quantified`);
+  }
+
+  if (contentQualityBreakdown.actionVerbStrength.strongPercentage >= 60) {
+    localStrengths.push(`Strong action verbs used (${contentQualityBreakdown.actionVerbStrength.strongPercentage}%)`);
+  }
+
+  if (scoringResult.atsPassProbability >= 70) {
+    localStrengths.push(`High ATS compatibility (${scoringResult.atsPassProbability}% pass probability)`);
+  }
+
+  // Step 3: Extract local weaknesses
+  const localWeaknesses: string[] = [];
+
+  if (contentQualityBreakdown.achievementQuantification.percentage < 30) {
+    localWeaknesses.push('Limited quantification of achievements');
+  }
+
+  if (contentQualityBreakdown.actionVerbStrength.weakVerbsFound.length > 0) {
+    localWeaknesses.push(`Weak verbs detected: ${contentQualityBreakdown.actionVerbStrength.weakVerbsFound.slice(0, 3).join(', ')}`);
+  }
+
+  if (scoringResult.atsPassProbability < 50) {
+    localWeaknesses.push('Low ATS compatibility score');
+  }
+
+  // Step 4: Extract local improvement suggestions
+  const localImprovementSuggestions = (scoringResult.improvementRoadmap.quickWins || [])
+    .map(action => action.action)
+    .slice(0, 3);
+
+  // Step 5: Merge strengths (deduplicate using Set)
+  const mergedStrengths = Array.from(
+    new Set([...aiVerdict.strengths, ...localStrengths])
+  );
+
+  // Step 6: Merge weaknesses (deduplicate using Set)
+  const mergedWeaknesses = Array.from(
+    new Set([...aiVerdict.weaknesses, ...localWeaknesses])
+  );
+
+  // Step 7: Prioritize AI suggestions, fallback to local if none
+  const mergedSuggestions =
+    aiVerdict.improvement_suggestions && aiVerdict.improvement_suggestions.length > 0
+      ? aiVerdict.improvement_suggestions
+      : localImprovementSuggestions;
+
+  // Step 8: Use AI rewrites (or empty array if unavailable)
+  const rewrites = aiVerdict.before_after_rewrites || [];
+
+  // Step 9: Use AI summary (or generate fallback)
+  const summary = aiVerdict.summary ||
+    `Your resume scored ${unifiedScore}/100. Review the strengths and suggestions below for improvements.`;
+
+  console.log('[Hybrid Merge] ✓ Merge completed:', {
+    unifiedScore,
+    strengthsCount: mergedStrengths.length,
+    weaknessesCount: mergedWeaknesses.length,
+    suggestionsCount: mergedSuggestions.length,
+    rewritesCount: rewrites.length,
+  });
+
+  return {
+    score: unifiedScore,
+    summary,
+    strengths: mergedStrengths,
+    weaknesses: mergedWeaknesses,
+    improvement_suggestions: mergedSuggestions,
+    rewrites,
+  };
+}
+
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
 
@@ -194,7 +303,8 @@ export async function POST(req: NextRequest) {
               message: envValidation.error || 'AI layer failed or is unavailable.',
               details: 'HYBRID_MODE is enabled but required environment variables are not configured.',
             },
-            hybrid_mode: true,
+            ai_status: 'fallback',
+            timestamp: new Date().toISOString(),
           },
           { status: 503 }
         );
@@ -214,7 +324,7 @@ export async function POST(req: NextRequest) {
             code: 'INVALID_JSON',
             message: 'Request body must be valid JSON',
           },
-          hybrid_mode: HYBRID_MODE,
+          timestamp: new Date().toISOString(),
         },
         { status: 400 }
       );
@@ -234,7 +344,7 @@ export async function POST(req: NextRequest) {
               code: 'VALIDATION_ERROR',
               message: firstIssue?.message || 'Invalid input data',
             },
-            hybrid_mode: HYBRID_MODE,
+            timestamp: new Date().toISOString(),
           },
           { status: 400 }
         );
@@ -246,7 +356,7 @@ export async function POST(req: NextRequest) {
             code: 'VALIDATION_ERROR',
             message: 'Invalid input data',
           },
-          hybrid_mode: HYBRID_MODE,
+          timestamp: new Date().toISOString(),
         },
         { status: 400 }
       );
@@ -268,7 +378,7 @@ export async function POST(req: NextRequest) {
                 code: 'PDF_EXTRACTION_FAILED',
                 message: extractionResult.message,
               },
-              hybrid_mode: HYBRID_MODE,
+              timestamp: new Date().toISOString(),
             },
             { status: 400 }
           );
@@ -287,7 +397,7 @@ export async function POST(req: NextRequest) {
                   code: 'PDF_INSUFFICIENT_CONTENT',
                   message: extractionResult.message || 'PDF does not contain enough text content (minimum 15 characters required)',
                 },
-                hybrid_mode: HYBRID_MODE,
+                timestamp: new Date().toISOString(),
               },
               { status: 400 }
             );
@@ -309,7 +419,7 @@ export async function POST(req: NextRequest) {
                 code: 'PDF_TOO_LARGE',
                 message: `Extracted text exceeds maximum length of ${MAX_TEXT_LENGTH} characters`,
               },
-              hybrid_mode: HYBRID_MODE,
+              timestamp: new Date().toISOString(),
             },
             { status: 400 }
           );
@@ -323,7 +433,7 @@ export async function POST(req: NextRequest) {
                 code: 'PDF_INSUFFICIENT_CONTENT',
                 message: 'PDF does not contain enough text content (minimum 15 characters required)',
               },
-              hybrid_mode: HYBRID_MODE,
+              timestamp: new Date().toISOString(),
             },
             { status: 400 }
           );
@@ -346,7 +456,7 @@ export async function POST(req: NextRequest) {
                   ? error.message
                   : 'Failed to parse PDF file',
             },
-            hybrid_mode: HYBRID_MODE,
+            timestamp: new Date().toISOString(),
           },
           { status: 400 }
         );
@@ -354,7 +464,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Analyze resume with PRO Scoring System (Hybrid Mode)
-    let analysis: ResumeAnalysisPro;
     let aiVerdict: AIVerdictResponse | undefined;
     let scoringResult: ScoringResult;
     let aiStatus: 'success' | 'fallback' | 'disabled' = 'disabled';
@@ -532,28 +641,8 @@ export async function POST(req: NextRequest) {
         };
       }
 
-      // Step 3: Convert to API format
-      console.log('[API] 📦 Converting results to API response format...');
-      analysis = convertScoringResultToAnalysisPro(scoringResult, resumeText);
-
-      // Validate response with Zod schema
-      try {
-        ResumeAnalysisProSchema.parse(analysis);
-        console.log('[API] ✓ Response validation passed');
-      } catch (validationError) {
-        console.error('[API] ✗ Analysis validation failed:', validationError);
-        return NextResponse.json<ErrorResponse>(
-          {
-            success: false,
-            error: {
-              code: 'VALIDATION_ERROR',
-              message: 'Analysis response validation failed. Please try again.',
-            },
-            hybrid_mode: HYBRID_MODE,
-          },
-          { status: 500 }
-        );
-      }
+      // (Step 3: Convert to API format - no longer needed for unified output)
+      // We now directly merge results in Step 4
     } catch (error) {
       console.error('[API] ✗ PRO Scoring failed:', error);
       return NextResponse.json<ErrorResponse>(
@@ -566,42 +655,40 @@ export async function POST(req: NextRequest) {
                 ? error.message
                 : 'Failed to analyze resume',
           },
-          hybrid_mode: HYBRID_MODE,
+          ai_status: 'fallback',
+          timestamp: new Date().toISOString(),
         },
         { status: 503 }
       );
     }
 
+    // Step 4: Merge results into unified hybrid output
+    console.log('[API] 🔄 Step 3/3: Merging local and AI results into unified hybrid output...');
+    const unifiedResult = mergeHybridResult(scoringResult, aiVerdict);
+
     // Calculate processing time
     const processingTime = Date.now() - startTime;
 
-    console.log('[API] 🎉 Analysis completed successfully:', {
+    console.log('[API] 🎉 Hybrid analysis completed successfully:', {
       hybridMode: HYBRID_MODE,
       localScore: scoringResult.overallScore,
       aiScore: aiVerdict.ai_final_score,
+      unifiedScore: unifiedResult.score,
+      aiStatus,
       totalProcessingTime: `${processingTime}ms`,
     });
 
-    // Return success response with both local and AI sections (hybrid transparency)
+    // Return unified success response
     const response: SuccessResponse = {
       success: true,
-      data: analysis,
-      local_scoring: {
-        overall_score: scoringResult.overallScore,
-        grade: scoringResult.grade,
-        component_scores: {
-          content_quality: scoringResult.componentScores.contentQuality.score,
-          ats_compatibility: scoringResult.componentScores.atsCompatibility.score,
-          format_structure: scoringResult.componentScores.formatStructure.score,
-          impact_metrics: scoringResult.componentScores.impactMetrics.score,
-        },
-        ats_pass_probability: scoringResult.atsPassProbability,
-      },
-      ai_verdict: aiVerdict,
-      ai_status: aiStatus,
-      ...(aiError && { ai_error: aiError }), // Include AI error details if fallback occurred
-      hybrid_mode: HYBRID_MODE,
-      processingTime,
+      hybrid_mode: true,
+      score: unifiedResult.score,
+      summary: unifiedResult.summary,
+      strengths: unifiedResult.strengths,
+      weaknesses: unifiedResult.weaknesses,
+      improvement_suggestions: unifiedResult.improvement_suggestions,
+      rewrites: unifiedResult.rewrites,
+      ai_status: aiStatus === 'disabled' ? 'fallback' : aiStatus,
       timestamp: new Date().toISOString(),
     };
 
@@ -616,7 +703,7 @@ export async function POST(req: NextRequest) {
           code: 'INTERNAL_ERROR',
           message: 'An unexpected error occurred. Please try again later.',
         },
-        hybrid_mode: HYBRID_MODE,
+        timestamp: new Date().toISOString(),
       },
       { status: 500 }
     );

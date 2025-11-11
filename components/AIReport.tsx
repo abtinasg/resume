@@ -47,6 +47,10 @@ const AIReport: React.FC<AIReportProps> = ({ verdict }) => {
     return 'bg-gray-100 text-gray-700 border-gray-200';
   };
 
+  // Check if fallback mode from parent props (will be passed from ResultsTabs)
+  const isFallbackMode = verdict.confidence_level?.toLowerCase() === 'medium' &&
+    verdict.strengths?.some(s => s.includes('Local scoring'));
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -55,7 +59,7 @@ const AIReport: React.FC<AIReportProps> = ({ verdict }) => {
       className="w-full space-y-6"
     >
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">AI Analysis Report</h2>
+        <h2 className="text-2xl font-bold text-gray-900">Hybrid AI Analysis</h2>
         {verdict.confidence_level && (
           <span
             className={`px-4 py-2 rounded-full text-sm font-semibold border ${getConfidenceBadgeColor(
@@ -66,6 +70,34 @@ const AIReport: React.FC<AIReportProps> = ({ verdict }) => {
           </span>
         )}
       </div>
+
+      {/* Fallback mode notification */}
+      {isFallbackMode && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-lg"
+        >
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fillRule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <div>
+              <p className="text-sm font-medium text-amber-800">
+                AI validation temporarily unavailable – fallback used
+              </p>
+              <p className="text-xs text-amber-700 mt-1">
+                Your resume was analyzed using our local scoring algorithm. Results are still accurate.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <motion.div

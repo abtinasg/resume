@@ -322,16 +322,17 @@ export async function calculatePROScore(
   // Generate ATS detailed report
   const atsPassPrediction = calculateATSPassProbability(atsCompatibility.score);
 
+  const atsBreakdown = atsCompatibility.breakdown as import('./types').ATSCompatibilityBreakdown;
   const keywordGapAnalysis = performKeywordGapAnalysis(
     resumeText,
     jobRole,
-    atsCompatibility.breakdown.keywordDensity
+    atsBreakdown.keywordDensity
   );
 
   const atsDetailedReport: ATSDetailedReport = {
     passPrediction: atsPassPrediction,
     keywordGapAnalysis,
-    formatIssues: atsCompatibility.breakdown.formatCompatibility.issues,
+    formatIssues: atsBreakdown.formatCompatibility.issues,
   };
 
   // Generate improvement roadmap
@@ -435,9 +436,9 @@ export async function calculatePROPlusScore(
   if (useAdaptiveWeights && !customWeights) {
     const activeConfig = getActiveWeights();
     if (activeConfig.role_overrides && activeConfig.role_overrides[jobRole]) {
-      weightsToUse = activeConfig.role_overrides[jobRole];
+      weightsToUse = activeConfig.role_overrides[jobRole] as any;
     } else {
-      weightsToUse = activeConfig.weights;
+      weightsToUse = activeConfig.weights as any;
     }
   }
 
