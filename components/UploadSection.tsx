@@ -60,7 +60,7 @@ const UploadSection: React.FC<UploadSectionProps> = ({
 
       if (result.success) {
         // Transform API response to UI format
-        const transformedData = transformApiToAnalysisResult(result.data);
+        const transformedData = transformApiToAnalysisResult(result.data, result.ai_verdict);
         setAnalysisComplete(true);
         onAnalyzeComplete(transformedData);
       } else {

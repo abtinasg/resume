@@ -5,7 +5,8 @@ import type { AnalysisResult, ApiAnalysisResponse } from './types/analysis';
  * This ensures safe data handling with defaults for missing values
  */
 export function transformApiToAnalysisResult(
-  apiResponse: ApiAnalysisResponse['data']
+  apiResponse: ApiAnalysisResponse['data'],
+  aiVerdict?: any
 ): AnalysisResult {
   // Safely extract data with fallbacks
   const overview = apiResponse?.overview ?? {
@@ -157,6 +158,7 @@ export function transformApiToAnalysisResult(
     },
     strengths: strengths.slice(0, 6), // Limit to 6 strengths
     suggestions: suggestions.slice(0, 8), // Limit to 8 suggestions
+    ai_verdict: aiVerdict ?? null,
   };
 }
 

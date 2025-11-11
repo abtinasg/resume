@@ -19,6 +19,20 @@ export interface AnalysisResult {
     before: string;
     after: string;
   }>;
+  ai_verdict?: {
+    ai_final_score: number;
+    summary: string;
+    strengths: string[];
+    weaknesses: string[];
+    improvement_suggestions?: string[];
+    before_after_rewrites?: {
+      title: string;
+      before: string;
+      after: string;
+      priority?: string;
+    }[];
+    confidence_level?: string;
+  } | null;
 }
 
 /**
