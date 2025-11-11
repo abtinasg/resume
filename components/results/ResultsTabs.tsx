@@ -24,7 +24,7 @@ const ResultsTabs: React.FC<ResultsTabsProps> = ({ analysis, onReset }) => {
   const overallScore = analysis?.local_scoring?.overall_score ?? analysis?.summary?.overall ?? 0;
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-8">
+    <div className="w-full px-8 lg:px-12 space-y-8">
       {/* Two Column Layout: Hybrid AI Analysis + Resume Coach AI */}
       <div className="flex flex-col lg:flex-row gap-8 items-start">
         {/* Left Column: Hybrid AI Analysis */}
