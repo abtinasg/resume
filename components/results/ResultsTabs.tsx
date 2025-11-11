@@ -297,9 +297,9 @@ const ResultsTabs: React.FC<ResultsTabsProps> = ({ analysis, onReset }) => {
       {/* AI Report Section */}
       <AIReport
         verdict={analysis.ai_verdict ?? null}
-        hybridScore={(analysis as any).hybrid_score}
-        localScore={analysis.summary?.overall}
-        aiStatus={(analysis as any).ai_status}
+        hybridScore={analysis.hybrid_score}
+        localScore={analysis.local_scoring?.overall_score ?? analysis.summary?.overall}
+        aiStatus={analysis.ai_status}
       />
 
       {/* Divider with heading for Local Scoring Results */}

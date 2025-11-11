@@ -22,7 +22,7 @@ interface AIReportProps {
   } | null;
   hybridScore?: number;
   localScore?: number;
-  aiStatus?: 'success' | 'fallback' | 'error';
+  aiStatus?: 'success' | 'fallback' | 'disabled' | 'error';
 }
 
 const AIReport: React.FC<AIReportProps> = ({ verdict, hybridScore, localScore, aiStatus }) => {
@@ -46,6 +46,7 @@ const AIReport: React.FC<AIReportProps> = ({ verdict, hybridScore, localScore, a
   const getStatusColor = (status?: string): string => {
     if (status === 'success') return 'text-green-600 bg-green-50 border-green-200';
     if (status === 'fallback') return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+    if (status === 'disabled') return 'text-blue-600 bg-blue-50 border-blue-200';
     if (status === 'error') return 'text-red-600 bg-red-50 border-red-200';
     return 'text-gray-600 bg-gray-50 border-gray-200';
   };
@@ -170,7 +171,13 @@ const AIReport: React.FC<AIReportProps> = ({ verdict, hybridScore, localScore, a
               {aiStatus && (
                 <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(aiStatus)}`}>
                   <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
-                  Hybrid Mode: {aiStatus === 'success' ? 'AI Active' : aiStatus === 'fallback' ? 'Local Fallback' : 'Error'}
+                  {aiStatus === 'success'
+                    ? 'Hybrid mode active'
+                    : aiStatus === 'fallback'
+                    ? 'AI fallback to local scoring'
+                    : aiStatus === 'disabled'
+                    ? 'Local scoring only'
+                    : 'AI unavailable'}
                 </div>
               )}
             </div>

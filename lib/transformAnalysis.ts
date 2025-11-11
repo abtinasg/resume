@@ -1,29 +1,47 @@
 import type { AnalysisResult, ApiAnalysisResponse } from './types/analysis';
 
 /**
- * Transform Unified Hybrid API Response to UI AnalysisResult format
- * The new API returns a single unified result, so transformation is much simpler
+ * Transform 3D Scoring API Response to UI AnalysisResult format
+ * Maps actionables to before/after rewrites for display
  */
 export function transformApiToAnalysisResult(
   apiResponse: ApiAnalysisResponse
 ): AnalysisResult {
-  console.log('[Transform] 🔄 Transforming unified hybrid response to UI format');
+  console.log('[Transform] 🔄 Transforming 3D scoring response to UI format');
 
-  // Extract unified data from API
-  const score = apiResponse.score ?? 0;
+  // Extract data from 3D scoring API
+  const overall_score = apiResponse.overall_score ?? 0;
   const summary = apiResponse.summary ?? 'Analysis completed. Review your results below.';
-  const strengths = apiResponse.strengths ?? [];
-  const weaknesses = apiResponse.weaknesses ?? [];
-  const improvementSuggestions = apiResponse.improvement_suggestions ?? [];
-  const rewrites = apiResponse.rewrites ?? [];
+  const actionables = apiResponse.actionables ?? [];
   const aiStatus = apiResponse.ai_status ?? 'fallback';
+  const sections = apiResponse.sections || { structure: 0, content: 0, tailoring: 0 };
 
-  // Transform strengths array to structured format
-  const transformedStrengths: AnalysisResult['strengths'] = strengths.map((strength, index) => ({
-    title: `Strength ${index + 1}`,
-    description: strength,
-    category: 'Hybrid Analysis',
-  }));
+  // Generate strengths from high scores
+  const transformedStrengths: AnalysisResult['strengths'] = [];
+
+  if (sections.structure >= 32) { // 80% of 40
+    transformedStrengths.push({
+      title: 'Strong Structure',
+      description: 'Your resume has excellent structure with all essential sections present and well-organized.',
+      category: 'Structure',
+    });
+  }
+
+  if (sections.content >= 48) { // 80% of 60
+    transformedStrengths.push({
+      title: 'Quality Content',
+      description: 'Your content demonstrates strong clarity, quantification, and action verbs.',
+      category: 'Content',
+    });
+  }
+
+  if (sections.tailoring >= 32) { // 80% of 40
+    transformedStrengths.push({
+      title: 'Well Tailored',
+      description: 'Your resume is well-tailored with relevant keywords and skills for your target role.',
+      category: 'Tailoring',
+    });
+  }
 
   // Ensure at least one strength
   if (transformedStrengths.length === 0) {
@@ -34,25 +52,28 @@ export function transformApiToAnalysisResult(
     });
   }
 
-  // Transform rewrites to suggestions format
-  const transformedSuggestions: AnalysisResult['suggestions'] = rewrites.map((rewrite) => ({
-    title: rewrite.title,
-    priority: rewrite.priority || 'MEDIUM',
-    before: rewrite.before,
-    after: rewrite.after,
-  }));
+  // Transform actionables to before/after suggestions
+  const transformedSuggestions: AnalysisResult['suggestions'] = actionables.map((actionable) => {
+    // Determine priority based on points impact
+    let priority: 'HIGH' | 'MEDIUM' | 'LOW' = 'MEDIUM';
+    if (actionable.priority) {
+      priority = actionable.priority;
+    } else if (Math.abs(actionable.points) >= 10) {
+      priority = 'HIGH';
+    } else if (Math.abs(actionable.points) >= 5) {
+      priority = 'MEDIUM';
+    } else {
+      priority = 'LOW';
+    }
 
-  // If no rewrites, transform improvement_suggestions to basic suggestions
-  if (transformedSuggestions.length === 0 && improvementSuggestions.length > 0) {
-    improvementSuggestions.forEach((suggestion, index) => {
-      transformedSuggestions.push({
-        title: `Improvement ${index + 1}`,
-        priority: index < 2 ? 'HIGH' : index < 5 ? 'MEDIUM' : 'LOW',
-        before: 'Current approach needs improvement',
-        after: suggestion,
-      });
-    });
-  }
+    // Create before/after from actionable
+    return {
+      title: actionable.title,
+      priority,
+      before: `Current issue: ${actionable.title.replace(/^Add |^Fix |^Update |^Improve /i, '')}`,
+      after: actionable.fix,
+    };
+  });
 
   // Ensure at least one suggestion
   if (transformedSuggestions.length === 0) {
@@ -64,34 +85,54 @@ export function transformApiToAnalysisResult(
     });
   }
 
-  // Build AI verdict structure for compatibility with existing UI
+  // Build AI verdict structure with before_after_rewrites
+  const before_after_rewrites = actionables.map((actionable) => ({
+    title: actionable.title,
+    before: `${actionable.title.replace(/^Add |^Fix |^Update |^Improve /i, 'Issue: ')}`,
+    after: actionable.fix,
+    reasoning: `This change can improve your score by ${Math.abs(actionable.points)} points.`,
+    priority: actionable.priority || (Math.abs(actionable.points) >= 10 ? 'HIGH' : Math.abs(actionable.points) >= 5 ? 'MEDIUM' : 'LOW'),
+  }));
+
   const aiVerdict = {
-    ai_final_score: score,
+    ai_final_score: overall_score,
+    overall_score: overall_score,
     summary,
-    strengths,
-    weaknesses,
-    improvement_suggestions: improvementSuggestions,
-    before_after_rewrites: rewrites,
-    confidence_level: aiStatus === 'success' ? 'high' : 'medium',
+    strengths: transformedStrengths.map(s => s.description),
+    weaknesses: actionables
+      .filter(a => a.category && ['HIGH', 'MEDIUM'].includes(a.priority || ''))
+      .map(a => a.title)
+      .slice(0, 5),
+    improvement_suggestions: actionables.map(a => a.fix).slice(0, 5),
+    before_after_rewrites,
+    confidence_level: aiStatus === 'success' ? 'high' : aiStatus === 'fallback' ? 'medium' : 'low',
   };
 
   console.log('[Transform] ✓ Transformation completed:', {
-    score,
+    overall_score,
     strengthsCount: transformedStrengths.length,
     suggestionsCount: transformedSuggestions.length,
-    rewritesCount: rewrites.length,
+    actionablesCount: actionables.length,
     aiStatus,
   });
 
-  // Return transformed result
+  // Return transformed result with all necessary fields
   return {
     summary: {
-      overall: score,
+      overall: overall_score,
       text: summary,
     },
     strengths: transformedStrengths.slice(0, 6),
     suggestions: transformedSuggestions.slice(0, 8),
     ai_verdict: aiVerdict,
+    hybrid_score: overall_score,
+    ai_status: aiStatus,
+    local_scoring: {
+      overall_score: overall_score,
+      structure: sections.structure,
+      content: sections.content,
+      tailoring: sections.tailoring,
+    },
   };
 }
 
