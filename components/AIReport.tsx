@@ -144,6 +144,7 @@ const AIReport: React.FC<AIReportProps> = ({
             {contentScore}
           </div>
           <div className="text-xs text-gray-500 mt-2">out of 60</div>
+          <div className="text-xs text-gray-400 mt-1">(40% weight)</div>
         </div>
 
         {/* Tailoring Score */}
@@ -153,6 +154,7 @@ const AIReport: React.FC<AIReportProps> = ({
             {tailoringScore}
           </div>
           <div className="text-xs text-gray-500 mt-2">out of 40</div>
+          <div className="text-xs text-gray-400 mt-1">(20% weight)</div>
         </div>
 
         {/* Overall Score */}
@@ -232,34 +234,21 @@ const AIReport: React.FC<AIReportProps> = ({
         </motion.div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Summary Block */}
+      {verdict.summary && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.4 }}
         >
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 h-full hover:shadow-xl transition-shadow duration-300">
-            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <span className="text-green-600 text-xl">✅</span>
-              Strengths
-            </h3>
-            <ul className="space-y-3">
-              {verdict.strengths.map((strength, index) => (
-                <motion.li
-                  key={index}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 + index * 0.1, duration: 0.3 }}
-                  className="flex items-start gap-3 text-gray-700"
-                >
-                  <span className="flex-shrink-0 w-2 h-2 bg-green-500 rounded-full mt-2" />
-                  <span className="leading-relaxed">{strength}</span>
-                </motion.li>
-              ))}
-            </ul>
+          <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl text-gray-700">
+            <h3 className="font-semibold text-blue-800 mb-2">Summary</h3>
+            <p className="leading-relaxed">{verdict.summary}</p>
           </div>
         </motion.div>
+      )}
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -267,23 +256,58 @@ const AIReport: React.FC<AIReportProps> = ({
         >
           <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 h-full hover:shadow-xl transition-shadow duration-300">
             <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <span className="text-green-600 text-xl">✅</span>
+              Strengths
+            </h3>
+            {verdict.strengths && verdict.strengths.length > 0 ? (
+              <ul className="space-y-3">
+                {verdict.strengths.map((strength, index) => (
+                  <motion.li
+                    key={index}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.5 + index * 0.1, duration: 0.3 }}
+                    className="flex items-start gap-3 text-gray-700"
+                  >
+                    <span className="flex-shrink-0 w-2 h-2 bg-green-500 rounded-full mt-2" />
+                    <span className="leading-relaxed">{strength}</span>
+                  </motion.li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-500 text-sm">No strengths data available</p>
+            )}
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.4 }}
+        >
+          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 h-full hover:shadow-xl transition-shadow duration-300">
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
               <span className="text-amber-600 text-xl">⚠️</span>
               Weaknesses
             </h3>
-            <ul className="space-y-3">
-              {verdict.weaknesses.map((weakness, index) => (
-                <motion.li
-                  key={index}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.5 + index * 0.1, duration: 0.3 }}
-                  className="flex items-start gap-3 text-gray-700"
-                >
-                  <span className="flex-shrink-0 w-2 h-2 bg-amber-500 rounded-full mt-2" />
-                  <span className="leading-relaxed">{weakness}</span>
-                </motion.li>
-              ))}
-            </ul>
+            {verdict.weaknesses && verdict.weaknesses.length > 0 ? (
+              <ul className="space-y-3">
+                {verdict.weaknesses.map((weakness, index) => (
+                  <motion.li
+                    key={index}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.6 + index * 0.1, duration: 0.3 }}
+                    className="flex items-start gap-3 text-gray-700"
+                  >
+                    <span className="flex-shrink-0 w-2 h-2 bg-amber-500 rounded-full mt-2" />
+                    <span className="leading-relaxed">{weakness}</span>
+                  </motion.li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-500 text-sm">No weaknesses data available</p>
+            )}
           </div>
         </motion.div>
       </div>
