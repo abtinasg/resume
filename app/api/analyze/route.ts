@@ -71,6 +71,12 @@ interface SuccessResponse {
     ats_pass_probability: number;
   };
   ai_verdict: AIVerdictResponse;
+  ai_status: 'success' | 'fallback' | 'disabled';
+  ai_error?: {
+    code: string;
+    message: string;
+    timestamp: string;
+  };
   hybrid_mode: boolean;
   processingTime: number;
   timestamp: string;
@@ -351,6 +357,8 @@ export async function POST(req: NextRequest) {
     let analysis: ResumeAnalysisPro;
     let aiVerdict: AIVerdictResponse;
     let scoringResult: ScoringResult;
+    let aiStatus: 'success' | 'fallback' | 'disabled' = 'disabled';
+    let aiError: { code: string; message: string; timestamp: string } | undefined;
 
     try {
       console.log('[API] 🚀 Starting PRO Scoring System analysis in', HYBRID_MODE ? 'HYBRID' : 'LOCAL-ONLY', 'mode');
@@ -369,9 +377,9 @@ export async function POST(req: NextRequest) {
         processingTime: `${localProcessingTime}ms`,
       });
 
-      // Step 2: AI final verdict layer (mandatory in hybrid mode)
+      // Step 2: AI final verdict layer (with graceful fallback in hybrid mode)
       if (HYBRID_MODE) {
-        console.log('[API] 🤖 Step 2/2: Running AI final verdict layer (MANDATORY)...');
+        console.log('[API] 🤖 Step 2/2: Running AI final verdict layer (with graceful fallback)...');
         const aiStartTime = Date.now();
 
         try {
@@ -389,88 +397,64 @@ export async function POST(req: NextRequest) {
             processingTime: `${aiProcessingTime}ms`,
           });
 
+          aiStatus = 'success';
           console.log('[API] 🎯 Hybrid mode execution: SUCCESS - Both local and AI layers completed');
-        } catch (aiError) {
-          // In hybrid mode, AI failure is a fatal error
-          console.error('[API] ✗ AI verdict layer FAILED - Hybrid mode requires AI:', aiError);
+        } catch (aiErrorCaught) {
+          // GRACEFUL FALLBACK: AI failed, but we return local results instead of error
+          console.error('[API] ⚠️ AI verdict layer FAILED - Falling back to local results:', aiErrorCaught);
 
-          const errorCode = aiError instanceof AIAnalysisError ? aiError.code : 'AI_ERROR';
-          const errorMessage = aiError instanceof Error ? aiError.message : 'Unknown AI error';
-          const errorDetails = aiError instanceof AIAnalysisError ? aiError.details : undefined;
+          const errorCode = aiErrorCaught instanceof AIAnalysisError ? aiErrorCaught.code : 'AI_ERROR';
+          const errorMessage = aiErrorCaught instanceof Error ? aiErrorCaught.message : 'Unknown AI error';
 
-          // Map AI error codes to appropriate HTTP status codes
-          let httpStatus = 503; // Default: Service Unavailable
-          let responseCode = 'AI_UNAVAILABLE';
+          // Store error details for response
+          aiError = {
+            code: errorCode,
+            message: errorMessage,
+            timestamp: new Date().toISOString(),
+          };
 
-          switch (errorCode) {
-            case 'MISSING_API_KEY':
-            case 'INVALID_API_KEY':
-              httpStatus = 401; // Unauthorized
-              responseCode = 'UNAUTHORIZED';
-              console.error('[API] 🔴 Authentication error - Invalid or missing OpenAI API key');
-              break;
-            case 'BAD_REQUEST':
-            case 'INVALID_JSON':
-            case 'INVALID_RESPONSE':
-              httpStatus = 400; // Bad Request
-              responseCode = 'BAD_REQUEST';
-              console.error('[API] ⚠️ Bad request - AI layer received invalid data');
-              break;
-            case 'TIMEOUT':
-              httpStatus = 408; // Request Timeout
-              responseCode = 'TIMEOUT';
-              console.error('[API] ⏱️ Request timeout - AI layer took too long to respond');
-              break;
-            case 'RATE_LIMIT':
-              httpStatus = 429; // Too Many Requests
-              responseCode = 'RATE_LIMIT_EXCEEDED';
-              console.error('[API] ⚠️ Rate limit exceeded - Too many requests to OpenAI');
-              break;
-            case 'MODEL_NOT_FOUND':
-              httpStatus = 404; // Not Found
-              responseCode = 'MODEL_NOT_FOUND';
-              console.error('[API] ⚠️ Model not found - OpenAI model unavailable');
-              break;
-            case 'NETWORK_ERROR':
-              httpStatus = 503; // Service Unavailable
-              responseCode = 'NETWORK_ERROR';
-              console.error('[API] 🌐 Network error - Cannot reach OpenAI API');
-              break;
-            default:
-              httpStatus = 503; // Service Unavailable
-              responseCode = 'AI_UNAVAILABLE';
-              console.error('[API] ❌ Unknown AI error');
-          }
+          // Create fallback AI verdict based on local scoring
+          aiVerdict = {
+            ai_final_score: scoringResult.overallScore,
+            local_score_used: scoringResult.overallScore,
+            score_adjustment_reasoning: 'AI analysis unavailable - using local score as fallback',
+            summary: `This resume scored ${scoringResult.overallScore}/100 (Grade ${scoringResult.grade}). AI analysis was unavailable, so local scoring is used.`,
+            strengths: [
+              `Overall score: ${scoringResult.overallScore}/100`,
+              `ATS pass probability: ${scoringResult.atsPassProbability}%`,
+              'Local scoring completed successfully',
+            ],
+            weaknesses: [
+              'AI validation layer unavailable - scores may need manual review',
+            ],
+            improvement_suggestions: (scoringResult.improvementRoadmap.quickWins || []).map(action => action.action).slice(0, 3),
+            ats_verdict: scoringResult.atsPassProbability >= 70 ? 'Pass' : scoringResult.atsPassProbability >= 50 ? 'Conditional' : 'Fail',
+            confidence_level: 'Medium',
+          };
 
-          return NextResponse.json<ErrorResponse>(
-            {
-              success: false,
-              error: {
-                code: responseCode,
-                message: errorMessage,
-                details: {
-                  aiErrorCode: errorCode,
-                  aiErrorMessage: errorMessage,
-                  aiErrorDetails: errorDetails,
-                  localScoringCompleted: true,
-                  localScore: scoringResult.overallScore,
-                  hint: 'Check console logs for detailed error information',
-                },
-              },
-              hybrid_mode: true,
-            },
-            { status: httpStatus }
-          );
+          aiStatus = 'fallback';
+
+          // Log comprehensive fallback details
+          console.log('[API] 🔄 GRACEFUL FALLBACK activated:', {
+            aiErrorCode: errorCode,
+            aiErrorMessage: errorMessage,
+            fallbackScore: scoringResult.overallScore,
+            fallbackGrade: scoringResult.grade,
+            localScoringCompleted: true,
+          });
+
+          console.log('[API] 🎯 Hybrid mode execution: FALLBACK - Local results returned with AI error details');
         }
       } else {
         // Local-only mode: Skip AI layer
         console.log('[API] ⚠️ Skipping AI layer (HYBRID_MODE is disabled)');
+        aiStatus = 'disabled';
         // Create a minimal AI verdict for compatibility
         aiVerdict = {
           ai_final_score: scoringResult.overallScore,
-          summary: 'Local scoring only - AI layer skipped',
+          summary: 'Local scoring only - AI layer disabled',
           strengths: ['Local scoring completed successfully'],
-          weaknesses: ['AI layer not available in local-only mode'],
+          weaknesses: ['AI layer not enabled'],
           improvement_suggestions: ['Enable HYBRID_MODE for AI-enhanced analysis'],
         };
       }
@@ -541,6 +525,8 @@ export async function POST(req: NextRequest) {
         ats_pass_probability: scoringResult.atsPassProbability,
       },
       ai_verdict: aiVerdict,
+      ai_status: aiStatus,
+      ...(aiError && { ai_error: aiError }), // Include AI error details if fallback occurred
       hybrid_mode: HYBRID_MODE,
       processingTime,
       timestamp: new Date().toISOString(),
