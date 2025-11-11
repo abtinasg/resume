@@ -21,6 +21,7 @@ export interface AnalysisResult {
   }>;
   ai_verdict?: {
     ai_final_score: number;
+    overall_score?: number;
     summary: string;
     strengths: string[];
     weaknesses: string[];
@@ -29,33 +30,51 @@ export interface AnalysisResult {
       title: string;
       before: string;
       after: string;
+      reasoning?: string;
       priority?: string;
     }[];
     confidence_level?: string;
   } | null;
+  // Additional fields for 3D scoring
+  hybrid_score?: number;
+  ai_status?: 'success' | 'fallback' | 'disabled' | 'error';
+  local_scoring?: {
+    overall_score: number;
+    structure: number;
+    content: number;
+    tailoring: number;
+  };
 }
 
 /**
- * API Response Type (from /api/analyze) - Unified Hybrid Mode
- * This matches the new unified structure returned by the hybrid backend
+ * API Response Type (from /api/analyze) - 3D Scoring Hybrid Mode
+ * This matches the actual structure returned by the 3D scoring backend
  */
 export interface ApiAnalysisResponse {
   success: true;
-  hybrid_mode: true;
-  score: number;
+  hybrid_mode: boolean;
+  overall_score: number;
+  sections: {
+    structure: number;
+    content: number;
+    tailoring: number;
+  };
   summary: string;
-  strengths: string[];
-  weaknesses: string[];
-  improvement_suggestions: string[];
-  rewrites: {
+  actionables: {
     title: string;
-    before: string;
-    after: string;
-    reasoning: string;
-    priority: 'HIGH' | 'MEDIUM' | 'LOW';
+    points: number;
+    fix: string;
+    category?: 'structure' | 'content' | 'tailoring';
+    priority?: 'HIGH' | 'MEDIUM' | 'LOW';
   }[];
-  ai_status: 'success' | 'fallback';
-  timestamp: string;
+  ai_status: 'success' | 'fallback' | 'disabled';
+  metadata: {
+    processingTime: number;
+    timestamp: string;
+    model?: string;
+  };
+  estimatedImprovementTime?: number;
+  targetScore?: number;
 }
 
 export interface ApiErrorResponse {
