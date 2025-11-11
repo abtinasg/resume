@@ -3,6 +3,11 @@
  *
  * This module provides a lightweight, reusable helper that calls OpenAI or Anthropic model
  * to analyze structured data and return JSON responses.
+ *
+ * HYBRID MODE:
+ * - When HYBRID_MODE is enabled, AI analysis is mandatory
+ * - If OpenAI API key is missing or API fails, the function throws an error
+ * - The calling code must handle this error and return AI_UNAVAILABLE response
  */
 
 import OpenAI from "openai";
@@ -14,38 +19,83 @@ const openai = new OpenAI({
 
 /**
  * AI Verdict Response Interface
+ * Enhanced to support hybrid reasoning mode with component adjustments
  */
 export interface AIVerdictResponse {
-  ai_final_score?: number;
-  summary?: string;
-  strengths?: string[];
-  weaknesses?: string[];
-  improvement_suggestions?: string[];
-  [key: string]: any; // Allow additional fields
+  ai_final_score: number;
+  local_score_used?: number;
+  score_adjustment_reasoning?: string;
+  adjusted_components?: {
+    content_quality?: number;
+    ats_compatibility?: number;
+    format_structure?: number;
+    impact_metrics?: number;
+  };
+  summary: string;
+  strengths: string[];
+  weaknesses: string[];
+  improvement_suggestions: string[];
+  ats_verdict?: string;
+  confidence_level?: string;
+  [key: string]: any; // Allow additional fields for flexibility
+}
+
+/**
+ * Custom error class for AI-specific errors
+ */
+export class AIAnalysisError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public details?: any
+  ) {
+    super(message);
+    this.name = 'AIAnalysisError';
+  }
 }
 
 /**
  * Analyze with AI - Generic helper for AI-powered analysis
  *
  * This function:
- * 1. Calls OpenAI API with the provided prompt
- * 2. Uses gpt-4o-mini model for cost-effective, fast responses
- * 3. Safely parses JSON response
- * 4. Handles errors gracefully
+ * 1. Validates that OpenAI API key is configured
+ * 2. Calls OpenAI API with the provided prompt
+ * 3. Uses gpt-4o-mini model for cost-effective, fast responses
+ * 4. Safely parses JSON response with validation
+ * 5. Throws AIAnalysisError with specific error codes for better error handling
  *
  * @param prompt - The complete prompt to send to the AI
  * @returns Promise<AIVerdictResponse> - Parsed JSON response from AI
- * @throws Error if API call fails or response is invalid
+ * @throws AIAnalysisError with specific error codes
  *
  * @example
  * ```typescript
  * const prompt = buildFinalAIPrompt(resumeText, jobRole, scoringResult);
- * const verdict = await analyzeWithAI(prompt);
- * console.log(verdict.ai_final_score);
+ * try {
+ *   const verdict = await analyzeWithAI(prompt);
+ *   console.log(verdict.ai_final_score);
+ * } catch (error) {
+ *   if (error instanceof AIAnalysisError && error.code === 'MISSING_API_KEY') {
+ *     // Handle missing API key
+ *   }
+ * }
  * ```
  */
 export async function analyzeWithAI(prompt: string): Promise<AIVerdictResponse> {
+  const startTime = Date.now();
+
+  // Validate API key is configured
+  if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY.trim() === '') {
+    console.error('[AI Verdict] ✗ OpenAI API key is not configured');
+    throw new AIAnalysisError(
+      'OpenAI API key is not configured. Please set OPENAI_API_KEY in your environment.',
+      'MISSING_API_KEY'
+    );
+  }
+
   try {
+    console.log('[AI Verdict] 🤖 Starting AI analysis with hybrid reasoning mode...');
+
     // Call OpenAI API
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -53,7 +103,7 @@ export async function analyzeWithAI(prompt: string): Promise<AIVerdictResponse> 
       messages: [
         {
           role: "system",
-          content: "You are an expert resume analyst. Provide your analysis as valid JSON only, no additional text or markdown formatting.",
+          content: "You are an expert resume analyst operating in hybrid reasoning mode. Provide your analysis as valid JSON only, no additional text or markdown formatting. Ensure all required fields are present.",
         },
         {
           role: "user",
@@ -61,50 +111,129 @@ export async function analyzeWithAI(prompt: string): Promise<AIVerdictResponse> 
         },
       ],
       response_format: { type: "json_object" }, // Ensure JSON response
+      timeout: 30000, // 30 second timeout
     });
 
     // Extract content from response
-    const content = response.choices?.[0]?.message?.content || "{}";
+    const content = response.choices?.[0]?.message?.content;
+
+    if (!content) {
+      console.error('[AI Verdict] ✗ Empty response from OpenAI');
+      throw new AIAnalysisError(
+        'OpenAI returned an empty response',
+        'EMPTY_RESPONSE'
+      );
+    }
 
     // Parse JSON safely
+    let parsedResponse: AIVerdictResponse;
     try {
-      const parsedResponse = JSON.parse(content) as AIVerdictResponse;
-
-      console.log('[AI Verdict] ✓ Successfully analyzed with AI:', {
-        hasScore: !!parsedResponse.ai_final_score,
-        hasSummary: !!parsedResponse.summary,
-        strengthsCount: parsedResponse.strengths?.length || 0,
-        weaknessesCount: parsedResponse.weaknesses?.length || 0,
-      });
-
-      return parsedResponse;
+      parsedResponse = JSON.parse(content) as AIVerdictResponse;
     } catch (parseError) {
-      // If JSON parsing fails, return the content as summary
-      console.warn('[AI Verdict] ⚠ Failed to parse JSON, returning as summary:', parseError);
-      return {
-        summary: content,
-      };
+      console.error('[AI Verdict] ✗ Failed to parse JSON response:', parseError);
+      throw new AIAnalysisError(
+        'Failed to parse AI response as JSON',
+        'INVALID_JSON',
+        { content, parseError }
+      );
     }
+
+    // Validate required fields
+    const validationErrors: string[] = [];
+    if (typeof parsedResponse.ai_final_score !== 'number') {
+      validationErrors.push('ai_final_score is missing or not a number');
+    }
+    if (!parsedResponse.summary || typeof parsedResponse.summary !== 'string') {
+      validationErrors.push('summary is missing or not a string');
+    }
+    if (!Array.isArray(parsedResponse.strengths) || parsedResponse.strengths.length === 0) {
+      validationErrors.push('strengths is missing or empty');
+    }
+    if (!Array.isArray(parsedResponse.weaknesses) || parsedResponse.weaknesses.length === 0) {
+      validationErrors.push('weaknesses is missing or empty');
+    }
+    if (!Array.isArray(parsedResponse.improvement_suggestions) || parsedResponse.improvement_suggestions.length === 0) {
+      validationErrors.push('improvement_suggestions is missing or empty');
+    }
+
+    if (validationErrors.length > 0) {
+      console.error('[AI Verdict] ✗ Response validation failed:', validationErrors);
+      throw new AIAnalysisError(
+        `AI response is missing required fields: ${validationErrors.join(', ')}`,
+        'INVALID_RESPONSE',
+        { validationErrors, response: parsedResponse }
+      );
+    }
+
+    const processingTime = Date.now() - startTime;
+    console.log('[AI Verdict] ✓ AI analysis completed successfully:', {
+      aiScore: parsedResponse.ai_final_score,
+      localScore: parsedResponse.local_score_used,
+      hasSummary: !!parsedResponse.summary,
+      strengthsCount: parsedResponse.strengths.length,
+      weaknessesCount: parsedResponse.weaknesses.length,
+      suggestionsCount: parsedResponse.improvement_suggestions.length,
+      processingTime: `${processingTime}ms`,
+    });
+
+    return parsedResponse;
   } catch (error) {
-    // Handle API errors
+    // If already an AIAnalysisError, re-throw it
+    if (error instanceof AIAnalysisError) {
+      throw error;
+    }
+
+    // Handle OpenAI SDK errors
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('[AI Verdict] ✗ AI analysis failed:', errorMessage);
+    console.error('[AI Verdict] ✗ OpenAI API error:', errorMessage);
 
     // Check for specific error types
-    if (errorMessage.includes('API key')) {
-      throw new Error('OPENAI_API_KEY is not configured or invalid');
+    if (errorMessage.includes('API key') || errorMessage.includes('Incorrect API key') || errorMessage.includes('401')) {
+      throw new AIAnalysisError(
+        'OpenAI API key is invalid or unauthorized',
+        'INVALID_API_KEY',
+        { originalError: errorMessage }
+      );
     }
 
     if (errorMessage.includes('rate_limit') || errorMessage.includes('429')) {
-      throw new Error('OpenAI API rate limit exceeded. Please try again later.');
+      throw new AIAnalysisError(
+        'OpenAI API rate limit exceeded. Please try again later.',
+        'RATE_LIMIT',
+        { originalError: errorMessage }
+      );
     }
 
-    if (errorMessage.includes('timeout')) {
-      throw new Error('OpenAI API request timed out. Please try again.');
+    if (errorMessage.includes('timeout') || errorMessage.includes('ETIMEDOUT') || errorMessage.includes('ECONNABORTED')) {
+      throw new AIAnalysisError(
+        'OpenAI API request timed out. Please try again.',
+        'TIMEOUT',
+        { originalError: errorMessage }
+      );
+    }
+
+    if (errorMessage.includes('network') || errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND')) {
+      throw new AIAnalysisError(
+        'Network error connecting to OpenAI API. Please check your connection.',
+        'NETWORK_ERROR',
+        { originalError: errorMessage }
+      );
+    }
+
+    if (errorMessage.includes('model') || errorMessage.includes('not found')) {
+      throw new AIAnalysisError(
+        'OpenAI model not available or not found',
+        'MODEL_NOT_FOUND',
+        { originalError: errorMessage }
+      );
     }
 
     // Generic error
-    throw new Error(`AI analysis failed: ${errorMessage}`);
+    throw new AIAnalysisError(
+      `AI analysis failed: ${errorMessage}`,
+      'AI_ERROR',
+      { originalError: errorMessage }
+    );
   }
 }
 
@@ -112,41 +241,65 @@ export async function analyzeWithAI(prompt: string): Promise<AIVerdictResponse> 
  * Analyze with AI (with retry logic)
  *
  * Enhanced version with automatic retry on transient failures.
+ * This function intelligently retries on transient errors (timeouts, network issues)
+ * but immediately fails on permanent errors (auth issues, invalid responses).
  *
  * @param prompt - The complete prompt to send to the AI
  * @param maxRetries - Maximum number of retry attempts (default: 2)
  * @returns Promise<AIVerdictResponse> - Parsed JSON response from AI
+ * @throws AIAnalysisError with specific error codes
  */
 export async function analyzeWithAIRetry(
   prompt: string,
   maxRetries: number = 2
 ): Promise<AIVerdictResponse> {
-  let lastError: Error | null = null;
+  let lastError: AIAnalysisError | null = null;
+
+  console.log(`[AI Verdict] Starting AI analysis with retry (max ${maxRetries} retries)...`);
 
   for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
     try {
+      if (attempt > 1) {
+        console.log(`[AI Verdict] Attempt ${attempt}/${maxRetries + 1}...`);
+      }
       return await analyzeWithAI(prompt);
     } catch (error) {
-      lastError = error instanceof Error ? error : new Error('Unknown error');
+      lastError = error instanceof AIAnalysisError
+        ? error
+        : new AIAnalysisError(
+            error instanceof Error ? error.message : 'Unknown error',
+            'UNKNOWN_ERROR'
+          );
 
-      // Don't retry on authentication or configuration errors
-      if (
-        lastError.message.includes('API key') ||
-        lastError.message.includes('invalid')
-      ) {
+      // Don't retry on permanent errors
+      const nonRetryableErrors = [
+        'MISSING_API_KEY',
+        'INVALID_API_KEY',
+        'INVALID_JSON',
+        'INVALID_RESPONSE',
+        'EMPTY_RESPONSE',
+        'MODEL_NOT_FOUND',
+      ];
+
+      if (nonRetryableErrors.includes(lastError.code)) {
+        console.error(`[AI Verdict] ✗ Non-retryable error (${lastError.code}):`, lastError.message);
         throw lastError;
       }
 
-      // Log retry attempt
+      // Log retry attempt for transient errors
       if (attempt <= maxRetries) {
-        console.warn(`[AI Verdict] Retry attempt ${attempt}/${maxRetries} after error:`, lastError.message);
+        const waitTime = 1000 * attempt; // Exponential backoff: 1s, 2s, 3s...
+        console.warn(`[AI Verdict] ⚠ Transient error (${lastError.code}), retrying in ${waitTime}ms...`);
+        console.warn(`[AI Verdict] Error details:`, lastError.message);
 
         // Wait before retrying (exponential backoff)
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      } else {
+        console.error(`[AI Verdict] ✗ All ${maxRetries + 1} attempts failed. Last error:`, lastError.message);
       }
     }
   }
 
   // All retries failed
-  throw lastError || new Error('AI analysis failed after retries');
+  throw lastError || new AIAnalysisError('AI analysis failed after all retry attempts', 'RETRY_EXHAUSTED');
 }

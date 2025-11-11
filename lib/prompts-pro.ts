@@ -479,6 +479,12 @@ export function generateRoleInsights(
  * after local scoring is complete. The AI reviews the structured scoring result and provides
  * expert-level reasoning and refinements.
  *
+ * HYBRID REASONING MODE:
+ * - The AI operates in a hybrid mode where local scoring provides structured numerical data
+ * - The AI validates, refines, and optionally adjusts scores using expert reasoning
+ * - The AI must always provide a final verdict that can differ from local scores
+ * - Both local and AI results are returned to the user for transparency
+ *
  * @param resumeText - Full resume text
  * @param jobRole - Target job role
  * @param scoringResult - Complete scoring result from local system
@@ -486,7 +492,18 @@ export function generateRoleInsights(
  */
 export function buildFinalAIPrompt(resumeText: string, jobRole: string, scoringResult: any): string {
   return `
-You are an expert resume analyst reviewing a structured scoring result.
+You are an expert resume analyst operating in HYBRID REASONING MODE.
+
+🔄 HYBRID REASONING MODE DIRECTIVE:
+You are provided with local scoring data as a reference point, but you must re-evaluate and refine
+the scores using your expert reasoning and understanding of resume quality, ATS systems, and hiring practices.
+
+Your analysis should:
+- Use the local scoring data for reference, but NOT blindly accept it
+- Apply your expert judgment to validate or adjust the scores
+- Identify gaps, inconsistencies, or areas where the local algorithm may have under/over-scored
+- Provide a final AI-refined score that reflects your expert assessment
+- Explain your reasoning when your assessment differs from local scores
 
 ---
 
@@ -496,28 +513,73 @@ ${resumeText}
 ### Job Role
 ${jobRole}
 
-### Scoring Result (from local system)
+### Local Scoring Data (for reference)
 ${JSON.stringify(scoringResult, null, 2)}
 
 ---
 
-Your task:
-1. Review and validate the scoring data logically.
-2. Identify 3 strengths that truly help for this job.
-3. Point out 3 weaknesses or inconsistencies in the scoring.
-4. Suggest 3 actionable improvements.
-5. Provide a final verdict:
-   - Adjusted overall score (0-100)
-   - 2–3 sentence summary
-   - Top 3 recommendations.
+### Your Task:
+As an expert resume analyst, perform a comprehensive hybrid evaluation:
 
-Return the output as JSON in this structure:
+1. **Validate Local Scoring**: Review the local scoring data and identify any inconsistencies,
+   over-scoring, or under-scoring based on actual resume content.
+
+2. **Expert Re-Evaluation**: Read the actual resume text and apply your expert judgment to assess:
+   - Content quality and achievement quantification
+   - ATS compatibility and keyword optimization
+   - Format and structure effectiveness
+   - Impact and measurable results
+   - Overall professional presentation
+
+3. **Identify Strengths**: List 3-5 specific strengths that will help this candidate for the target role.
+   Reference actual content from the resume, not just the scores.
+
+4. **Identify Weaknesses**: List 3-5 specific weaknesses or areas needing improvement.
+   Be specific about what's missing or could be improved.
+
+5. **Provide Improvement Suggestions**: Offer 3-5 actionable, high-impact recommendations
+   that will meaningfully improve the resume's effectiveness.
+
+6. **Final AI Verdict**: Provide your expert-adjusted final score (0-100) with reasoning.
+   This score should reflect your assessment, which may differ from the local score.
+
+### Required Output Format (JSON):
 {
-  "ai_final_score": number,
-  "summary": string,
-  "strengths": [string, string, string],
-  "weaknesses": [string, string, string],
-  "improvement_suggestions": [string, string, string]
+  "ai_final_score": <number 0-100>,
+  "local_score_used": <number from local system>,
+  "score_adjustment_reasoning": "<If your score differs from local, explain why>",
+  "adjusted_components": {
+    "content_quality": <number 0-100>,
+    "ats_compatibility": <number 0-100>,
+    "format_structure": <number 0-100>,
+    "impact_metrics": <number 0-100>
+  },
+  "summary": "<2-3 sentence executive summary of resume quality and fit for role>",
+  "strengths": [
+    "<Specific strength with evidence from resume>",
+    "<Another specific strength>",
+    "<Third strength>"
+  ],
+  "weaknesses": [
+    "<Specific weakness with explanation>",
+    "<Another weakness>",
+    "<Third weakness>"
+  ],
+  "improvement_suggestions": [
+    "<High-impact actionable suggestion>",
+    "<Second actionable suggestion>",
+    "<Third actionable suggestion>"
+  ],
+  "ats_verdict": "<Pass|Conditional|Fail> with brief explanation",
+  "confidence_level": "<High|Medium|Low> - your confidence in this assessment"
 }
+
+### Important Guidelines:
+- Be objective and specific - reference actual resume content
+- Don't just echo the local scores - provide independent expert judgment
+- If local scores seem off, adjust them with clear reasoning
+- Focus on actionable insights that will improve hiring outcomes
+- Consider the target role when evaluating fit and relevance
+- Ensure all JSON fields are properly filled with meaningful content
   `;
 }
