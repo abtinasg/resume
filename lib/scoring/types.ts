@@ -661,3 +661,108 @@ export interface RoleInsights {
     currency: string;
   };
 }
+
+// ==================== 3D Scoring System - New Architecture ====================
+
+/**
+ * 3D Resume Scores - Three-dimensional scoring model
+ * Replaces the 4-component model with a simplified 3-axis approach
+ */
+export interface ResumeScores {
+  /** Structure score (0-40): Completeness of sections */
+  structure: number;
+
+  /** Content score (0-60): Clarity, metrics, action verbs */
+  content: number;
+
+  /** Tailoring score (0-40): Match to target job description */
+  tailoring: number;
+
+  /** Overall score: Weighted combination */
+  overall: number;
+}
+
+/**
+ * Actionable item with point impact
+ */
+export interface ActionableItem {
+  /** Title/description of the action */
+  title: string;
+
+  /** Point impact (negative = deduction, positive = potential gain) */
+  points: number;
+
+  /** How to fix/improve */
+  fix: string;
+
+  /** Category (optional) */
+  category?: 'structure' | 'content' | 'tailoring';
+
+  /** Priority level */
+  priority?: 'HIGH' | 'MEDIUM' | 'LOW';
+}
+
+/**
+ * AI Analysis Response (strict scoring mode)
+ */
+export interface AI3DAnalysisResponse {
+  /** Executive summary of the resume */
+  summary: string;
+
+  /** Structure score from AI (0-40) */
+  structure_score: number;
+
+  /** Content score from AI (0-60) */
+  content_score: number;
+
+  /** Tailoring score from AI (0-40) */
+  tailoring_score: number;
+
+  /** Overall score from AI (0-100) */
+  overall_score: number;
+
+  /** List of actionable improvements */
+  actionables: ActionableItem[];
+
+  /** Confidence level */
+  confidence_level?: 'high' | 'medium' | 'low';
+
+  /** AI reasoning (optional) */
+  reasoning?: string;
+}
+
+/**
+ * Hybrid 3D Scoring Result (combined local + AI)
+ */
+export interface Hybrid3DScoringResult {
+  /** Final hybrid scores */
+  scores: ResumeScores;
+
+  /** Local (rule-based) scores */
+  localScores: ResumeScores;
+
+  /** AI scores */
+  aiScores?: ResumeScores;
+
+  /** Executive summary */
+  summary: string;
+
+  /** Actionable items */
+  actionables: ActionableItem[];
+
+  /** AI status */
+  ai_status: 'success' | 'fallback' | 'disabled';
+
+  /** Processing metadata */
+  metadata: {
+    processingTime: number;
+    timestamp: string;
+    model?: string;
+  };
+
+  /** Minutes to improve (estimated) */
+  estimatedImprovementTime?: number;
+
+  /** Target score achievable with improvements */
+  targetScore?: number;
+}
