@@ -719,7 +719,7 @@ export function calculateImpactScore(resumeText: string): ComponentScore {
     score: Math.min(scaleCount * 15, 100),
     calculation: `${scaleCount} scale indicators found`,
     found: scaleCount,
-  };
+  } as SubComponentScore & { found: number };
 
   // Recognition & Growth: Look for promotions, awards, recognition
   const recognitionWords = ['promoted', 'award', 'recognition', 'achievement', 'honor'];

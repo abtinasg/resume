@@ -4,7 +4,7 @@ import { analyzeResumePro, ResumeAnalysisPro } from '@/lib/openai';
 import { extractTextFromBase64PDF } from '@/lib/pdfParser';
 import { calculatePROScore, ScoringResult } from '@/lib/scoring';
 import { buildFinalAIPrompt } from '@/lib/prompts-pro';
-import { analyzeWithAIRetry, analyzeWithAIEnhanced, AIVerdictResponse, AIAnalysisError } from '@/lib/openai/analyzeWithAI';
+import { analyzeWithAIRetry, analyzeWithAIEnhanced, generateAIRewrites, AIVerdictResponse, AIAnalysisError } from '@/lib/openai/analyzeWithAI';
 import { HYBRID_MODE, validateEnvironment } from '@/lib/env';
 
 export const runtime = 'nodejs';
@@ -355,7 +355,7 @@ export async function POST(req: NextRequest) {
 
     // Analyze resume with PRO Scoring System (Hybrid Mode)
     let analysis: ResumeAnalysisPro;
-    let aiVerdict: AIVerdictResponse;
+    let aiVerdict: AIVerdictResponse | undefined;
     let scoringResult: ScoringResult;
     let aiStatus: 'success' | 'fallback' | 'disabled' = 'disabled';
     let aiError: { code: string; message: string; timestamp: string } | undefined;
@@ -436,6 +436,26 @@ export async function POST(req: NextRequest) {
 
           if (!retrySuccess || !aiVerdict) {
             throw lastError || new AIAnalysisError('AI analysis failed after all retry attempts', 'RETRY_EXHAUSTED');
+          }
+
+          // Generate AI-powered rewrites (replacing any existing rewrites with AI-generated ones)
+          console.log('[API] 🎨 Step 2b/2: Generating AI-powered before/after rewrites...');
+          const rewritesStartTime = Date.now();
+
+          try {
+            aiVerdict.before_after_rewrites = await generateAIRewrites(scoringResult, resumeText);
+            const rewritesProcessingTime = Date.now() - rewritesStartTime;
+            console.log('[API] ✓ AI rewrites generated successfully:', {
+              rewriteCount: aiVerdict.before_after_rewrites.length,
+              processingTime: `${rewritesProcessingTime}ms`,
+            });
+          } catch (rewriteError) {
+            // Log error but don't fail the entire request - AI verdict is still valid
+            console.error('[API] ⚠️ AI rewrite generation failed (non-critical):', rewriteError);
+            // Keep any existing rewrites or set to empty array
+            if (!aiVerdict.before_after_rewrites) {
+              aiVerdict.before_after_rewrites = [];
+            }
           }
 
           const aiProcessingTime = Date.now() - aiStartTime;
