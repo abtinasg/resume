@@ -4,7 +4,7 @@ import { analyzeResumePro, ResumeAnalysisPro } from '@/lib/openai';
 import { extractTextFromBase64PDF } from '@/lib/pdfParser';
 import { calculatePROScore, ScoringResult } from '@/lib/scoring';
 import { buildFinalAIPrompt } from '@/lib/prompts-pro';
-import { analyzeWithAIRetry, AIVerdictResponse, AIAnalysisError } from '@/lib/openai/analyzeWithAI';
+import { analyzeWithAIRetry, analyzeWithAIEnhanced, AIVerdictResponse, AIAnalysisError } from '@/lib/openai/analyzeWithAI';
 import { HYBRID_MODE, validateEnvironment } from '@/lib/env';
 
 export const runtime = 'nodejs';
@@ -383,9 +383,60 @@ export async function POST(req: NextRequest) {
         const aiStartTime = Date.now();
 
         try {
-          const prompt = buildFinalAIPrompt(resumeText, 'General', scoringResult);
-          // Use retry logic for better resilience
-          aiVerdict = await analyzeWithAIRetry(prompt, 2);
+          // Use enhanced AI analysis with before/after rewrites (with retry logic)
+          // First, wrap analyzeWithAIEnhanced in retry logic
+          const maxRetries = 2;
+          let lastError: AIAnalysisError | null = null;
+          let retrySuccess = false;
+
+          for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+            try {
+              if (attempt > 1) {
+                console.log(`[API] 🔄 AI Enhanced Retry attempt ${attempt}/${maxRetries + 1}...`);
+              }
+
+              aiVerdict = await analyzeWithAIEnhanced(resumeText, scoringResult);
+              retrySuccess = true;
+              break;
+            } catch (error) {
+              lastError = error instanceof AIAnalysisError
+                ? error
+                : new AIAnalysisError(
+                    error instanceof Error ? error.message : 'Unknown error',
+                    'UNKNOWN_ERROR'
+                  );
+
+              // Don't retry on permanent errors
+              const nonRetryableErrors = [
+                'MISSING_API_KEY',
+                'INVALID_API_KEY',
+                'INVALID_JSON',
+                'INVALID_RESPONSE',
+                'EMPTY_RESPONSE',
+                'MODEL_NOT_FOUND',
+                'BAD_REQUEST',
+              ];
+
+              if (nonRetryableErrors.includes(lastError.code)) {
+                console.error(`[API] ✗ Non-retryable AI error (${lastError.code}):`, lastError.message);
+                throw lastError;
+              }
+
+              // Log retry attempt for transient errors
+              if (attempt <= maxRetries) {
+                const waitTime = 1000 * Math.pow(2, attempt - 1);
+                console.warn(`[API] ⚠ Transient AI error (${lastError.code}), retrying in ${waitTime}ms...`);
+                await new Promise(resolve => setTimeout(resolve, waitTime));
+              } else {
+                console.error(`[API] ✗ All ${maxRetries + 1} AI attempts failed`);
+                throw lastError;
+              }
+            }
+          }
+
+          if (!retrySuccess || !aiVerdict) {
+            throw lastError || new AIAnalysisError('AI analysis failed after all retry attempts', 'RETRY_EXHAUSTED');
+          }
 
           const aiProcessingTime = Date.now() - aiStartTime;
           console.log('[API] ✓ AI verdict layer completed successfully:', {
@@ -393,6 +444,8 @@ export async function POST(req: NextRequest) {
             localScore: aiVerdict.local_score_used || scoringResult.overallScore,
             scoreDifference: aiVerdict.ai_final_score - scoringResult.overallScore,
             hasAdjustments: !!aiVerdict.adjusted_components,
+            hasRewrites: !!aiVerdict.before_after_rewrites,
+            rewriteCount: aiVerdict.before_after_rewrites?.length || 0,
             confidenceLevel: aiVerdict.confidence_level,
             processingTime: `${aiProcessingTime}ms`,
           });
