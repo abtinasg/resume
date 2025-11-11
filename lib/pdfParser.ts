@@ -112,7 +112,6 @@ function formatTime(ms: number): string {
 
 async function extractWithPdfParse(pdfBuffer: Buffer): Promise<string> {
   try {
-    console.log("[PDF Parser][pdf-parse] Starting extraction...");
     const startTime = Date.now();
 
     const pdfParse = (await import("pdf-parse")).default;
@@ -123,7 +122,7 @@ async function extractWithPdfParse(pdfBuffer: Buffer): Promise<string> {
     const elapsed = Date.now() - startTime;
 
     console.log(
-      `[PDF Parser][pdf-parse] Extracted ${cleanText.length} chars in ${formatTime(elapsed)}`
+      `[PDF Parser] Extracted ${cleanText.length} chars via pdf-parse (${elapsed}ms)`
     );
 
     return cleanText;
@@ -139,11 +138,11 @@ async function extractWithPdfParse(pdfBuffer: Buffer): Promise<string> {
 
 async function extractWithPDFJS(pdfBuffer: Buffer): Promise<string> {
   try {
-    console.log("[PDF Parser][pdfjs] Starting deep extraction...");
     const startTime = Date.now();
 
     // Dynamic import for Next.js compatibility
-    const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    // @ts-expect-error - pdfjs-dist types may not match perfectly
+    const pdfjsLib = await import("pdfjs-dist/build/pdf.js");
 
     // Create typed array from buffer
     const data = new Uint8Array(pdfBuffer);
@@ -190,7 +189,7 @@ async function extractWithPDFJS(pdfBuffer: Buffer): Promise<string> {
     const elapsed = Date.now() - startTime;
 
     console.log(
-      `[PDF Parser][pdfjs] Extracted ${cleanText.length} chars from ${pdf.numPages} pages in ${formatTime(elapsed)}`
+      `[PDF Parser] Extracted ${cleanText.length} chars via pdfjs (${elapsed}ms)`
     );
 
     return cleanText;
@@ -209,11 +208,11 @@ async function extractWithOCR(pdfBuffer: Buffer): Promise<{
   confidence: number;
 }> {
   try {
-    console.log("[PDF Parser][OCR] Starting OCR extraction...");
     const startTime = Date.now();
 
     // Dynamic imports
-    const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    // @ts-expect-error - pdfjs-dist types may not match perfectly
+    const pdfjsLib = await import("pdfjs-dist/build/pdf.js");
     const { createCanvas } = await import("canvas");
     const { createWorker } = await import("tesseract.js");
 
@@ -229,7 +228,6 @@ async function extractWithOCR(pdfBuffer: Buffer): Promise<{
 
     // Process first 3 pages only (OCR is slow and expensive)
     const maxPages = Math.min(pdf.numPages, OCR_MAX_PAGES);
-    console.log(`[PDF Parser][OCR] Processing ${maxPages} page(s)...`);
 
     for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
       try {
@@ -275,10 +273,6 @@ async function extractWithOCR(pdfBuffer: Buffer): Promise<{
         if (bestText.trim().length > 0) {
           textParts.push(bestText);
           confidences.push(bestConfidence);
-
-          console.log(
-            `[PDF Parser][OCR] Page ${pageNum}/${maxPages} → ${bestText.length} chars (confidence ${(bestConfidence / 100).toFixed(2)})`
-          );
         }
       } catch (pageError) {
         console.error(
@@ -300,7 +294,7 @@ async function extractWithOCR(pdfBuffer: Buffer): Promise<{
     const elapsed = Date.now() - startTime;
 
     console.log(
-      `[PDF Parser][OCR] Extracted ${cleanText.length} chars with confidence ${avgConfidence.toFixed(2)} in ${formatTime(elapsed)}`
+      `[PDF Parser] Extracted ${cleanText.length} chars via ocr (${elapsed}ms)`
     );
 
     return {
@@ -319,8 +313,6 @@ async function extractWithOCR(pdfBuffer: Buffer): Promise<{
 
 async function extractMetadata(pdfBuffer: Buffer): Promise<string> {
   try {
-    console.log("[PDF Parser][metadata] Extracting metadata...");
-
     const pdfParse = (await import("pdf-parse")).default;
     const data = await pdfParse(pdfBuffer);
 
@@ -364,9 +356,6 @@ async function extractMetadata(pdfBuffer: Buffer): Promise<string> {
     }
 
     const metadataText = parts.join(" ").trim();
-    console.log(
-      `[PDF Parser][metadata] Extracted ${metadataText.length} chars`
-    );
 
     return cleanExtractedText(metadataText);
   } catch (error) {
