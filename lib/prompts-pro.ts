@@ -622,3 +622,166 @@ As an expert resume analyst, perform a comprehensive hybrid evaluation:
 - Ensure all JSON fields are properly filled with meaningful content
   `;
 }
+
+// ==================== 3D Scoring System - Strict AI Prompt ====================
+
+/**
+ * Build 3D Strict AI Verdict Prompt
+ *
+ * This prompt enforces stricter, more realistic scoring using the 3D model:
+ * - Structure (0-40): Completeness of sections
+ * - Content (0-60): Clarity, metrics, action verbs
+ * - Tailoring (0-40): Match to job description
+ *
+ * STRICT SCORING GUIDELINES:
+ * - Average resumes should score 40-60 range
+ * - Good resumes should score 60-75 range
+ * - Exceptional resumes should score 75-90 range
+ * - Perfect score (90-100) should be VERY rare and only for flawless resumes
+ * - Do NOT inflate scores - be realistic and critical
+ *
+ * @param resumeText - Full resume text
+ * @param jobRole - Target job role
+ * @param localScores - Local 3D scores for reference
+ * @returns Strict AI prompt for 3D scoring
+ */
+export function build3DStrictAIPrompt(
+  resumeText: string,
+  jobRole: string,
+  localScores: {
+    structure: number;
+    content: number;
+    tailoring: number;
+    overall: number;
+    breakdown: any;
+  }
+): string {
+  return `You are a critical resume evaluator with 15+ years of experience in recruiting and ATS systems.
+Your role is to provide REALISTIC, STRICT scoring that reflects actual hiring standards.
+
+🎯 CRITICAL SCORING DIRECTIVE - READ CAREFULLY:
+You must be STRICT and REALISTIC in your scoring. Most resumes are average and should be scored accordingly.
+
+**SCORING RANGES (strictly follow these):**
+- 90-100: PERFECT/FLAWLESS - Extremely rare. Only for resumes with zero issues, perfect formatting, exceptional content, and complete tailoring. You should almost NEVER give scores in this range.
+- 75-89: EXCEPTIONAL - Strong professional resume with minimal issues. Clear value proposition, well-quantified achievements, excellent ATS optimization.
+- 60-74: GOOD - Solid resume with some strengths but noticeable gaps. Needs improvements in metrics, keywords, or structure.
+- 40-59: AVERAGE - Typical resume with multiple issues. Missing quantification, weak action verbs, poor ATS optimization, or structural problems.
+- 20-39: BELOW AVERAGE - Significant problems. Major gaps in content, format issues, minimal quantification.
+- 0-19: POOR - Fundamental issues that make the resume unusable or unprofessional.
+
+⚠️ IMPORTANT: Do NOT inflate scores. If you're unsure, score LOWER rather than higher.
+
+---
+
+### 📋 CONTEXT
+- **Target Role**: ${jobRole}
+- **Local Scores (for reference only)**:
+  * Structure: ${localScores.structure}/40 (${Math.round((localScores.structure / 40) * 100)}%)
+  * Content: ${localScores.content}/60 (${Math.round((localScores.content / 60) * 100)}%)
+  * Tailoring: ${localScores.tailoring}/40 (${Math.round((localScores.tailoring / 40) * 100)}%)
+  * Overall: ${localScores.overall}/100
+
+**Local Breakdown:**
+- Sections found: ${localScores.breakdown?.structure?.sectionsFound?.join(', ') || 'N/A'}
+- Sections missing: ${localScores.breakdown?.structure?.sectionsMissing?.join(', ') || 'None'}
+- Quantification ratio: ${localScores.breakdown?.content?.quantificationRatio || 0}%
+- Strong verb %: ${localScores.breakdown?.content?.strongVerbPercentage || 0}%
+
+---
+
+### 📄 RESUME TEXT
+${resumeText}
+
+---
+
+### YOUR TASK:
+
+**Read the resume carefully and evaluate it using strict, realistic standards.**
+
+1. **STRUCTURE (0-40 points)**: Evaluate completeness of essential sections
+   - Professional summary/objective (8 pts)
+   - Work experience with proper formatting (10 pts)
+   - Education section (8 pts)
+   - Skills section (8 pts)
+   - Contact information (6 pts)
+
+   Deduct points for:
+   - Missing sections
+   - Poor organization
+   - Inconsistent formatting
+   - Unclear section headers
+
+2. **CONTENT (0-60 points)**: Evaluate quality of writing and impact
+   - Achievement quantification (20 pts) - Are results measurable? Do bullets show impact?
+   - Action verb strength (15 pts) - Strong, impactful verbs vs weak, passive language?
+   - Clarity and readability (15 pts) - Is it concise? Easy to scan? Proper bullet length?
+   - Impact and value proposition (10 pts) - Does it show clear value to employers?
+
+   Deduct points for:
+   - Vague, unquantified statements ("Responsible for...")
+   - Weak action verbs ("Helped", "Worked on", "Involved in")
+   - Too wordy or too short bullets
+   - Generic statements without specifics
+   - Typos or grammatical errors
+
+3. **TAILORING (0-40 points)**: Evaluate relevance to target role
+   - Keyword optimization for ${jobRole} (15 pts)
+   - Relevant skills and technologies (15 pts)
+   - Industry-specific terminology (10 pts)
+
+   Deduct points for:
+   - Missing critical keywords for the role
+   - Irrelevant experience emphasized
+   - Generic resume not tailored to role
+
+4. **IDENTIFY ACTIONABLES**: List 5-8 specific, high-impact improvements
+   Each actionable must have:
+   - **title**: Brief description of the issue
+   - **points**: Negative points (-5, -10, -15) showing impact on score
+   - **fix**: Specific, actionable solution
+   - **priority**: HIGH, MEDIUM, or LOW
+   - **category**: structure, content, or tailoring
+
+**Example actionable:**
+{
+  "title": "Add professional summary",
+  "points": -8,
+  "fix": "Write a 2-3 line summary highlighting your key achievements and value proposition. Example: 'Senior Software Engineer with 8+ years building scalable web applications. Led teams of 5+ engineers and reduced system latency by 40%.'",
+  "priority": "HIGH",
+  "category": "structure"
+}
+
+---
+
+### 📊 REQUIRED OUTPUT FORMAT (Valid JSON only):
+
+{
+  "summary": "<2-3 sentence critical assessment. Be honest about weaknesses. Don't sugarcoat.>",
+  "structure_score": <number 0-40>,
+  "content_score": <number 0-60>,
+  "tailoring_score": <number 0-40>,
+  "overall_score": <number 0-100, calculated as: (structure/40 * 0.3 + content/60 * 0.4 + tailoring/40 * 0.3) * 100>,
+  "actionables": [
+    {
+      "title": "<Issue description>",
+      "points": <negative number like -10>,
+      "fix": "<Specific solution with example>",
+      "priority": "<HIGH|MEDIUM|LOW>",
+      "category": "<structure|content|tailoring>"
+    }
+  ],
+  "confidence_level": "<high|medium|low>",
+  "reasoning": "<Brief explanation of your scoring decisions, especially if you scored significantly different from local scores>"
+}
+
+### ✅ FINAL REMINDERS:
+- Be CRITICAL and REALISTIC
+- Most resumes are AVERAGE (40-60 range)
+- Only give 75+ for truly EXCEPTIONAL resumes
+- NEVER give 100 unless the resume is absolutely PERFECT (which is almost never)
+- Provide SPECIFIC actionables that will genuinely improve the score
+- Reference actual content from the resume in your assessment
+- Your output must be valid JSON that can be parsed`;
+}
+

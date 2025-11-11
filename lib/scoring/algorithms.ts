@@ -820,3 +820,150 @@ export function calculateGrade(score: number): string {
   if (score >= 60) return 'D-';
   return 'F';
 }
+
+// ==================== 3D Scoring System - New Architecture ====================
+
+/**
+ * Calculate 3D Resume Score (Structure + Content + Tailoring)
+ *
+ * This replaces the 4-component model with a simplified 3-axis approach:
+ * - Structure (0-40): Completeness of sections (summary, experience, education, skills)
+ * - Content (0-60): Clarity, metrics, action verbs, impact
+ * - Tailoring (0-40): Match to job description (future feature, currently returns 0)
+ *
+ * @param resumeText - The resume text to analyze
+ * @param jobRole - Target job role (optional)
+ * @param jobDescription - Target job description for tailoring (optional)
+ * @returns ResumeScores object with 3D scores
+ */
+export function calculate3DScore(
+  resumeText: string,
+  jobRole: string = 'Software Engineer',
+  jobDescription?: string
+): {
+  structure: number;
+  content: number;
+  tailoring: number;
+  overall: number;
+  breakdown: {
+    structure: {
+      sectionsFound: string[];
+      sectionsMissing: string[];
+      completenessPercentage: number;
+    };
+    content: {
+      quantificationRatio: number;
+      strongVerbPercentage: number;
+      clarityScore: number;
+      impactScore: number;
+    };
+    tailoring: {
+      keywordMatchPercentage: number;
+      missingKeywords: string[];
+    };
+  };
+} {
+  const startTime = Date.now();
+
+  // ========== STRUCTURE SCORE (0-40) ==========
+  // Based on completeness of standard sections
+
+  const sections = detectSections(resumeText);
+  const essentialSections = ['experience', 'skills', 'education', 'summary', 'contact'];
+  const sectionsFound = essentialSections.filter(section =>
+    sections.some(s => s.toLowerCase().includes(section))
+  );
+  const sectionsMissing = essentialSections.filter(section =>
+    !sections.some(s => s.toLowerCase().includes(section))
+  );
+
+  // Score: 8 points per essential section (5 sections × 8 = 40)
+  const structureScore = Math.round((sectionsFound.length / essentialSections.length) * 40);
+  const completenessPercentage = Math.round((sectionsFound.length / essentialSections.length) * 100);
+
+  // ========== CONTENT SCORE (0-60) ==========
+  // Based on clarity, metrics, action verbs, and impact
+
+  const bullets = detectBulletPoints(resumeText);
+  const quantifiedBullets = countQuantifiedBullets(bullets);
+  const quantificationRatio = bullets.length > 0 ? quantifiedBullets / bullets.length : 0;
+
+  const verbAnalysis = categorizeActionVerbs(bullets);
+  const totalVerbs = verbAnalysis.strong.length + verbAnalysis.medium.length + verbAnalysis.weak.length;
+  const strongVerbPercentage = totalVerbs > 0
+    ? (verbAnalysis.strong.length / totalVerbs) * 100
+    : 0;
+
+  const avgWordsPerBullet = calculateAvgWordsPerBullet(bullets);
+  const isOptimalLength = avgWordsPerBullet >= 15 && avgWordsPerBullet <= 25;
+  const clarityScore = isOptimalLength ? 100 : Math.max(0, 100 - Math.abs(avgWordsPerBullet - 20) * 3);
+
+  // Impact score: combination of quantification and strong verbs
+  const impactScore = (quantificationRatio * 100 * 0.6) + (strongVerbPercentage * 0.4);
+
+  // Content score breakdown (60 points total):
+  // - Quantification: 25 points (quantificationRatio * 25)
+  // - Action verbs: 20 points (strongVerbPercentage / 100 * 20)
+  // - Clarity: 10 points (clarityScore / 100 * 10)
+  // - Impact: 5 points (impactScore / 100 * 5)
+  const contentScore = Math.round(
+    (quantificationRatio * 25) +
+    ((strongVerbPercentage / 100) * 20) +
+    ((clarityScore / 100) * 10) +
+    ((impactScore / 100) * 5)
+  );
+
+  // ========== TAILORING SCORE (0-40) ==========
+  // Based on match to job description (future feature)
+  // Currently returns 0 but infrastructure is ready for future expansion
+
+  let tailoringScore = 0;
+  let keywordMatchPercentage = 0;
+  let missingKeywords: string[] = [];
+
+  if (jobDescription) {
+    // Future: Implement JD matching logic here
+    // For now, use basic keyword matching from existing system
+    const keywords = getKeywordsForRole(jobRole);
+    const foundKeywords = findMatchingKeywords(resumeText, keywords.mustHave);
+    keywordMatchPercentage = Math.round((foundKeywords.found.length / keywords.mustHave.length) * 100);
+    missingKeywords = foundKeywords.missing;
+    tailoringScore = Math.round((keywordMatchPercentage / 100) * 40);
+  }
+
+  // ========== OVERALL SCORE (0-100) ==========
+  // Weighted combination: 30% structure + 40% content + 30% tailoring
+  // Formula: (structure/40 * 0.3 + content/60 * 0.4 + tailoring/40 * 0.3) * 100
+  const overallScore = Math.round(
+    (structureScore / 40) * 0.3 * 100 +
+    (contentScore / 60) * 0.4 * 100 +
+    (tailoringScore / 40) * 0.3 * 100
+  );
+
+  const processingTime = Date.now() - startTime;
+  console.log(`[HYBRID 3D] Structure ${structureScore} | Content ${contentScore} | Tailoring ${tailoringScore} | Overall ${overallScore} (${processingTime}ms)`);
+
+  return {
+    structure: structureScore,
+    content: contentScore,
+    tailoring: tailoringScore,
+    overall: overallScore,
+    breakdown: {
+      structure: {
+        sectionsFound,
+        sectionsMissing,
+        completenessPercentage,
+      },
+      content: {
+        quantificationRatio: Math.round(quantificationRatio * 100),
+        strongVerbPercentage: Math.round(strongVerbPercentage),
+        clarityScore: Math.round(clarityScore),
+        impactScore: Math.round(impactScore),
+      },
+      tailoring: {
+        keywordMatchPercentage,
+        missingKeywords,
+      },
+    },
+  };
+}
