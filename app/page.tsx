@@ -312,10 +312,10 @@ export default function Home() {
           {/* Subtle section divider glow */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-px h-16 bg-gradient-to-b from-transparent via-brand-indigo/20 to-transparent" />
 
-          <div className="max-w-4xl mx-auto px-6 md:px-12 relative">
-            {isAnalyzed ? (
-              <>
-                {/* Success Card - Enhanced with bloom effect */}
+          {isAnalyzed ? (
+            <>
+              {/* Success Card - Enhanced with bloom effect - Keep centered */}
+              <div className="max-w-4xl mx-auto px-6 md:px-12 relative">
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -379,45 +379,45 @@ export default function Home() {
                     </div>
                   </div>
                 </motion.div>
+              </div>
 
-                {/* Results Section */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
-                  id="results-section"
-                  className="mt-12"
-                >
-                  <ResultsContainer
-                    data={analysis}
-                    isLoading={false}
-                    onReset={handleReset}
-                  />
-                </motion.div>
-              </>
-            ) : (
-              <>
-                <UploadSection
-                  onAnalyzeComplete={handleAnalyzeComplete}
+              {/* Results Section - Full Width */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
+                id="results-section"
+                className="mt-12 w-full"
+              >
+                <ResultsContainer
+                  data={analysis}
+                  isLoading={false}
+                  onReset={handleReset}
                 />
+              </motion.div>
+            </>
+          ) : (
+            <div className="max-w-4xl mx-auto px-6 md:px-12 relative">
+              <UploadSection
+                onAnalyzeComplete={handleAnalyzeComplete}
+              />
 
-                {/* Trust message - Enhanced with icon */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1], delay: 0.5 }}
-                  className="mt-8 text-center"
-                >
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50/80 backdrop-blur-sm border border-gray-100">
-                    <Lock className="w-4 h-4 text-gray-400" strokeWidth={2} />
-                    <p className="text-sm text-gray-500">
-                      Your resume is processed securely and never stored
-                    </p>
-                  </div>
-                </motion.div>
-              </>
-            )}
-          </div>
+              {/* Trust message - Enhanced with icon */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1], delay: 0.5 }}
+                className="mt-8 text-center"
+              >
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50/80 backdrop-blur-sm border border-gray-100">
+                  <Lock className="w-4 h-4 text-gray-400" strokeWidth={2} />
+                  <p className="text-sm text-gray-500">
+                    Your resume is processed securely and never stored
+                  </p>
+                </div>
+              </motion.div>
+            </div>
+          )}
         </motion.div>
 
         {/* Features Section */}
