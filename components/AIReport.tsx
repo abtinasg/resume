@@ -23,9 +23,20 @@ interface AIReportProps {
   hybridScore?: number;
   localScore?: number;
   aiStatus?: 'success' | 'fallback' | 'disabled' | 'error';
+  contentScore?: number;
+  tailoringScore?: number;
+  overallScore?: number;
 }
 
-const AIReport: React.FC<AIReportProps> = ({ verdict, hybridScore, localScore, aiStatus }) => {
+const AIReport: React.FC<AIReportProps> = ({
+  verdict,
+  hybridScore,
+  localScore,
+  aiStatus,
+  contentScore = 0,
+  tailoringScore = 0,
+  overallScore = 0
+}) => {
   if (!verdict) return null;
 
   // Implement fallback hierarchy for AI score
@@ -118,6 +129,41 @@ const AIReport: React.FC<AIReportProps> = ({ verdict, hybridScore, localScore, a
           </div>
         </motion.div>
       )}
+
+      {/* Score Breakdown Cards */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.25, duration: 0.4 }}
+        className="grid grid-cols-1 md:grid-cols-3 gap-4"
+      >
+        {/* Content Score */}
+        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 text-center hover:shadow-lg transition-shadow duration-300">
+          <div className="text-xs text-gray-600 font-semibold mb-2 uppercase tracking-wide">Content Score</div>
+          <div className="text-4xl font-bold bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent">
+            {contentScore}
+          </div>
+          <div className="text-xs text-gray-500 mt-2">out of 60</div>
+        </div>
+
+        {/* Tailoring Score */}
+        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 text-center hover:shadow-lg transition-shadow duration-300">
+          <div className="text-xs text-gray-600 font-semibold mb-2 uppercase tracking-wide">Tailoring Score</div>
+          <div className="text-4xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
+            {tailoringScore}
+          </div>
+          <div className="text-xs text-gray-500 mt-2">out of 40</div>
+        </div>
+
+        {/* Overall Score */}
+        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 text-center hover:shadow-lg transition-shadow duration-300">
+          <div className="text-xs text-gray-600 font-semibold mb-2 uppercase tracking-wide">Overall Score</div>
+          <div className="text-4xl font-bold bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
+            {overallScore}
+          </div>
+          <div className="text-xs text-gray-500 mt-2">out of 100</div>
+        </div>
+      </motion.div>
 
       <div className="grid grid-cols-1 gap-6">
         <motion.div
