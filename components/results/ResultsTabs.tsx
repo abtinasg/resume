@@ -41,6 +41,11 @@ const ResultsTabs: React.FC<ResultsTabsProps> = ({ analysis, onReset }) => {
   const strengths = analysis?.strengths ?? [];
   const suggestions = analysis?.suggestions ?? [];
 
+  // Extract score breakdown
+  const contentScore = analysis?.local_scoring?.content ?? 0;
+  const tailoringScore = analysis?.local_scoring?.tailoring ?? 0;
+  const overallScore = analysis?.local_scoring?.overall_score ?? score;
+
   // Score rating helper
   const getScoreRating = (score: number): string => {
     if (score >= 80) return 'Excellent';
@@ -74,67 +79,34 @@ const ResultsTabs: React.FC<ResultsTabsProps> = ({ analysis, onReset }) => {
       transition={{ duration: 0.4 }}
       className="space-y-6"
     >
-      {/* Score Circle with Gradient Glow */}
-      <div className="flex flex-col items-center justify-center py-8">
-        <div className="relative w-32 h-32 md:w-40 md:h-40">
-          {/* Ambient glow behind circle */}
-          <div
-            className={`absolute inset-0 bg-gradient-to-r ${getScoreColor(
-              score
-            )} blur-2xl opacity-30 rounded-full`}
-          />
-
-          {/* Background circle */}
-          <svg className="w-full h-full transform -rotate-90">
-            <circle
-              cx="50%"
-              cy="50%"
-              r="45%"
-              fill="none"
-              stroke="#E5E7EB"
-              strokeWidth="8"
-            />
-            {/* Progress circle */}
-            <circle
-              cx="50%"
-              cy="50%"
-              r="45%"
-              fill="none"
-              stroke="url(#scoreGradient)"
-              strokeWidth="8"
-              strokeLinecap="round"
-              strokeDasharray={`${(score / 100) * 283} 283`}
-              className="transition-all duration-1000 ease-out"
-            />
-            <defs>
-              <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#3B82F6" />
-                <stop offset="100%" stopColor="#6366F1" />
-              </linearGradient>
-            </defs>
-          </svg>
-
-          {/* Score text */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent">
-                {score}
-              </div>
-              <div className="text-xs text-gray-500 font-medium">out of 100</div>
-            </div>
+      {/* Score Breakdown Cards */}
+      <div className="grid grid-cols-3 gap-4">
+        {/* Content Score */}
+        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 text-center">
+          <div className="text-xs text-gray-600 font-medium mb-2">Content</div>
+          <div className="text-3xl font-bold bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent">
+            {contentScore}
           </div>
-        </div>
+          <div className="text-xs text-gray-500 mt-1">out of 60</div>
+        </Card>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="mt-4 text-center"
-        >
-          <h3 className="text-lg font-semibold text-gray-900">
-            {getScoreRating(score)}
-          </h3>
-        </motion.div>
+        {/* Tailoring Score */}
+        <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200 text-center">
+          <div className="text-xs text-gray-600 font-medium mb-2">Tailoring</div>
+          <div className="text-3xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
+            {tailoringScore}
+          </div>
+          <div className="text-xs text-gray-500 mt-1">out of 40</div>
+        </Card>
+
+        {/* Overall Score */}
+        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 text-center">
+          <div className="text-xs text-gray-600 font-medium mb-2">Overall</div>
+          <div className="text-3xl font-bold bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
+            {overallScore}
+          </div>
+          <div className="text-xs text-gray-500 mt-1">out of 100</div>
+        </Card>
       </div>
 
       {/* Overall Summary Card */}
@@ -309,35 +281,45 @@ const ResultsTabs: React.FC<ResultsTabsProps> = ({ analysis, onReset }) => {
 
   return (
     <div className="w-full space-y-8">
-      {/* 2-Column Responsive Layout: PDF Preview (Left) + Resume Coach Chat (Right) */}
+      {/* Top Section: Summary (Left) + PDF Preview (Right) */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="grid grid-cols-1 lg:grid-cols-2 gap-6"
       >
-        {/* Left Column - PDF Preview */}
+        {/* Left Column - Summary Tabs */}
+        <div className="lg:col-span-1">
+          <Tabs tabs={tabs} className="shadow-lg rounded-xl overflow-hidden" />
+        </div>
+
+        {/* Right Column - PDF Preview */}
         <div className="lg:col-span-1">
           <ResumePreview pdfUrl={analysis.pdfUrl} />
         </div>
-
-        {/* Right Column - Resume Coach Chat */}
-        <div className="lg:col-span-1">
-          <ResumeCoachChatDocked analysis={analysis} />
-        </div>
       </motion.div>
 
-      {/* Divider with heading for Scoring Breakdown */}
+      {/* Divider with heading for Detailed Analysis */}
       <div className="relative py-6">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-gray-200"></div>
         </div>
         <div className="relative flex justify-center">
           <span className="bg-white px-6 text-sm font-semibold text-gray-500 uppercase tracking-wider">
-            AI Analysis & Scoring Breakdown
+            Detailed Analysis & Tools
           </span>
         </div>
       </div>
+
+      {/* Resume Coach Chat - Full Width */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className="w-full"
+      >
+        <ResumeCoachChatDocked analysis={analysis} />
+      </motion.div>
 
       {/* AI Report Section - Full Width */}
       <AIReport
@@ -346,16 +328,6 @@ const ResultsTabs: React.FC<ResultsTabsProps> = ({ analysis, onReset }) => {
         localScore={analysis.local_scoring?.overall_score ?? analysis.summary?.overall}
         aiStatus={analysis.ai_status}
       />
-
-      {/* Detailed Analysis Tabs - Full Width */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-        className="w-full"
-      >
-        <Tabs tabs={tabs} className="shadow-lg rounded-xl overflow-hidden" />
-      </motion.div>
 
       {/* Analyze Another Resume Button */}
       {onReset && (
