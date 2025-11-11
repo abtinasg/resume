@@ -1,19 +1,10 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
+import type { JWTPayload, TokenData } from '@/lib/types/auth';
+
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_for_development_only';
 const SALT_ROUNDS = 10;
-
-// Interfaces
-export interface JWTPayload {
-  userId: number;
-  email: string;
-}
-
-export interface TokenData extends JWTPayload {
-  iat?: number;
-  exp?: number;
-}
 
 /**
  * Hash a plain text password using bcrypt
@@ -115,3 +106,5 @@ export function validatePassword(password: string): {
 
   return { isValid: true };
 }
+
+export type { JWTPayload, TokenData } from '@/lib/types/auth';

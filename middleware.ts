@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { verifyToken } from '@/lib/auth';
+import { verifyTokenOnEdge } from '@/lib/edge/token';
 
 // Define protected routes that require authentication
 const protectedRoutes = ['/profile', '/dashboard'];
@@ -8,12 +8,12 @@ const protectedRoutes = ['/profile', '/dashboard'];
 // Define auth routes that authenticated users shouldn't access
 const authRoutes = ['/auth/login', '/auth/register'];
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get('token')?.value;
 
   // Verify token if it exists
-  const user = token ? verifyToken(token) : null;
+  const user = token ? await verifyTokenOnEdge(token) : null;
   const isAuthenticated = !!user;
 
   // Check if the current route is protected
