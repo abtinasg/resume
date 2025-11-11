@@ -11,6 +11,7 @@
  */
 
 import OpenAI from "openai";
+import type { ScoringResult } from "@/lib/scoring/types";
 
 // Initialize OpenAI client with API key from environment
 const openai = new OpenAI({
@@ -37,7 +38,15 @@ export interface AIVerdictResponse {
   improvement_suggestions: string[];
   ats_verdict?: string;
   confidence_level?: string;
+  before_after_rewrites?: BeforeAfterRewrite[];
   [key: string]: any; // Allow additional fields for flexibility
+}
+
+export interface BeforeAfterRewrite {
+  title: string;
+  before: string;
+  after: string;
+  priority: string;
 }
 
 /**
@@ -76,6 +85,66 @@ function truncatePrompt(prompt: string, maxChars: number = 12000): { prompt: str
     : truncated + '\n[Content truncated...]';
 
   return { prompt: finalPrompt, wasTruncated: true };
+}
+
+const ENHANCED_RESUME_CHAR_LIMIT = 5000;
+
+function truncateResumeText(resumeText: string): { text: string; wasTruncated: boolean } {
+  if (resumeText.length <= ENHANCED_RESUME_CHAR_LIMIT) {
+    return { text: resumeText, wasTruncated: false };
+  }
+
+  const truncated = resumeText.slice(0, ENHANCED_RESUME_CHAR_LIMIT);
+  return {
+    text: `${truncated}\n...[truncated to ${ENHANCED_RESUME_CHAR_LIMIT} characters for AI processing]`,
+    wasTruncated: true,
+  };
+}
+
+const ENHANCED_OUTPUT_SCHEMA_EXAMPLE = `{
+  "ai_final_score": 85,
+  "score_adjustment_reasoning": "Adjusted upward because quantified achievements outweigh formatting issues.",
+  "summary": "Brief executive overview of the resume.",
+  "strengths": ["Clear leadership impact", "Strong quantification"],
+  "weaknesses": ["Missing cloud keywords", "Limited metrics in recent role"],
+  "improvement_suggestions": [
+    "Incorporate AWS/GCP keywords",
+    "Add revenue or adoption metrics for flagship project"
+  ],
+  "before_after_rewrites": [
+    {
+      "title": "Quantify platform migration results",
+      "before": "Migrated legacy platform to modern stack",
+      "after": "Reframe as: 'Migrated a legacy platform to React/Node, cutting page load time by 45% and boosting NPS by 12 points.'",
+      "priority": "HIGH"
+    }
+  ],
+  "confidence_level": "high"
+}`;
+
+export function buildEnhancedPrompt(resumeText: string, scoringResult: ScoringResult): string {
+  const sanitizedResume = resumeText?.trim() ?? "";
+  const { text: truncatedResume, wasTruncated } = truncateResumeText(sanitizedResume);
+  const scoringJson = JSON.stringify(scoringResult, null, 2);
+
+  return [
+    "You are the AI rewrite and final verdict layer for the PRO Resume Scoring System.",
+    "Use the local scoring analytics to validate or adjust the overall score and produce resume-ready rewrites.",
+    "",
+    `Resume Text${wasTruncated ? " (truncated to 5000 characters)" : ""}:`,
+    truncatedResume || "[No resume text provided]",
+    "",
+    "Local Scoring Result (JSON):",
+    scoringJson,
+    "",
+    "Instructions:",
+    "1. Review the local score and determine if it should be adjusted up or down (0-100).",
+    "2. Provide a summary, strengths, weaknesses, and prioritized improvement suggestions.",
+    "3. Rewrite every improvement suggestion into a BEFORE -> AFTER recommendation with a clear title and priority.",
+    "4. BEFORE text must reflect the current issue/gap. AFTER text must be a polished, resume-ready rewrite or concrete guidance.",
+    "5. Respond with strict JSON matching the following structure (no markdown, no commentary):",
+    ENHANCED_OUTPUT_SCHEMA_EXAMPLE,
+  ].join("\n");
 }
 
 /**
@@ -307,6 +376,162 @@ export async function analyzeWithAI(prompt: string): Promise<AIVerdictResponse> 
       'AI_ERROR',
       { originalError: errorMessage, errorResponse, errorStatus, errorCode, errorType }
     );
+  }
+}
+
+export async function analyzeWithAIEnhanced(
+  resumeText: string,
+  scoringResult: ScoringResult
+): Promise<AIVerdictResponse> {
+  if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY.trim() === "") {
+    throw new AIAnalysisError(
+      "OpenAI API key is not configured. Please set OPENAI_API_KEY in your environment.",
+      "MISSING_API_KEY"
+    );
+  }
+
+  const prompt = buildEnhancedPrompt(resumeText, scoringResult);
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      temperature: 0.4,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are an expert resume coach specializing in ATS optimization and rewriting suggestions in professional tone. Always output valid JSON.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      response_format: { type: "json_object" },
+      timeout: 60000,
+    });
+
+    const content = response.choices?.[0]?.message?.content;
+
+    if (!content) {
+      throw new AIAnalysisError("OpenAI returned an empty response", "EMPTY_RESPONSE");
+    }
+
+    let parsedResponse: AIVerdictResponse;
+
+    try {
+      parsedResponse = JSON.parse(content) as AIVerdictResponse;
+    } catch (error) {
+      throw new AIAnalysisError("Failed to parse AI response as JSON", "INVALID_JSON", {
+        content,
+        error,
+      });
+    }
+
+    const validationErrors: string[] = [];
+
+    if (typeof parsedResponse.ai_final_score !== "number" || Number.isNaN(parsedResponse.ai_final_score)) {
+      validationErrors.push("ai_final_score is missing or not a number");
+    } else if (
+      parsedResponse.ai_final_score < 0 ||
+      parsedResponse.ai_final_score > 100
+    ) {
+      validationErrors.push("ai_final_score must be between 0 and 100");
+    }
+
+    if (!parsedResponse.summary || typeof parsedResponse.summary !== "string") {
+      validationErrors.push("summary is missing or not a string");
+    }
+
+    if (!Array.isArray(parsedResponse.strengths) || parsedResponse.strengths.length === 0) {
+      validationErrors.push("strengths is missing or empty");
+    }
+
+    if (!Array.isArray(parsedResponse.weaknesses) || parsedResponse.weaknesses.length === 0) {
+      validationErrors.push("weaknesses is missing or empty");
+    }
+
+    if (
+      !Array.isArray(parsedResponse.improvement_suggestions) ||
+      parsedResponse.improvement_suggestions.length === 0
+    ) {
+      validationErrors.push("improvement_suggestions is missing or empty");
+    }
+
+    if (
+      !Array.isArray(parsedResponse.before_after_rewrites) ||
+      parsedResponse.before_after_rewrites.length === 0
+    ) {
+      validationErrors.push("before_after_rewrites is missing or empty");
+    }
+
+    if (Array.isArray(parsedResponse.before_after_rewrites)) {
+      parsedResponse.before_after_rewrites.forEach((rewrite, index) => {
+        if (!rewrite) {
+          validationErrors.push(`before_after_rewrites[${index}] is undefined`);
+          return;
+        }
+
+        const { title, before, after, priority } = rewrite as BeforeAfterRewrite;
+
+        if (!title || typeof title !== "string") {
+          validationErrors.push(`before_after_rewrites[${index}].title is missing or not a string`);
+        }
+
+        if (!before || typeof before !== "string") {
+          validationErrors.push(`before_after_rewrites[${index}].before is missing or not a string`);
+        }
+
+        if (!after || typeof after !== "string") {
+          validationErrors.push(`before_after_rewrites[${index}].after is missing or not a string`);
+        }
+
+        if (!priority || typeof priority !== "string") {
+          validationErrors.push(`before_after_rewrites[${index}].priority is missing or not a string`);
+        }
+      });
+    }
+
+    if (
+      parsedResponse.ai_final_score !== scoringResult.overallScore &&
+      (!parsedResponse.score_adjustment_reasoning || parsedResponse.score_adjustment_reasoning.trim().length === 0)
+    ) {
+      validationErrors.push("score_adjustment_reasoning is required when AI score differs from local score");
+    }
+
+    if (validationErrors.length > 0) {
+      throw new AIAnalysisError(
+        `AI response is missing required fields: ${validationErrors.join(", ")}`,
+        "INVALID_RESPONSE",
+        { validationErrors, response: parsedResponse }
+      );
+    }
+
+    const normalizedRewrites = parsedResponse.before_after_rewrites?.map((rewrite) => ({
+      title: rewrite.title.trim(),
+      before: rewrite.before.trim(),
+      after: rewrite.after.trim(),
+      priority: rewrite.priority.trim().toUpperCase(),
+    }));
+
+    const result: AIVerdictResponse = {
+      ...parsedResponse,
+      before_after_rewrites: normalizedRewrites,
+      local_score_used: scoringResult.overallScore,
+      confidence_level: parsedResponse.confidence_level ?? "medium",
+    };
+
+    return result;
+  } catch (error) {
+    if (error instanceof AIAnalysisError) {
+      throw error;
+    }
+
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+    throw new AIAnalysisError(`AI analysis failed: ${errorMessage}`, "AI_ERROR", {
+      originalError: error,
+    });
   }
 }
 
