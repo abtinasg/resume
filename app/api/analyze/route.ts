@@ -4,7 +4,8 @@ import { analyzeResumePro, ResumeAnalysisPro } from '@/lib/openai';
 import { extractTextFromBase64PDF } from '@/lib/pdfParser';
 import { calculatePROScore, ScoringResult } from '@/lib/scoring';
 import { buildFinalAIPrompt } from '@/lib/prompts-pro';
-import { analyzeWithAI, AIVerdictResponse } from '@/lib/openai/analyzeWithAI';
+import { analyzeWithAIRetry, AIVerdictResponse, AIAnalysisError } from '@/lib/openai/analyzeWithAI';
+import { HYBRID_MODE, validateEnvironment } from '@/lib/env';
 
 export const runtime = 'nodejs';
 
@@ -63,7 +64,14 @@ const ResumeAnalysisProSchema = z.object({
 interface SuccessResponse {
   success: true;
   data: ResumeAnalysisPro;
-  ai_verdict?: AIVerdictResponse;
+  local_scoring?: {
+    overall_score: number;
+    grade: string;
+    component_scores: any;
+    ats_pass_probability: number;
+  };
+  ai_verdict: AIVerdictResponse;
+  hybrid_mode: boolean;
   processingTime: number;
   timestamp: string;
 }
@@ -73,7 +81,9 @@ interface ErrorResponse {
   error: {
     code: string;
     message: string;
+    details?: any;
   };
+  hybrid_mode?: boolean;
 }
 
 /**
@@ -162,6 +172,30 @@ export async function POST(req: NextRequest) {
   const startTime = Date.now();
 
   try {
+    // Log hybrid mode status
+    console.log('[API] 🔄 PRO Resume Scoring System - Hybrid Mode:', HYBRID_MODE ? 'ENABLED' : 'DISABLED');
+
+    // Validate environment configuration when hybrid mode is enabled
+    if (HYBRID_MODE) {
+      const envValidation = validateEnvironment();
+      if (!envValidation.valid) {
+        console.error('[API] ✗ Environment validation failed:', envValidation.error);
+        return NextResponse.json<ErrorResponse>(
+          {
+            success: false,
+            error: {
+              code: 'AI_UNAVAILABLE',
+              message: envValidation.error || 'AI layer failed or is unavailable.',
+              details: 'HYBRID_MODE is enabled but required environment variables are not configured.',
+            },
+            hybrid_mode: true,
+          },
+          { status: 503 }
+        );
+      }
+      console.log('[API] ✓ Environment validation passed');
+    }
+
     // Parse request body
     let body: unknown;
     try {
@@ -174,6 +208,7 @@ export async function POST(req: NextRequest) {
             code: 'INVALID_JSON',
             message: 'Request body must be valid JSON',
           },
+          hybrid_mode: HYBRID_MODE,
         },
         { status: 400 }
       );
@@ -193,6 +228,7 @@ export async function POST(req: NextRequest) {
               code: 'VALIDATION_ERROR',
               message: firstIssue?.message || 'Invalid input data',
             },
+            hybrid_mode: HYBRID_MODE,
           },
           { status: 400 }
         );
@@ -204,6 +240,7 @@ export async function POST(req: NextRequest) {
             code: 'VALIDATION_ERROR',
             message: 'Invalid input data',
           },
+          hybrid_mode: HYBRID_MODE,
         },
         { status: 400 }
       );
@@ -225,6 +262,7 @@ export async function POST(req: NextRequest) {
                 code: 'PDF_EXTRACTION_FAILED',
                 message: extractionResult.message,
               },
+              hybrid_mode: HYBRID_MODE,
             },
             { status: 400 }
           );
@@ -243,6 +281,7 @@ export async function POST(req: NextRequest) {
                   code: 'PDF_INSUFFICIENT_CONTENT',
                   message: extractionResult.message || 'PDF does not contain enough text content (minimum 15 characters required)',
                 },
+                hybrid_mode: HYBRID_MODE,
               },
               { status: 400 }
             );
@@ -264,6 +303,7 @@ export async function POST(req: NextRequest) {
                 code: 'PDF_TOO_LARGE',
                 message: `Extracted text exceeds maximum length of ${MAX_TEXT_LENGTH} characters`,
               },
+              hybrid_mode: HYBRID_MODE,
             },
             { status: 400 }
           );
@@ -277,6 +317,7 @@ export async function POST(req: NextRequest) {
                 code: 'PDF_INSUFFICIENT_CONTENT',
                 message: 'PDF does not contain enough text content (minimum 15 characters required)',
               },
+              hybrid_mode: HYBRID_MODE,
             },
             { status: 400 }
           );
@@ -299,54 +340,104 @@ export async function POST(req: NextRequest) {
                   ? error.message
                   : 'Failed to parse PDF file',
             },
+            hybrid_mode: HYBRID_MODE,
           },
           { status: 400 }
         );
       }
     }
 
-    // Analyze resume with PRO Scoring System
+    // Analyze resume with PRO Scoring System (Hybrid Mode)
     let analysis: ResumeAnalysisPro;
-    let aiVerdict: AIVerdictResponse | undefined;
+    let aiVerdict: AIVerdictResponse;
+    let scoringResult: ScoringResult;
 
     try {
-      console.log('[API] 🚀 Using PRO Scoring System for analysis');
+      console.log('[API] 🚀 Starting PRO Scoring System analysis in', HYBRID_MODE ? 'HYBRID' : 'LOCAL-ONLY', 'mode');
 
-      // Step 1: Local scoring
-      const scoringResult = await calculatePROScore(resumeText, 'General');
+      // Step 1: Local scoring (always runs first)
+      console.log('[API] 📊 Step 1/2: Running local scoring algorithm...');
+      const localStartTime = Date.now();
 
-      console.log('[API] ✓ PRO Scoring completed:', {
+      scoringResult = await calculatePROScore(resumeText, 'General');
+
+      const localProcessingTime = Date.now() - localStartTime;
+      console.log('[API] ✓ Local scoring completed:', {
         score: scoringResult.overallScore,
         grade: scoringResult.grade,
-        processingTime: scoringResult.metadata?.processingTime,
+        atsPassProbability: scoringResult.atsPassProbability,
+        processingTime: `${localProcessingTime}ms`,
       });
 
-      // Step 2: AI final verdict (always runs)
-      try {
-        console.log('[API] 🤖 Running AI final verdict layer...');
+      // Step 2: AI final verdict layer (mandatory in hybrid mode)
+      if (HYBRID_MODE) {
+        console.log('[API] 🤖 Step 2/2: Running AI final verdict layer (MANDATORY)...');
         const aiStartTime = Date.now();
 
-        const prompt = buildFinalAIPrompt(resumeText, 'General', scoringResult);
-        aiVerdict = await analyzeWithAI(prompt);
+        try {
+          const prompt = buildFinalAIPrompt(resumeText, 'General', scoringResult);
+          // Use retry logic for better resilience
+          aiVerdict = await analyzeWithAIRetry(prompt, 2);
 
-        const aiProcessingTime = Date.now() - aiStartTime;
-        console.log('[API] ✓ AI verdict completed:', {
-          aiScore: aiVerdict.ai_final_score,
-          hasSummary: !!aiVerdict.summary,
-          processingTime: aiProcessingTime,
-        });
-      } catch (aiError) {
-        console.error('[API] ⚠ AI verdict failed (continuing without it):', aiError);
-        // Continue without AI verdict if it fails - local scoring is still valid
-        aiVerdict = undefined;
+          const aiProcessingTime = Date.now() - aiStartTime;
+          console.log('[API] ✓ AI verdict layer completed successfully:', {
+            aiScore: aiVerdict.ai_final_score,
+            localScore: aiVerdict.local_score_used || scoringResult.overallScore,
+            scoreDifference: aiVerdict.ai_final_score - scoringResult.overallScore,
+            hasAdjustments: !!aiVerdict.adjusted_components,
+            confidenceLevel: aiVerdict.confidence_level,
+            processingTime: `${aiProcessingTime}ms`,
+          });
+
+          console.log('[API] 🎯 Hybrid mode execution: SUCCESS - Both local and AI layers completed');
+        } catch (aiError) {
+          // In hybrid mode, AI failure is a fatal error
+          console.error('[API] ✗ AI verdict layer FAILED - Hybrid mode requires AI:', aiError);
+
+          const errorCode = aiError instanceof AIAnalysisError ? aiError.code : 'AI_ERROR';
+          const errorMessage = aiError instanceof Error ? aiError.message : 'Unknown AI error';
+          const errorDetails = aiError instanceof AIAnalysisError ? aiError.details : undefined;
+
+          return NextResponse.json<ErrorResponse>(
+            {
+              success: false,
+              error: {
+                code: 'AI_UNAVAILABLE',
+                message: 'AI layer failed or is unavailable. Hybrid mode requires both local scoring and AI validation.',
+                details: {
+                  aiErrorCode: errorCode,
+                  aiErrorMessage: errorMessage,
+                  aiErrorDetails: errorDetails,
+                  localScoringCompleted: true,
+                  localScore: scoringResult.overallScore,
+                },
+              },
+              hybrid_mode: true,
+            },
+            { status: 503 }
+          );
+        }
+      } else {
+        // Local-only mode: Skip AI layer
+        console.log('[API] ⚠️ Skipping AI layer (HYBRID_MODE is disabled)');
+        // Create a minimal AI verdict for compatibility
+        aiVerdict = {
+          ai_final_score: scoringResult.overallScore,
+          summary: 'Local scoring only - AI layer skipped',
+          strengths: ['Local scoring completed successfully'],
+          weaknesses: ['AI layer not available in local-only mode'],
+          improvement_suggestions: ['Enable HYBRID_MODE for AI-enhanced analysis'],
+        };
       }
 
       // Step 3: Convert to API format
+      console.log('[API] 📦 Converting results to API response format...');
       analysis = convertScoringResultToAnalysisPro(scoringResult, resumeText);
 
       // Validate response with Zod schema
       try {
         ResumeAnalysisProSchema.parse(analysis);
+        console.log('[API] ✓ Response validation passed');
       } catch (validationError) {
         console.error('[API] ✗ Analysis validation failed:', validationError);
         return NextResponse.json<ErrorResponse>(
@@ -356,6 +447,7 @@ export async function POST(req: NextRequest) {
               code: 'VALIDATION_ERROR',
               message: 'Analysis response validation failed. Please try again.',
             },
+            hybrid_mode: HYBRID_MODE,
           },
           { status: 500 }
         );
@@ -372,6 +464,7 @@ export async function POST(req: NextRequest) {
                 ? error.message
                 : 'Failed to analyze resume',
           },
+          hybrid_mode: HYBRID_MODE,
         },
         { status: 503 }
       );
@@ -380,11 +473,30 @@ export async function POST(req: NextRequest) {
     // Calculate processing time
     const processingTime = Date.now() - startTime;
 
-    // Return success response with AI verdict
+    console.log('[API] 🎉 Analysis completed successfully:', {
+      hybridMode: HYBRID_MODE,
+      localScore: scoringResult.overallScore,
+      aiScore: aiVerdict.ai_final_score,
+      totalProcessingTime: `${processingTime}ms`,
+    });
+
+    // Return success response with both local and AI sections (hybrid transparency)
     const response: SuccessResponse = {
       success: true,
       data: analysis,
-      ai_verdict: aiVerdict, // Include AI verdict in response
+      local_scoring: {
+        overall_score: scoringResult.overallScore,
+        grade: scoringResult.grade,
+        component_scores: {
+          content_quality: scoringResult.componentScores.contentQuality.score,
+          ats_compatibility: scoringResult.componentScores.atsCompatibility.score,
+          format_structure: scoringResult.componentScores.formatStructure.score,
+          impact_metrics: scoringResult.componentScores.impactMetrics.score,
+        },
+        ats_pass_probability: scoringResult.atsPassProbability,
+      },
+      ai_verdict: aiVerdict,
+      hybrid_mode: HYBRID_MODE,
       processingTime,
       timestamp: new Date().toISOString(),
     };
@@ -392,6 +504,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
     // Catch-all error handler
+    console.error('[API] ✗ Unexpected error:', error);
     return NextResponse.json<ErrorResponse>(
       {
         success: false,
@@ -399,6 +512,7 @@ export async function POST(req: NextRequest) {
           code: 'INTERNAL_ERROR',
           message: 'An unexpected error occurred. Please try again later.',
         },
+        hybrid_mode: HYBRID_MODE,
       },
       { status: 500 }
     );
