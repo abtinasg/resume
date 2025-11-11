@@ -46,7 +46,8 @@ export interface BeforeAfterRewrite {
   title: string;
   before: string;
   after: string;
-  priority: string;
+  reasoning: string;
+  priority: "HIGH" | "MEDIUM" | "LOW";
 }
 
 /**
@@ -116,6 +117,7 @@ const ENHANCED_OUTPUT_SCHEMA_EXAMPLE = `{
       "title": "Quantify platform migration results",
       "before": "Migrated legacy platform to modern stack",
       "after": "Reframe as: 'Migrated a legacy platform to React/Node, cutting page load time by 45% and boosting NPS by 12 points.'",
+      "reasoning": "Quantified metrics make achievements more credible and memorable to hiring managers",
       "priority": "HIGH"
     }
   ],
@@ -145,6 +147,245 @@ export function buildEnhancedPrompt(resumeText: string, scoringResult: ScoringRe
     "5. Respond with strict JSON matching the following structure (no markdown, no commentary):",
     ENHANCED_OUTPUT_SCHEMA_EXAMPLE,
   ].join("\n");
+}
+
+/**
+ * Generate AI-powered rewrite suggestions
+ *
+ * This function creates natural, actionable before/after suggestions
+ * that sound like a human career coach, instead of generic rule-based text.
+ *
+ * @param scoringResult - The local scoring result with detected issues
+ * @param resumeText - The original resume text
+ * @returns Promise<BeforeAfterRewrite[]> - Array of AI-generated rewrites
+ * @throws AIAnalysisError with specific error codes
+ *
+ * @example
+ * ```typescript
+ * const rewrites = await generateAIRewrites(scoringResult, resumeText);
+ * console.log(rewrites[0].title); // "Clarify Leadership Experience"
+ * console.log(rewrites[0].reasoning); // "Hiring managers look for leadership signals..."
+ * ```
+ */
+export async function generateAIRewrites(
+  scoringResult: ScoringResult,
+  resumeText: string
+): Promise<BeforeAfterRewrite[]> {
+  const startTime = Date.now();
+
+  // Validate API key is configured
+  if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY.trim() === '') {
+    console.error('[AI Rewrites] ✗ OpenAI API key is not configured');
+    throw new AIAnalysisError(
+      'OpenAI API key is not configured. Please set OPENAI_API_KEY in your environment.',
+      'MISSING_API_KEY'
+    );
+  }
+
+  // Truncate resume text for optimal performance
+  const { text: truncatedResume, wasTruncated } = truncateResumeText(resumeText);
+
+  if (wasTruncated) {
+    console.log('[AI Rewrites] ⚠️ Resume text truncated from', resumeText.length, 'to', truncatedResume.length, 'characters');
+  }
+
+  // Build the prompt for AI rewrite generation
+  const prompt = `You are an expert resume coach. Given a candidate's resume and detected weak areas, rewrite each suggestion with natural before/after phrasing that improves clarity, impact, and relevance for job applications.
+
+Always explain briefly WHY the rewrite helps (reasoning).
+
+Provide your response as valid JSON only.
+
+Resume text:
+${truncatedResume}
+
+Local scoring data (structured JSON):
+${JSON.stringify(scoringResult, null, 2)}
+
+Output format:
+[
+  {
+    "title": "...",
+    "before": "...",
+    "after": "...",
+    "reasoning": "...",
+    "priority": "HIGH"
+  }
+]
+
+Instructions:
+1. Generate 3-5 high-impact rewrite suggestions based on the scoring data
+2. For each suggestion:
+   - Create a clear, actionable title
+   - Write "before" text that describes the current issue or gap
+   - Write "after" text with improved, resume-ready phrasing or concrete guidance
+   - Explain why this change matters (reasoning)
+   - Assign priority: HIGH, MEDIUM, or LOW
+3. Focus on the most impactful improvements from the scoring data
+4. Make suggestions sound like a human career coach, not a robot
+5. Return ONLY valid JSON array, no markdown, no additional text`;
+
+  try {
+    console.log('[AI Rewrites] 🤖 Starting AI rewrite generation...');
+    console.log('[AI Rewrites] 📝 Prompt length:', prompt.length, 'characters');
+
+    // Call OpenAI API
+    const response = await openai.chat.completions.create(
+      {
+        model: "gpt-4o-mini",
+        temperature: 0.6, // Higher temperature for more creative, natural rewrites
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert resume coach specializing in creating natural, actionable before/after suggestions. Always output valid JSON only.",
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        response_format: { type: "json_object" },
+      },
+      {
+        timeout: 60000, // 60 second timeout
+      }
+    );
+
+    // Extract content from response
+    const content = response.choices?.[0]?.message?.content;
+
+    if (!content) {
+      console.error('[AI Rewrites] ✗ Empty response from OpenAI');
+      throw new AIAnalysisError(
+        'OpenAI returned an empty response',
+        'EMPTY_RESPONSE'
+      );
+    }
+
+    // Parse JSON safely
+    let parsedResponse: any;
+    try {
+      parsedResponse = JSON.parse(content);
+    } catch (parseError) {
+      console.error('[AI Rewrites] ✗ Failed to parse JSON response:', parseError);
+      throw new AIAnalysisError(
+        'Failed to parse AI response as JSON',
+        'INVALID_JSON',
+        { content, parseError }
+      );
+    }
+
+    // Extract rewrites array (handle both direct array and object with array property)
+    let rewrites: BeforeAfterRewrite[] = [];
+    if (Array.isArray(parsedResponse)) {
+      rewrites = parsedResponse;
+    } else if (parsedResponse.rewrites && Array.isArray(parsedResponse.rewrites)) {
+      rewrites = parsedResponse.rewrites;
+    } else if (parsedResponse.before_after_rewrites && Array.isArray(parsedResponse.before_after_rewrites)) {
+      rewrites = parsedResponse.before_after_rewrites;
+    } else {
+      console.error('[AI Rewrites] ✗ Response is not a valid array:', parsedResponse);
+      throw new AIAnalysisError(
+        'AI response is not a valid array of rewrites',
+        'INVALID_RESPONSE',
+        { response: parsedResponse }
+      );
+    }
+
+    // Validate each rewrite
+    const validationErrors: string[] = [];
+    rewrites.forEach((rewrite, index) => {
+      if (!rewrite.title || typeof rewrite.title !== 'string') {
+        validationErrors.push(`rewrites[${index}].title is missing or not a string`);
+      }
+      if (!rewrite.before || typeof rewrite.before !== 'string') {
+        validationErrors.push(`rewrites[${index}].before is missing or not a string`);
+      }
+      if (!rewrite.after || typeof rewrite.after !== 'string') {
+        validationErrors.push(`rewrites[${index}].after is missing or not a string`);
+      }
+      if (!rewrite.reasoning || typeof rewrite.reasoning !== 'string') {
+        validationErrors.push(`rewrites[${index}].reasoning is missing or not a string`);
+      }
+      if (!rewrite.priority || typeof rewrite.priority !== 'string') {
+        validationErrors.push(`rewrites[${index}].priority is missing or not a string`);
+      }
+    });
+
+    if (validationErrors.length > 0) {
+      console.error('[AI Rewrites] ✗ Response validation failed:', validationErrors);
+      throw new AIAnalysisError(
+        `AI response is missing required fields: ${validationErrors.join(', ')}`,
+        'INVALID_RESPONSE',
+        { validationErrors, response: parsedResponse }
+      );
+    }
+
+    // Normalize the rewrites
+    const normalizedRewrites: BeforeAfterRewrite[] = rewrites.map(rewrite => ({
+      title: rewrite.title.trim(),
+      before: rewrite.before.trim(),
+      after: rewrite.after.trim(),
+      reasoning: rewrite.reasoning.trim(),
+      priority: rewrite.priority.trim().toUpperCase() as "HIGH" | "MEDIUM" | "LOW",
+    }));
+
+    const processingTime = Date.now() - startTime;
+    console.log('[AI Rewrites] ✓ AI rewrite generation completed successfully:', {
+      rewriteCount: normalizedRewrites.length,
+      processingTime: `${processingTime}ms`,
+    });
+
+    return normalizedRewrites;
+  } catch (error) {
+    // If already an AIAnalysisError, re-throw it
+    if (error instanceof AIAnalysisError) {
+      throw error;
+    }
+
+    // Extract error details from OpenAI SDK error
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorResponse = (error as any)?.response?.data || null;
+    const errorStatus = (error as any)?.status || (error as any)?.response?.status || null;
+    const errorCode = errorResponse?.error?.code || null;
+
+    console.error('[AI Rewrites] ✗ OpenAI API error occurred:', errorMessage);
+    if (errorStatus) {
+      console.error('[AI Rewrites] HTTP status:', errorStatus);
+    }
+
+    // Check for specific error types
+    if (errorStatus === 401 || errorMessage.includes('API key') || errorCode === 'invalid_api_key') {
+      throw new AIAnalysisError(
+        'OpenAI API key is invalid or unauthorized',
+        'INVALID_API_KEY',
+        { originalError: errorMessage, errorResponse, errorStatus }
+      );
+    }
+
+    if (errorStatus === 429 || errorCode === 'rate_limit_exceeded') {
+      throw new AIAnalysisError(
+        'OpenAI API rate limit exceeded. Please try again later.',
+        'RATE_LIMIT',
+        { originalError: errorMessage, errorResponse, errorStatus }
+      );
+    }
+
+    if (errorMessage.includes('timeout') || errorCode === 'timeout') {
+      throw new AIAnalysisError(
+        'OpenAI API request timed out. Please try again.',
+        'TIMEOUT',
+        { originalError: errorMessage, errorResponse, errorStatus }
+      );
+    }
+
+    // Generic error
+    throw new AIAnalysisError(
+      `AI rewrite generation failed: ${errorMessage}`,
+      'AI_ERROR',
+      { originalError: errorMessage, errorResponse, errorStatus, errorCode }
+    );
+  }
 }
 
 /**
@@ -200,22 +441,26 @@ export async function analyzeWithAI(prompt: string): Promise<AIVerdictResponse> 
     console.log('[AI Verdict] 🤖 Starting AI analysis with hybrid reasoning mode...');
 
     // Call OpenAI API with 60s timeout for robust handling
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      temperature: 0.3, // Lower temperature for more consistent, focused responses
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert resume analyst operating in hybrid reasoning mode. Provide your analysis as valid JSON only, no additional text or markdown formatting. Ensure all required fields are present.",
-        },
-        {
-          role: "user",
-          content: truncatedPrompt,
-        },
-      ],
-      response_format: { type: "json_object" }, // Ensure JSON response
-      timeout: 60000, // 60 second timeout for reliability
-    });
+    const response = await openai.chat.completions.create(
+      {
+        model: "gpt-4o-mini",
+        temperature: 0.3, // Lower temperature for more consistent, focused responses
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert resume analyst operating in hybrid reasoning mode. Provide your analysis as valid JSON only, no additional text or markdown formatting. Ensure all required fields are present.",
+          },
+          {
+            role: "user",
+            content: truncatedPrompt,
+          },
+        ],
+        response_format: { type: "json_object" }, // Ensure JSON response
+      },
+      {
+        timeout: 60000, // 60 second timeout for reliability
+      }
+    );
 
     // Extract content from response
     const content = response.choices?.[0]?.message?.content;
@@ -393,23 +638,27 @@ export async function analyzeWithAIEnhanced(
   const prompt = buildEnhancedPrompt(resumeText, scoringResult);
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      temperature: 0.4,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are an expert resume coach specializing in ATS optimization and rewriting suggestions in professional tone. Always output valid JSON.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      response_format: { type: "json_object" },
-      timeout: 60000,
-    });
+    const response = await openai.chat.completions.create(
+      {
+        model: "gpt-4o-mini",
+        temperature: 0.4,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are an expert resume coach specializing in ATS optimization and rewriting suggestions in professional tone. Always output valid JSON.",
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        response_format: { type: "json_object" },
+      },
+      {
+        timeout: 60000,
+      }
+    );
 
     const content = response.choices?.[0]?.message?.content;
 
@@ -472,7 +721,7 @@ export async function analyzeWithAIEnhanced(
           return;
         }
 
-        const { title, before, after, priority } = rewrite as BeforeAfterRewrite;
+        const { title, before, after, reasoning, priority } = rewrite as BeforeAfterRewrite;
 
         if (!title || typeof title !== "string") {
           validationErrors.push(`before_after_rewrites[${index}].title is missing or not a string`);
@@ -484,6 +733,10 @@ export async function analyzeWithAIEnhanced(
 
         if (!after || typeof after !== "string") {
           validationErrors.push(`before_after_rewrites[${index}].after is missing or not a string`);
+        }
+
+        if (!reasoning || typeof reasoning !== "string") {
+          validationErrors.push(`before_after_rewrites[${index}].reasoning is missing or not a string`);
         }
 
         if (!priority || typeof priority !== "string") {
@@ -511,7 +764,8 @@ export async function analyzeWithAIEnhanced(
       title: rewrite.title.trim(),
       before: rewrite.before.trim(),
       after: rewrite.after.trim(),
-      priority: rewrite.priority.trim().toUpperCase(),
+      reasoning: rewrite.reasoning.trim(),
+      priority: rewrite.priority.trim().toUpperCase() as "HIGH" | "MEDIUM" | "LOW",
     }));
 
     const result: AIVerdictResponse = {
