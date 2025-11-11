@@ -22,6 +22,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: true,
 
   checkAuth: async () => {
+    // Set loading state at the start
+    set({ isLoading: true });
+
     try {
       const response = await fetch('/api/auth/me', {
         credentials: 'include',
