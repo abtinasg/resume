@@ -295,7 +295,12 @@ const ResultsTabs: React.FC<ResultsTabsProps> = ({ analysis, onReset }) => {
   return (
     <div className="w-full space-y-8">
       {/* AI Report Section */}
-      <AIReport verdict={analysis.ai_verdict ?? null} />
+      <AIReport
+        verdict={analysis.ai_verdict ?? null}
+        hybridScore={(analysis as any).hybrid_score}
+        localScore={analysis.summary?.overall}
+        aiStatus={(analysis as any).ai_status}
+      />
 
       {/* Divider with heading for Local Scoring Results */}
       {analysis.ai_verdict && (

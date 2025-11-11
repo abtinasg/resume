@@ -5,7 +5,8 @@ import { motion } from 'framer-motion';
 
 interface AIReportProps {
   verdict: {
-    ai_final_score: number;
+    ai_final_score?: number;
+    overall_score?: number;
     summary: string;
     strengths: string[];
     weaknesses: string[];
@@ -19,16 +20,34 @@ interface AIReportProps {
     }[];
     confidence_level?: string;
   } | null;
+  hybridScore?: number;
+  localScore?: number;
+  aiStatus?: 'success' | 'fallback' | 'error';
 }
 
-const AIReport: React.FC<AIReportProps> = ({ verdict }) => {
+const AIReport: React.FC<AIReportProps> = ({ verdict, hybridScore, localScore, aiStatus }) => {
   if (!verdict) return null;
+
+  // Implement fallback hierarchy for AI score
+  const aiScore =
+    verdict.ai_final_score ??
+    verdict.overall_score ??
+    hybridScore ??
+    localScore ??
+    0;
 
   const getScoreColor = (score: number): string => {
     if (score >= 80) return 'from-green-500 to-emerald-600';
     if (score >= 60) return 'from-blue-500 to-indigo-600';
     if (score >= 40) return 'from-yellow-500 to-orange-600';
     return 'from-red-500 to-rose-600';
+  };
+
+  const getStatusColor = (status?: string): string => {
+    if (status === 'success') return 'text-green-600 bg-green-50 border-green-200';
+    if (status === 'fallback') return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+    if (status === 'error') return 'text-red-600 bg-red-50 border-red-200';
+    return 'text-gray-600 bg-gray-50 border-gray-200';
   };
 
   const getConfidenceBadgeColor = (level?: string): string => {
@@ -125,29 +144,35 @@ const AIReport: React.FC<AIReportProps> = ({ verdict }) => {
                   stroke="url(#aiScoreGradient)"
                   strokeWidth="10"
                   strokeLinecap="round"
-                  strokeDasharray={`${(verdict.ai_final_score / 100) * 283} 283`}
+                  strokeDasharray={`${(aiScore / 100) * 283} 283`}
                   className="transition-all duration-1000 ease-out"
                 />
                 <defs>
                   <linearGradient id="aiScoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" className={getScoreColor(verdict.ai_final_score).split(' ')[0].replace('from-', '')} />
-                    <stop offset="100%" className={getScoreColor(verdict.ai_final_score).split(' ')[1].replace('to-', '')} />
+                    <stop offset="0%" className={getScoreColor(aiScore).split(' ')[0].replace('from-', '')} />
+                    <stop offset="100%" className={getScoreColor(aiScore).split(' ')[1].replace('to-', '')} />
                   </linearGradient>
                 </defs>
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
                   <div className={`text-5xl font-bold bg-gradient-to-r ${getScoreColor(
-                    verdict.ai_final_score
+                    aiScore
                   )} bg-clip-text text-transparent`}>
-                    {verdict.ai_final_score}
+                    {aiScore}
                   </div>
                   <div className="text-xs text-gray-500 font-medium mt-1">AI Score</div>
                 </div>
               </div>
             </div>
-            <div className="mt-6 text-center">
+            <div className="mt-6 text-center space-y-2">
               <p className="text-sm text-gray-600 font-medium">Final AI Assessment</p>
+              {aiStatus && (
+                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(aiStatus)}`}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+                  Hybrid Mode: {aiStatus === 'success' ? 'AI Active' : aiStatus === 'fallback' ? 'Local Fallback' : 'Error'}
+                </div>
+              )}
             </div>
           </div>
         </motion.div>

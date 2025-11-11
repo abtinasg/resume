@@ -8,6 +8,7 @@ import FeaturesSection from '@/components/FeaturesSection';
 import DemoSection from '@/components/DemoSection';
 import AboutSection from '@/components/AboutSection';
 import ContactSection from '@/components/ContactSection';
+import ChatBotPanel from '@/components/ChatBotPanel';
 import type { AnalysisResult } from '@/lib/types/analysis';
 import { Sparkles, ArrowRight, Lock, Zap } from 'lucide-react';
 
@@ -585,6 +586,31 @@ export default function Home() {
           </div>
         </footer>
       </div>
+
+      {/* Floating AI Coach ChatBot */}
+      <ChatBotPanel
+        resumeContext={
+          analysis
+            ? {
+                overall_score: analysis.summary?.overall ?? 0,
+                sections: {
+                  structure: 0,
+                  content: 0,
+                  tailoring: 0,
+                },
+                summary: analysis.summary?.text ?? '',
+                actionables: analysis.suggestions?.map((s) => ({
+                  title: s.title,
+                  points: 0,
+                  fix: s.after,
+                  category: '',
+                  priority: s.priority,
+                })) ?? [],
+              }
+            : undefined
+        }
+        autoOpen={isAnalyzed}
+      />
     </div>
   );
 }
