@@ -281,7 +281,30 @@ const ResultsTabs: React.FC<ResultsTabsProps> = ({ analysis, onReset }) => {
 
   return (
     <div className="w-full space-y-8">
-      {/* Top Section: Summary (Left) + PDF Preview (Right) */}
+      {/* AI Report Section - Hybrid AI Analysis (Top) */}
+      <AIReport
+        verdict={analysis.ai_verdict ?? null}
+        hybridScore={analysis.hybrid_score}
+        localScore={analysis.local_scoring?.overall_score ?? analysis.summary?.overall}
+        aiStatus={analysis.ai_status}
+        contentScore={contentScore}
+        tailoringScore={tailoringScore}
+        overallScore={overallScore}
+      />
+
+      {/* Divider with heading for Summary & PDF */}
+      <div className="relative py-6">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-200"></div>
+        </div>
+        <div className="relative flex justify-center">
+          <span className="bg-white px-6 text-sm font-semibold text-gray-500 uppercase tracking-wider">
+            Summary, Strengths & Suggestions
+          </span>
+        </div>
+      </div>
+
+      {/* Summary Section: Summary Tabs (Left) + PDF Preview (Right) */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -299,14 +322,14 @@ const ResultsTabs: React.FC<ResultsTabsProps> = ({ analysis, onReset }) => {
         </div>
       </motion.div>
 
-      {/* Divider with heading for Detailed Analysis */}
+      {/* Divider with heading for Coach */}
       <div className="relative py-6">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-gray-200"></div>
         </div>
         <div className="relative flex justify-center">
           <span className="bg-white px-6 text-sm font-semibold text-gray-500 uppercase tracking-wider">
-            Detailed Analysis & Tools
+            Resume Coach
           </span>
         </div>
       </div>
@@ -320,14 +343,6 @@ const ResultsTabs: React.FC<ResultsTabsProps> = ({ analysis, onReset }) => {
       >
         <ResumeCoachChatDocked analysis={analysis} />
       </motion.div>
-
-      {/* AI Report Section - Full Width */}
-      <AIReport
-        verdict={analysis.ai_verdict ?? null}
-        hybridScore={analysis.hybrid_score}
-        localScore={analysis.local_scoring?.overall_score ?? analysis.summary?.overall}
-        aiStatus={analysis.ai_status}
-      />
 
       {/* Analyze Another Resume Button */}
       {onReset && (
