@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { analyzeResumePro, ResumeAnalysisPro } from '@/lib/openai';
 import { extractTextFromBase64PDF } from '@/lib/pdfParser';
 import { calculatePROScore, ScoringResult } from '@/lib/scoring';
+import { buildFinalAIPrompt } from '@/lib/prompts-pro';
+import { analyzeWithAI, AIVerdictResponse } from '@/lib/openai/analyzeWithAI';
 
 export const runtime = 'nodejs';
 
@@ -61,6 +63,7 @@ const ResumeAnalysisProSchema = z.object({
 interface SuccessResponse {
   success: true;
   data: ResumeAnalysisPro;
+  ai_verdict?: AIVerdictResponse;
   processingTime: number;
   timestamp: string;
 }
@@ -304,20 +307,42 @@ export async function POST(req: NextRequest) {
 
     // Analyze resume with PRO Scoring System
     let analysis: ResumeAnalysisPro;
+    let aiVerdict: AIVerdictResponse | undefined;
+
     try {
       console.log('[API] 🚀 Using PRO Scoring System for analysis');
 
-      // Use the local scoring system
+      // Step 1: Local scoring
       const scoringResult = await calculatePROScore(resumeText, 'General');
-
-      // Convert to API format
-      analysis = convertScoringResultToAnalysisPro(scoringResult, resumeText);
 
       console.log('[API] ✓ PRO Scoring completed:', {
         score: scoringResult.overallScore,
         grade: scoringResult.grade,
         processingTime: scoringResult.metadata?.processingTime,
       });
+
+      // Step 2: AI final verdict (always runs)
+      try {
+        console.log('[API] 🤖 Running AI final verdict layer...');
+        const aiStartTime = Date.now();
+
+        const prompt = buildFinalAIPrompt(resumeText, 'General', scoringResult);
+        aiVerdict = await analyzeWithAI(prompt);
+
+        const aiProcessingTime = Date.now() - aiStartTime;
+        console.log('[API] ✓ AI verdict completed:', {
+          aiScore: aiVerdict.ai_final_score,
+          hasSummary: !!aiVerdict.summary,
+          processingTime: aiProcessingTime,
+        });
+      } catch (aiError) {
+        console.error('[API] ⚠ AI verdict failed (continuing without it):', aiError);
+        // Continue without AI verdict if it fails - local scoring is still valid
+        aiVerdict = undefined;
+      }
+
+      // Step 3: Convert to API format
+      analysis = convertScoringResultToAnalysisPro(scoringResult, resumeText);
 
       // Validate response with Zod schema
       try {
@@ -355,10 +380,11 @@ export async function POST(req: NextRequest) {
     // Calculate processing time
     const processingTime = Date.now() - startTime;
 
-    // Return success response
+    // Return success response with AI verdict
     const response: SuccessResponse = {
       success: true,
       data: analysis,
+      ai_verdict: aiVerdict, // Include AI verdict in response
       processingTime,
       timestamp: new Date().toISOString(),
     };

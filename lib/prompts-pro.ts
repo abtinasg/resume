@@ -469,3 +469,55 @@ export function generateRoleInsights(
     competitive_advantages: scoringResult.atsDetailedReport.keywordGapAnalysis.mustHave.foundKeywords.slice(0, 3),
   };
 }
+
+// ==================== AI Final Verdict Layer ====================
+
+/**
+ * Build AI Final Verdict Prompt
+ *
+ * This prompt ensures the AI model always performs the final validation and interpretation
+ * after local scoring is complete. The AI reviews the structured scoring result and provides
+ * expert-level reasoning and refinements.
+ *
+ * @param resumeText - Full resume text
+ * @param jobRole - Target job role
+ * @param scoringResult - Complete scoring result from local system
+ * @returns Prompt string for AI analysis
+ */
+export function buildFinalAIPrompt(resumeText: string, jobRole: string, scoringResult: any): string {
+  return `
+You are an expert resume analyst reviewing a structured scoring result.
+
+---
+
+### Resume Text
+${resumeText}
+
+### Job Role
+${jobRole}
+
+### Scoring Result (from local system)
+${JSON.stringify(scoringResult, null, 2)}
+
+---
+
+Your task:
+1. Review and validate the scoring data logically.
+2. Identify 3 strengths that truly help for this job.
+3. Point out 3 weaknesses or inconsistencies in the scoring.
+4. Suggest 3 actionable improvements.
+5. Provide a final verdict:
+   - Adjusted overall score (0-100)
+   - 2–3 sentence summary
+   - Top 3 recommendations.
+
+Return the output as JSON in this structure:
+{
+  "ai_final_score": number,
+  "summary": string,
+  "strengths": [string, string, string],
+  "weaknesses": [string, string, string],
+  "improvement_suggestions": [string, string, string]
+}
+  `;
+}
