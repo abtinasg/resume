@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { signIn } from 'next-auth/react';
+import { signIn, signOut } from 'next-auth/react';
 import { useAuthStore } from '@/lib/store/authStore';
 
 export default function RegisterPage() {
@@ -15,16 +15,10 @@ export default function RegisterPage() {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   // Get auth state and checkAuth function from the auth store
-  const { isAuthenticated, isLoading: authLoading, checkAuth } = useAuthStore();
-
-  // Redirect to dashboard if already authenticated
-  useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      router.push('/dashboard');
-    }
-  }, [authLoading, isAuthenticated, router]);
+  const { isAuthenticated, isLoading: authLoading, checkAuth, logout } = useAuthStore();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -81,6 +75,51 @@ export default function RegisterPage() {
       setIsLoading(false);
     }
   };
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    try {
+      await logout();
+      await signOut({ redirect: false });
+      await checkAuth();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    } finally {
+      setSigningOut(false);
+    }
+  };
+
+  if (!authLoading && isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 px-4">
+        <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-lg">
+          <div className="space-y-2 text-center">
+            <h2 className="text-3xl font-bold text-gray-900">You're already signed in</h2>
+            <p className="text-gray-600">
+              Continue to your dashboard or sign out to create a new account.
+            </p>
+          </div>
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => router.push('/dashboard')}
+              className="w-full flex justify-center py-2 px-4 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+            >
+              Go to dashboard
+            </button>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              disabled={signingOut}
+              className="w-full flex justify-center py-2 px-4 rounded-lg text-sm font-medium text-blue-600 border border-blue-200 hover:border-blue-300 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+            >
+              {signingOut ? 'Signing out...' : 'Sign out'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 px-4">

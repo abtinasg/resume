@@ -87,15 +87,10 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  if (isAuthRoute) {
-    if (hasLegacySession) {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
-    }
-
-    if (hasNextAuthSession) {
-      // Allow the login/register routes to render so users can clear stale sessions
-      return NextResponse.next();
-    }
+  // Allow authenticated users to access auth routes for reauth flow
+  // The login/register pages will handle showing appropriate UI for already authenticated users
+  if (isAuthRoute && isAuthenticated) {
+    return NextResponse.next();
   }
 
   // Redirect unauthenticated users to login for protected routes
