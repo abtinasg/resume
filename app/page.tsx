@@ -9,6 +9,7 @@ import DemoSection from '@/components/DemoSection';
 import AboutSection from '@/components/AboutSection';
 import ContactSection from '@/components/ContactSection';
 import ChatBotPanel from '@/components/ChatBotPanel';
+import ExitIntentModal from '@/components/ExitIntentModal';
 import type { AnalysisResult } from '@/lib/types/analysis';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -630,6 +631,9 @@ export default function Home() {
         }
         autoOpen={isAnalyzed}
       />
+
+      {/* Exit Intent Modal */}
+      <ExitIntentModal />
     </div>
   );
 }
