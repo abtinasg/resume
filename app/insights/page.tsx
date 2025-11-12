@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Navbar from '@/components/Navbar';
 import Card from '@/components/ui/card';
@@ -20,36 +20,110 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
+  Loader2,
 } from 'lucide-react';
-import { getArticles, getPopularArticles, CATEGORIES, type Article } from '@/lib/insights/articles';
+import { Post, PostStatus } from '@prisma/client';
+import Link from 'next/link';
 
 const ARTICLES_PER_PAGE = 6;
+
+interface Article extends Post {
+  author?: {
+    name: string;
+    avatar: string;
+    role: string;
+  };
+  readTime?: number;
+  views?: number;
+}
+
+const CATEGORIES: Record<string, { name: string; color: string; icon: string }> = {
+  optimization: { name: 'Optimization', color: 'blue', icon: 'target' },
+  ats: { name: 'ATS Tips', color: 'green', icon: 'check-circle' },
+  career: { name: 'Career Advice', color: 'purple', icon: 'briefcase' },
+  industry: { name: 'Industry Insights', color: 'orange', icon: 'trending-up' },
+  tips: { name: 'Quick Tips', color: 'yellow', icon: 'lightbulb' },
+  'case-study': { name: 'Case Studies', color: 'red', icon: 'users' },
+};
 
 export default function InsightsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Get all articles with current filters
-  const allArticles = useMemo(() => {
-    return getArticles({
-      category: selectedCategory,
-      search: searchQuery,
-    });
-  }, [selectedCategory, searchQuery]);
+  // Fetch articles from API
+  useEffect(() => {
+    const fetchArticles = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const params = new URLSearchParams({
+          page: currentPage.toString(),
+          limit: ARTICLES_PER_PAGE.toString(),
+        });
+
+        if (searchQuery) {
+          // For search, we'll need to fetch all and filter client-side
+          // Or implement search in the API
+        }
+
+        const response = await fetch(`/api/posts?${params}`);
+        const data = await response.json();
+
+        if (data.success && data.data) {
+          const postsWithMeta = data.data.items.map((post: Post) => ({
+            ...post,
+            author: {
+              name: 'Resume Expert',
+              avatar: 'https://i.pravatar.cc/150?img=5',
+              role: 'Career Coach',
+            },
+            readTime: Math.ceil(post.content.length / 1000) || 5,
+            views: 0,
+          }));
+
+          // Filter by category and search client-side
+          let filtered = postsWithMeta;
+
+          if (selectedCategory && selectedCategory !== 'all') {
+            filtered = filtered.filter((a: Article) => {
+              const metadata = a.metadata as any;
+              return metadata?.category === selectedCategory;
+            });
+          }
+
+          if (searchQuery) {
+            const search = searchQuery.toLowerCase();
+            filtered = filtered.filter((a: Article) =>
+              a.title.toLowerCase().includes(search) ||
+              (a.excerpt && a.excerpt.toLowerCase().includes(search))
+            );
+          }
+
+          setArticles(filtered);
+          setTotalCount(data.data.pagination.total);
+        } else {
+          setError('Failed to load articles');
+        }
+      } catch (err) {
+        console.error('Error fetching articles:', err);
+        setError('Failed to load articles');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchArticles();
+  }, [currentPage, selectedCategory, searchQuery]);
 
   // Pagination
-  const totalPages = Math.ceil(allArticles.length / ARTICLES_PER_PAGE);
-  const paginatedArticles = useMemo(() => {
-    const offset = (currentPage - 1) * ARTICLES_PER_PAGE;
-    return allArticles.slice(offset, offset + ARTICLES_PER_PAGE);
-  }, [allArticles, currentPage]);
-
-  // Featured articles
-  const featuredArticles = useMemo(() => getArticles({ featured: true, limit: 3 }), []);
-
-  // Popular articles
-  const popularArticles = useMemo(() => getPopularArticles(5), []);
+  const totalPages = Math.ceil(totalCount / ARTICLES_PER_PAGE);
+  const paginatedArticles = articles;
 
   // Reset page when filters change
   const handleCategoryChange = (category: string) => {
@@ -62,7 +136,8 @@ export default function InsightsPage() {
     setCurrentPage(1);
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | Date | null) => {
+    if (!dateString) return '';
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
@@ -81,6 +156,20 @@ export default function InsightsPage() {
       'case-study': 'bg-red-100 text-red-700 border-red-200',
     };
     return colors[category] || 'bg-gray-100 text-gray-700 border-gray-200';
+  };
+
+  const getArticleCategory = (article: Article) => {
+    const metadata = article.metadata as any;
+    return metadata?.category || 'tips';
+  };
+
+  const getArticleTags = (article: Article) => {
+    const metadata = article.metadata as any;
+    return metadata?.tags || [];
+  };
+
+  const getArticleImage = (article: Article) => {
+    return article.coverImage || 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800&auto=format';
   };
 
   return (
@@ -121,82 +210,25 @@ export default function InsightsPage() {
         </div>
       </section>
 
-      {/* Featured Articles */}
-      <section className="pb-16 px-6">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8 flex items-center gap-2">
-            <Sparkles className="w-7 h-7 text-indigo-600" />
-            Featured Articles
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {featuredArticles.map((article, idx) => (
-              <motion.div
-                key={article.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: idx * 0.1 }}
-              >
-                <Card className="h-full hover:shadow-xl transition-shadow overflow-hidden group">
-                  <div className="relative h-48 overflow-hidden">
-                    <img
-                      src={article.image}
-                      alt={article.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                    />
-                    <div className="absolute top-4 left-4">
-                      <Badge className={getCategoryColor(article.category)}>
-                        {CATEGORIES[article.category].name}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-indigo-600 transition-colors">
-                      {article.title}
-                    </h3>
-                    <p className="text-gray-600 mb-4 line-clamp-2">{article.excerpt}</p>
-                    <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
-                        <span>{article.readTime} min read</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Eye className="w-4 h-4" />
-                        <span>{article.views?.toLocaleString()}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <img
-                          src={article.author.avatar}
-                          alt={article.author.name}
-                          className="w-8 h-8 rounded-full"
-                        />
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            {article.author.name}
-                          </p>
-                          <p className="text-xs text-gray-500">{article.author.role}</p>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        className="text-indigo-600 hover:text-indigo-700"
-                        onClick={() => {
-                          // In a real app, this would navigate to the article detail page
-                          alert(`Article "${article.title}" - Full article view coming soon!`);
-                        }}
-                      >
-                        Read
-                        <ArrowRight className="w-4 h-4 ml-1" />
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
+      {/* Loading State */}
+      {loading && (
+        <section className="py-16 px-6">
+          <div className="max-w-7xl mx-auto text-center">
+            <Loader2 className="w-12 h-12 animate-spin text-indigo-600 mx-auto mb-4" />
+            <p className="text-gray-600">Loading articles...</p>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
+
+      {/* Error State */}
+      {error && !loading && (
+        <section className="py-16 px-6">
+          <div className="max-w-7xl mx-auto text-center">
+            <p className="text-red-600 mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()}>Retry</Button>
+          </div>
+        </section>
+      )}
 
       {/* Search and Filter Section */}
       <section className="py-8 px-6 bg-gray-50">
@@ -239,9 +271,11 @@ export default function InsightsPage() {
           </div>
 
           {/* Results count */}
-          <div className="mt-4 text-gray-600">
-            {allArticles.length} article{allArticles.length !== 1 ? 's' : ''} found
-          </div>
+          {!loading && (
+            <div className="mt-4 text-gray-600">
+              {articles.length} article{articles.length !== 1 ? 's' : ''} found
+            </div>
+          )}
         </div>
       </section>
 
@@ -251,79 +285,84 @@ export default function InsightsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Content */}
             <div className="lg:col-span-2">
-              {paginatedArticles.length > 0 ? (
+              {!loading && paginatedArticles.length > 0 ? (
                 <>
                   <div className="space-y-6">
-                    {paginatedArticles.map((article, idx) => (
-                      <motion.div
-                        key={article.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: idx * 0.05 }}
-                      >
-                        <Card className="hover:shadow-lg transition-shadow overflow-hidden group">
-                          <div className="flex flex-col md:flex-row">
-                            <div className="md:w-1/3 h-48 md:h-auto overflow-hidden">
-                              <img
-                                src={article.image}
-                                alt={article.title}
-                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                              />
-                            </div>
-                            <div className="p-6 md:w-2/3">
-                              <div className="flex items-center gap-2 mb-3">
-                                <Badge className={getCategoryColor(article.category)}>
-                                  {CATEGORIES[article.category].name}
-                                </Badge>
-                                <span className="text-sm text-gray-500">
-                                  {formatDate(article.publishedAt)}
-                                </span>
-                              </div>
-                              <h3 className="text-2xl font-bold text-gray-900 mb-2 group-hover:text-indigo-600 transition-colors">
-                                {article.title}
-                              </h3>
-                              <p className="text-gray-600 mb-4 line-clamp-2">
-                                {article.excerpt}
-                              </p>
-                              <div className="flex flex-wrap gap-2 mb-4">
-                                {article.tags.slice(0, 3).map((tag) => (
-                                  <span
-                                    key={tag}
-                                    className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded"
-                                  >
-                                    #{tag}
-                                  </span>
-                                ))}
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-4 text-sm text-gray-500">
-                                  <div className="flex items-center gap-1">
-                                    <Clock className="w-4 h-4" />
-                                    <span>{article.readTime} min</span>
+                    {paginatedArticles.map((article, idx) => {
+                      const category = getArticleCategory(article);
+                      const tags = getArticleTags(article);
+                      const image = getArticleImage(article);
+
+                      return (
+                        <motion.div
+                          key={article.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.6, delay: idx * 0.05 }}
+                        >
+                          <Link href={`/insights/${article.slug}`}>
+                            <Card className="hover:shadow-lg transition-shadow overflow-hidden group cursor-pointer">
+                              <div className="flex flex-col md:flex-row">
+                                <div className="md:w-1/3 h-48 md:h-auto overflow-hidden">
+                                  <img
+                                    src={image}
+                                    alt={article.title}
+                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                  />
+                                </div>
+                                <div className="p-6 md:w-2/3">
+                                  <div className="flex items-center gap-2 mb-3">
+                                    <Badge className={getCategoryColor(category)}>
+                                      {CATEGORIES[category]?.name || 'Article'}
+                                    </Badge>
+                                    <span className="text-sm text-gray-500">
+                                      {formatDate(article.publishedAt || article.createdAt)}
+                                    </span>
                                   </div>
-                                  <div className="flex items-center gap-1">
-                                    <Eye className="w-4 h-4" />
-                                    <span>{article.views?.toLocaleString()}</span>
+                                  <h3 className="text-2xl font-bold text-gray-900 mb-2 group-hover:text-indigo-600 transition-colors">
+                                    {article.title}
+                                  </h3>
+                                  <p className="text-gray-600 mb-4 line-clamp-2">
+                                    {article.excerpt}
+                                  </p>
+                                  <div className="flex flex-wrap gap-2 mb-4">
+                                    {tags.slice(0, 3).map((tag: string) => (
+                                      <span
+                                        key={tag}
+                                        className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded"
+                                      >
+                                        #{tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                                      <div className="flex items-center gap-1">
+                                        <Clock className="w-4 h-4" />
+                                        <span>{article.readTime} min</span>
+                                      </div>
+                                      {article.views !== undefined && (
+                                        <div className="flex items-center gap-1">
+                                          <Eye className="w-4 h-4" />
+                                          <span>{article.views?.toLocaleString()}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                    <Button
+                                      variant="ghost"
+                                      className="text-indigo-600 hover:text-indigo-700 font-semibold"
+                                    >
+                                      Read More
+                                      <ArrowRight className="w-4 h-4 ml-1" />
+                                    </Button>
                                   </div>
                                 </div>
-                                <Button
-                                  variant="ghost"
-                                  className="text-indigo-600 hover:text-indigo-700 font-semibold"
-                                  onClick={() => {
-                                    alert(
-                                      `Article "${article.title}" - Full article view coming soon!`
-                                    );
-                                  }}
-                                >
-                                  Read More
-                                  <ArrowRight className="w-4 h-4 ml-1" />
-                                </Button>
                               </div>
-                            </div>
-                          </div>
-                        </Card>
-                      </motion.div>
-                    ))}
+                            </Card>
+                          </Link>
+                        </motion.div>
+                      );
+                    })}
                   </div>
 
                   {/* Pagination */}
@@ -391,45 +430,47 @@ export default function InsightsPage() {
 
             {/* Sidebar */}
             <div className="space-y-8">
-              {/* Popular Articles */}
-              <Card className="p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-indigo-600" />
-                  Popular Articles
-                </h3>
-                <div className="space-y-4">
-                  {popularArticles.map((article, idx) => (
-                    <div
-                      key={article.id}
-                      className="pb-4 border-b border-gray-200 last:border-0 last:pb-0 cursor-pointer group"
-                      onClick={() => {
-                        alert(`Article "${article.title}" - Full article view coming soon!`);
-                      }}
-                    >
-                      <div className="flex gap-3">
-                        <div className="text-2xl font-bold text-gray-300 w-8 flex-shrink-0">
-                          {idx + 1}
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors mb-1 line-clamp-2">
-                            {article.title}
-                          </h4>
-                          <div className="flex items-center gap-3 text-xs text-gray-500">
-                            <span className="flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {article.readTime} min
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Eye className="w-3 h-3" />
-                              {article.views?.toLocaleString()}
-                            </span>
+              {/* Recent Articles */}
+              {!loading && articles.length > 0 && (
+                <Card className="p-6">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-indigo-600" />
+                    Recent Articles
+                  </h3>
+                  <div className="space-y-4">
+                    {articles.slice(0, 5).map((article, idx) => (
+                      <Link
+                        key={article.id}
+                        href={`/insights/${article.slug}`}
+                        className="block pb-4 border-b border-gray-200 last:border-0 last:pb-0 group"
+                      >
+                        <div className="flex gap-3">
+                          <div className="text-2xl font-bold text-gray-300 w-8 flex-shrink-0">
+                            {idx + 1}
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors mb-1 line-clamp-2">
+                              {article.title}
+                            </h4>
+                            <div className="flex items-center gap-3 text-xs text-gray-500">
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {article.readTime} min
+                              </span>
+                              {article.views !== undefined && (
+                                <span className="flex items-center gap-1">
+                                  <Eye className="w-3 h-3" />
+                                  {article.views?.toLocaleString()}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
+                      </Link>
+                    ))}
+                  </div>
+                </Card>
+              )}
 
               {/* Categories */}
               <Card className="p-6">
@@ -439,7 +480,6 @@ export default function InsightsPage() {
                 </h3>
                 <div className="space-y-2">
                   {Object.entries(CATEGORIES).map(([key, value]) => {
-                    const count = getArticles({ category: key }).length;
                     return (
                       <button
                         key={key}
@@ -451,7 +491,6 @@ export default function InsightsPage() {
                         }`}
                       >
                         <span className="font-medium">{value.name}</span>
-                        <Badge className="bg-gray-200 text-gray-700">{count}</Badge>
                       </button>
                     );
                   })}
