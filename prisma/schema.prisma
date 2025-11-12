@@ -28,6 +28,8 @@ model User {
   userBadges    UserBadge[]
   analyticsEvents AnalyticsEvent[]
   exitFeedbacks    ExitFeedback[]
+  resumeVersions   ResumeVersion[]
+  resumeScoreHistory ResumeScoreHistory[]
 }
 
 model Account {
@@ -76,6 +78,39 @@ model Resume {
   version    Int      @default(1)
   isArchived Boolean  @default(false)
   createdAt  DateTime @default(now())
+  versions   ResumeVersion[]
+  scoreHistory ResumeScoreHistory[]
+}
+
+model ResumeVersion {
+  id        Int      @id @default(autoincrement())
+  resume    Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  resumeId  Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  version   Int
+  score     Int
+  summary   String?
+  data      Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([resumeId, version])
+}
+
+model ResumeScoreHistory {
+  id            Int      @id @default(autoincrement())
+  resume        Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  resumeId      Int
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        Int
+  score         Int
+  previousScore Int?
+  change        Int?
+  recordedAt    DateTime @default(now())
+
+  @@index([userId, recordedAt])
+  @@index([resumeId, recordedAt])
 }
 
 model Badge {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyToken } from "@/lib/auth";
+import { recordResumeProgress } from "@/lib/progress";
 
 /**
  * GET /api/resumes
@@ -76,15 +77,33 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Create resume entry
+    const numericScore =
+      score !== undefined && score !== null ? Number(score) : 0;
+
+    const previousResume = await prisma.resume.findFirst({
+      where: { userId: user.userId },
+      orderBy: { createdAt: "desc" },
+    });
+
     const resume = await prisma.resume.create({
       data: {
         userId: user.userId,
         fileName: fileName || "Untitled Resume",
-        score: score !== undefined ? parseFloat(score) : 0,
+        score: Number.isFinite(numericScore) ? numericScore : 0,
         summary: summary || null,
-        data: data || null,
+        data: data ?? null,
+        version: previousResume ? previousResume.version + 1 : 1,
       },
+    });
+
+    await recordResumeProgress({
+      userId: user.userId,
+      resumeId: resume.id,
+      version: resume.version,
+      score: resume.score,
+      summary: resume.summary,
+      data: resume.data,
+      previousScore: previousResume?.score ?? null,
     });
 
     return NextResponse.json({ resume }, { status: 201 });

@@ -8,6 +8,7 @@ import { HYBRID_MODE, validateEnvironment } from '@/lib/env';
 import { verifyToken } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { trackEvent } from '@/lib/analytics';
+import { recordResumeProgress } from '@/lib/progress';
 import OpenAI from 'openai';
 import type {
   ResumeScores,
@@ -644,23 +645,43 @@ export async function POST(req: NextRequest) {
               ? 'Uploaded Resume (Photo)'
               : 'Uploaded Resume (Text)';
 
-        await prisma.resume.create({
+        const previousResume = await prisma.resume.findFirst({
+          where: { userId: authenticatedUser.userId },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        const resumePayload = JSON.parse(
+          JSON.stringify({
+            sections: response.sections,
+            actionables: response.actionables,
+            ai_status: response.ai_status,
+            metadata: response.metadata,
+            estimatedImprovementTime: response.estimatedImprovementTime,
+            targetScore: response.targetScore,
+            localScores: finalResult.localScores,
+            aiScores: finalResult.aiScores,
+          })
+        );
+
+        const createdResume = await prisma.resume.create({
           data: {
             userId: authenticatedUser.userId,
             fileName,
             score: response.overall_score,
             summary: response.summary,
-            data: JSON.parse(JSON.stringify({
-              sections: response.sections,
-              actionables: response.actionables,
-              ai_status: response.ai_status,
-              metadata: response.metadata,
-              estimatedImprovementTime: response.estimatedImprovementTime,
-              targetScore: response.targetScore,
-              localScores: finalResult.localScores,
-              aiScores: finalResult.aiScores,
-            })),
+            data: resumePayload,
+            version: previousResume ? previousResume.version + 1 : 1,
           },
+        });
+
+        await recordResumeProgress({
+          userId: authenticatedUser.userId,
+          resumeId: createdResume.id,
+          version: createdResume.version,
+          score: createdResume.score,
+          summary: createdResume.summary,
+          data: createdResume.data,
+          previousScore: previousResume?.score ?? null,
         });
         console.log('[API 3D] ✓ Resume saved to database for user:', authenticatedUser.email);
       } else {
