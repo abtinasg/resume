@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, useMotionValue, useTransform } from 'framer-motion';
+import { motion } from 'framer-motion';
 import UploadSection from '@/components/UploadSection';
 import ResultsContainer from '@/components/results/ResultsContainer';
 import FeaturesSection from '@/components/FeaturesSection';
@@ -10,11 +10,47 @@ import AboutSection from '@/components/AboutSection';
 import ContactSection from '@/components/ContactSection';
 import ChatBotPanel from '@/components/ChatBotPanel';
 import type { AnalysisResult } from '@/lib/types/analysis';
-import { Sparkles, ArrowRight, Lock, Zap } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import {
+  Sparkles,
+  ArrowRight,
+  Lock,
+  Zap,
+  ShieldCheck,
+  Target,
+  Users,
+  LineChart,
+  Compass,
+} from 'lucide-react';
 
 export default function Home() {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [isAnalyzed, setIsAnalyzed] = useState(false);
+
+  const navItems = [
+    { label: 'Platform', href: '#features' },
+    { label: 'Methodology', href: '#demo-section' },
+    { label: 'Stories', href: '#about' },
+    { label: 'Contact', href: '#contact' },
+  ];
+
+  const heroFeatures: { icon: LucideIcon; title: string; description: string }[] = [
+    {
+      icon: ShieldCheck,
+      title: 'Enterprise-grade privacy',
+      description: 'Encrypted uploads with automatic redaction & deletion.',
+    },
+    {
+      icon: Target,
+      title: 'Role-specific guidance',
+      description: 'Insights adapt to your industry and seniority instantly.',
+    },
+    {
+      icon: Users,
+      title: 'Human-aligned scoring',
+      description: 'Benchmarked with hiring managers from leading teams.',
+    },
+  ];
 
   const handleAnalyzeComplete = (data: AnalysisResult) => {
     setAnalysis(data);
@@ -57,247 +93,225 @@ export default function Home() {
 
       {/* Main content */}
       <div className="relative z-10">
-        {/* Hero Section - Premium Apple-inspired Design */}
-        <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-          {/* Subtle grid pattern for depth */}
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(99,102,241,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(99,102,241,0.03)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
+        <motion.header
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="max-w-6xl mx-auto px-6 md:px-12 pt-8 flex items-center justify-between gap-6"
+        >
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="absolute inset-0 rounded-xl bg-brand-teal/40 blur" />
+              <div className="relative w-11 h-11 rounded-xl bg-gradient-to-br from-brand-indigo via-purple-500 to-brand-teal flex items-center justify-center shadow-[0_18px_45px_-16px_rgba(79,70,229,0.65)]">
+                <Sparkles className="w-5 h-5 text-white" strokeWidth={2.5} />
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gray-900">ResumeIQ</p>
+              <p className="text-xs text-gray-500">Executive resume intelligence</p>
+            </div>
+          </div>
 
-          <div className="relative max-w-7xl mx-auto px-6 md:px-12 py-24 sm:py-32">
-            <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+          <nav className="hidden md:flex items-center gap-6 lg:gap-8 text-sm text-gray-500">
+            {navItems.map((item) => (
+              <a
+                key={item.label}
+                className="group relative font-medium transition hover:text-gray-900"
+                href={item.href}
+              >
+                <span>{item.label}</span>
+                <span className="absolute inset-x-0 -bottom-2 h-px origin-left scale-x-0 bg-gradient-to-r from-brand-teal to-brand-indigo transition-transform duration-300 group-hover:scale-x-100" />
+              </a>
+            ))}
+          </nav>
 
-              {/* Left Column - Text Content */}
-              <div className="space-y-8 text-center lg:text-left">
-                {/* Small brand badge */}
-                <motion.div
+          <motion.button
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={scrollToUpload}
+            className="hidden sm:inline-flex items-center gap-2 rounded-full border border-brand-indigo/40 px-5 py-2.5 text-sm font-semibold text-brand-indigo shadow-[0_8px_20px_-12px_rgba(79,70,229,0.55)] transition hover:bg-brand-indigo hover:text-white"
+          >
+            Launch workspace
+            <ArrowRight className="w-4 h-4" strokeWidth={2.4} />
+          </motion.button>
+        </motion.header>
+
+        {/* Hero Section - Immersive experience */}
+        <section className="relative pt-20 pb-28 md:pb-36">
+          <div className="absolute inset-0 bg-gradient-to-b from-white via-white to-slate-50" />
+          <div className="absolute inset-x-0 top-0 h-[520px] overflow-hidden">
+            <div className="absolute inset-x-[10%] top-16 h-[420px] rounded-[60px] bg-gradient-to-br from-brand-indigo/15 via-purple-300/10 to-brand-teal/15 blur-3xl" />
+            <div className="absolute left-[8%] top-24 h-64 w-64 rounded-full bg-brand-indigo/10 blur-[120px]" />
+            <div className="absolute right-[12%] top-12 h-72 w-72 rounded-full bg-brand-teal/10 blur-[120px]" />
+          </div>
+
+          <div className="relative max-w-6xl mx-auto px-6 md:px-12 grid gap-20 lg:grid-cols-[1.1fr_0.9fr] items-center">
+            <div className="space-y-12">
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.05, ease: [0.16, 1, 0.3, 1] }}
+                className="inline-flex items-center gap-3 rounded-full border border-white/60 bg-white/80 px-5 py-2.5 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur"
+              >
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-brand-teal to-brand-indigo text-white">
+                  <Compass className="h-3.5 w-3.5" strokeWidth={2.5} />
+                </div>
+                <span className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-700">
+                  Research-led resume design
+                </span>
+              </motion.div>
+
+              <div className="space-y-8">
+                <motion.h1
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-indigo/5 border border-brand-indigo/10 backdrop-blur-sm mx-auto lg:mx-0"
+                  transition={{ duration: 0.8, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
+                  className="font-grotesk text-4xl sm:text-5xl lg:text-[58px] leading-[1.05] tracking-tight text-slate-900"
                 >
-                  <Sparkles className="w-4 h-4 text-brand-indigo" strokeWidth={2} />
-                  <span className="text-sm font-medium text-brand-indigo">AI-Powered Resume Analysis</span>
-                </motion.div>
-
-                {/* Main Headline - Staggered reveal */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-                  className="space-y-4"
-                >
-                  <h1 className="font-grotesk text-5xl sm:text-6xl lg:text-7xl font-bold text-gray-900 tracking-tight leading-[1.05]">
-                    Your next opportunity
-                  </h1>
-                  <h1 className="font-grotesk text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] bg-gradient-to-r from-brand-indigo via-purple-500 to-brand-teal bg-clip-text text-transparent">
-                    starts with a smarter resume.
-                  </h1>
-                </motion.div>
-
-                {/* Subheading - Calm and confident */}
+                  Bring soul to your resume with an intelligence layer built for modern hiring teams.
+                </motion.h1>
                 <motion.p
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.35 }}
-                  className="text-xl text-gray-600 leading-relaxed max-w-xl mx-auto lg:mx-0"
+                  transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                  className="text-lg sm:text-xl leading-relaxed text-slate-600 max-w-xl"
                 >
-                  AI-powered insights designed to help you stand out — instantly.
+                  ResumeIQ blends qualitative researcher insight with adaptive AI scoring so every iteration feels deliberate, personal, and unmistakably professional.
                 </motion.p>
-
-                {/* CTA Buttons with enhanced microinteractions */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.45 }}
-                  className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-4"
-                >
-                  {/* Primary CTA - Glowing indigo */}
-                  <button
-                    onClick={scrollToUpload}
-                    className="group relative px-8 py-4 bg-brand-indigo text-white font-semibold rounded-2xl overflow-hidden transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_0_40px_rgba(99,102,241,0.3)]"
-                  >
-                    <span className="relative z-10 flex items-center justify-center gap-2">
-                      Analyze My Resume
-                      <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={2.5} />
-                    </span>
-                    {/* Gradient hover overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-brand-indigo via-purple-600 to-brand-indigo opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-                    {/* Subtle pulse on hover */}
-                    <div className="absolute inset-0 bg-white/20 rounded-2xl opacity-0 group-hover:opacity-100 group-hover:animate-ping" />
-                  </button>
-
-                  {/* Secondary CTA - Ghost button with fade */}
-                  <button
-                    onClick={() => {
-                      const demoSection = document.getElementById('demo-section');
-                      demoSection?.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                    className="group px-8 py-4 bg-white/50 backdrop-blur-sm text-gray-700 font-semibold rounded-2xl border-2 border-gray-200/50 hover:border-brand-indigo/30 hover:bg-white/80 hover:text-brand-indigo transition-all duration-300 hover:scale-[1.02]"
-                  >
-                    <span className="flex items-center justify-center gap-2">
-                      Watch How It Works
-                      <span className="text-xl transition-transform duration-300 group-hover:translate-x-1">→</span>
-                    </span>
-                  </button>
-                </motion.div>
-
-                {/* Trust Badges - Soft indicators */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.7, delay: 0.6 }}
-                  className="flex flex-wrap justify-center lg:justify-start items-center gap-6 pt-6 text-sm text-gray-500"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                    <span>Privacy-First</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-brand-indigo animate-pulse" style={{ animationDelay: '0.2s' }} />
-                    <span>Instant Results</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-brand-teal animate-pulse" style={{ animationDelay: '0.4s' }} />
-                    <span>ATS Optimized</span>
-                  </div>
-                </motion.div>
               </div>
 
-              {/* Right Column - Floating Resume Visual with enhanced 3D feel */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.95, rotateX: 10 }}
-                animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-                transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.4 }}
-                className="relative hidden lg:block perspective-1000"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                className="flex flex-col sm:flex-row gap-4"
               >
-                <div className="relative w-full h-[600px] flex items-center justify-center">
-                  {/* Layered ambient glows - creates depth */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-brand-indigo/20 via-purple-500/15 to-brand-teal/20 blur-[100px] rounded-full animate-pulse-slow" />
-                  <div className="absolute inset-0 bg-gradient-to-tl from-brand-teal/10 to-transparent blur-[80px] rounded-full" style={{ animationDelay: '1s' }} />
+                <button
+                  onClick={scrollToUpload}
+                  className="group relative inline-flex items-center justify-center gap-3 rounded-2xl bg-slate-900 px-9 py-4 text-base font-semibold text-white shadow-[0_24px_45px_-18px_rgba(15,23,42,0.65)] transition duration-300 hover:-translate-y-1"
+                >
+                  Start your free analysis
+                  <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={2.4} />
+                  <span className="absolute inset-0 rounded-2xl border border-white/20" />
+                </button>
+                <button
+                  onClick={() => {
+                    const demoSection = document.getElementById('demo-section');
+                    demoSection?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 px-9 py-4 text-base font-semibold text-slate-700 transition hover:border-brand-indigo/40 hover:text-brand-indigo"
+                >
+                  View interactive demo
+                  <span className="text-lg">→</span>
+                </button>
+              </motion.div>
 
-                  {/* Floating Resume Document */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.32, ease: [0.16, 1, 0.3, 1] }}
+                className="grid gap-5 sm:grid-cols-3"
+              >
+                {heroFeatures.map((feature, index) => (
                   <motion.div
-                    animate={{
-                      y: [0, -20, 0],
-                      rotateY: [0, 5, 0],
-                    }}
-                    transition={{
-                      duration: 6,
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    }}
-                    className="relative"
+                    key={feature.title}
+                    initial={{ opacity: 0, y: 18 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.36 + index * 0.08, ease: [0.16, 1, 0.3, 1] }}
+                    className="group rounded-2xl border border-white/60 bg-white/80 p-5 shadow-[0_14px_40px_-20px_rgba(15,23,42,0.25)] backdrop-blur hover:-translate-y-1 transition"
                   >
-                    <div className="relative bg-white rounded-3xl shadow-[0_20px_60px_-10px_rgba(0,0,0,0.12)] p-12 w-[400px] border border-gray-100/50 backdrop-blur-sm">
-                      {/* Document Header with gradient */}
-                      <div className="space-y-4 mb-8">
-                        <div className="h-5 bg-gradient-to-r from-brand-indigo via-purple-500 to-brand-teal rounded-full w-3/4 shadow-sm" />
-                        <div className="h-3 bg-gray-100 rounded-full w-1/2" />
-                      </div>
-
-                      {/* Document Content Lines - progressive opacity */}
-                      <div className="space-y-3 mb-8">
-                        <div className="h-2.5 bg-gray-200 rounded-full w-full" />
-                        <div className="h-2.5 bg-gray-200 rounded-full w-5/6 opacity-80" />
-                        <div className="h-2.5 bg-gray-200 rounded-full w-full opacity-70" />
-                        <div className="h-2.5 bg-gray-200 rounded-full w-4/6 opacity-60" />
-                      </div>
-
-                      {/* Section Divider */}
-                      <div className="mb-6 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
-
-                      {/* More content */}
-                      <div className="space-y-3 mb-8">
-                        <div className="h-2.5 bg-gray-200 rounded-full w-4/5" />
-                        <div className="h-2.5 bg-gray-200 rounded-full w-full" />
-                        <div className="h-2.5 bg-gray-200 rounded-full w-3/5" />
-                      </div>
-
-                      {/* Score Badge - Premium floating effect */}
-                      <motion.div
-                        animate={{
-                          y: [0, -10, 0],
-                          scale: [1, 1.05, 1],
-                        }}
-                        transition={{
-                          duration: 4,
-                          repeat: Infinity,
-                          ease: "easeInOut",
-                          delay: 0.5
-                        }}
-                        className="absolute -top-8 -right-8 bg-gradient-to-br from-green-400 via-emerald-500 to-brand-teal text-white rounded-full w-28 h-28 flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.4)]"
-                      >
-                        <div className="text-center">
-                          <div className="text-3xl font-bold">95</div>
-                          <div className="text-xs uppercase tracking-wider opacity-90">Score</div>
-                        </div>
-                      </motion.div>
-
-                      {/* Success Checkmarks with stagger animation */}
-                      <div className="space-y-3 mt-6">
-                        {[0, 1, 2].map((i) => (
-                          <motion.div
-                            key={i}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.5, delay: 1 + i * 0.15 }}
-                            className="flex items-center gap-3"
-                          >
-                            <div className="w-6 h-6 rounded-full bg-green-50 flex items-center justify-center ring-2 ring-green-100">
-                              <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </div>
-                            <div className="h-2 bg-gradient-to-r from-gray-200 to-gray-100 rounded-full flex-1" />
-                          </motion.div>
-                        ))}
-                      </div>
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-brand-indigo/10 via-purple-200/30 to-brand-teal/20 text-brand-indigo">
+                      <feature.icon className="h-5 w-5" strokeWidth={2.1} />
                     </div>
+                    <p className="mt-4 text-sm font-semibold text-gray-900">{feature.title}</p>
+                    <p className="mt-2 text-sm leading-relaxed text-gray-600">{feature.description}</p>
                   </motion.div>
+                ))}
+              </motion.div>
 
-                  {/* Floating particles - subtle ambient motion */}
-                  <motion.div
-                    animate={{
-                      y: [0, -30, 0],
-                      opacity: [0.3, 0.6, 0.3]
-                    }}
-                    transition={{
-                      duration: 5,
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    }}
-                    className="absolute top-24 left-12 w-2 h-2 bg-brand-indigo/40 rounded-full blur-[1px]"
-                  />
-                  <motion.div
-                    animate={{
-                      y: [0, 30, 0],
-                      opacity: [0.4, 0.7, 0.4]
-                    }}
-                    transition={{
-                      duration: 6,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                      delay: 0.5
-                    }}
-                    className="absolute bottom-32 right-16 w-3 h-3 bg-brand-teal/40 rounded-full blur-[1px]"
-                  />
-                  <motion.div
-                    animate={{
-                      y: [0, -20, 0],
-                      x: [0, 10, 0],
-                      opacity: [0.3, 0.5, 0.3]
-                    }}
-                    transition={{
-                      duration: 7,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                      delay: 1
-                    }}
-                    className="absolute top-1/2 right-8 w-2 h-2 bg-purple-400/40 rounded-full blur-[1px]"
-                  />
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                className="grid gap-4 sm:grid-cols-2 max-w-lg"
+              >
+                <div className="rounded-2xl border border-slate-200 bg-white/70 p-5 shadow-sm backdrop-blur">
+                  <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <span>Interview invites</span>
+                    <span className="flex items-center gap-1 text-emerald-500">
+                      <LineChart className="h-3.5 w-3.5" />
+                      +38%
+                    </span>
+                  </div>
+                  <p className="mt-3 text-lg font-semibold text-slate-900">After two guided revisions</p>
+                  <p className="mt-2 text-sm text-slate-500">Based on anonymised cohort of 1,200 job seekers.</p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-brand-indigo/10 via-white to-brand-teal/10 p-5 shadow-sm backdrop-blur">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Time to clarity</p>
+                  <p className="mt-3 text-3xl font-bold text-slate-900">6m 21s</p>
+                  <p className="mt-2 text-sm text-slate-500">Average time to surface the top three improvements for a new role.</p>
                 </div>
               </motion.div>
             </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 32 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.9, delay: 0.24, ease: [0.16, 1, 0.3, 1] }}
+              className="relative"
+            >
+              <div className="absolute inset-0 rounded-[44px] bg-gradient-to-br from-brand-indigo/30 via-purple-300/20 to-brand-teal/30 blur-[90px]" />
+              <div className="relative rounded-[34px] border border-white/40 bg-white/90 shadow-[0_40px_90px_-35px_rgba(45,55,72,0.45)] backdrop-blur-xl p-6 sm:p-8">
+                <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-900 px-6 py-5 text-slate-200">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Live Candidate</p>
+                    <p className="mt-2 text-xl font-semibold text-white">Product Marketing Lead</p>
+                  </div>
+                  <div className="rounded-full bg-emerald-100/90 px-3 py-1 text-xs font-semibold text-emerald-600">Match 92</div>
+                </div>
+
+                <div className="mt-6 grid gap-6">
+                  <div className="rounded-2xl border border-slate-100 bg-white/90 p-5 shadow-[0_20px_45px_-30px_rgba(15,23,42,0.45)] backdrop-blur">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Strategic narrative</p>
+                    <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                      “Lead with commercial outcomes in your opening paragraph—your product positioning work unlocked $14.6M ARR and deserves the spotlight.”
+                    </p>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-slate-100 bg-white/80 p-5">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Opportunities</p>
+                      <ul className="mt-3 space-y-2 text-sm text-slate-600">
+                        {['Tighten leadership summary', 'Elevate quantified impact', 'Clarify GTM partnership'].map((item) => (
+                          <li key={item} className="flex items-start gap-2">
+                            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-brand-indigo" />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="flex flex-col justify-between rounded-2xl border border-slate-100 bg-gradient-to-br from-brand-teal/10 to-brand-indigo/10 p-5">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Confidence lift</p>
+                        <p className="mt-3 text-3xl font-bold text-slate-900">+37%</p>
+                        <p className="mt-1 text-xs text-slate-500">Projected callback improvement</p>
+                      </div>
+                      <div className="mt-4 flex items-center gap-2 text-xs text-slate-500">
+                        <div className="h-2 w-2 rounded-full bg-emerald-400" />
+                        Calibrated with human reviewers
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-dashed border-brand-indigo/40 bg-white/70 p-5 text-sm text-slate-600">
+                    <p className="font-semibold text-slate-900">Next action</p>
+                    <p className="mt-2 leading-relaxed">
+                      Reframe the case study to open with customer impact, then follow with the metrics to reinforce the narrative arc.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
           </div>
         </section>
 
