@@ -26,6 +26,8 @@ model User {
   accounts      Account[]
   sessions      Session[]
   userBadges    UserBadge[]
+  analyticsEvents AnalyticsEvent[]
+  exitFeedbacks    ExitFeedback[]
 }
 
 model Account {
@@ -96,4 +98,30 @@ model UserBadge {
   badge     Badge    @relation(fields: [badgeId], references: [id])
 
   @@unique([userId, badgeId])
+}
+
+model AnalyticsEvent {
+  id        Int       @id @default(autoincrement())
+  event     String
+  metadata  Json?
+  userId    Int?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime  @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model ExitFeedback {
+  id                 Int      @id @default(autoincrement())
+  userId             Int?
+  rating             Int?
+  likelihoodToReturn Int?
+  reason             String?
+  comment            String?
+  email              String?
+  metadata           Json?
+  createdAt          DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 }
