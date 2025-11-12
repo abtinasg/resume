@@ -1,9 +1,19 @@
+import { Badge } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 
 interface BadgeCriteria {
   type: string;
   value: number | boolean;
   threshold?: number;
+}
+
+function parseBadgeCriteria(badge: Badge): BadgeCriteria {
+  try {
+    return JSON.parse(badge.criteria) as BadgeCriteria;
+  } catch (error) {
+    console.warn(`Failed to parse criteria for badge ${badge.name}:`, error);
+    return { type: 'unknown', value: false };
+  }
 }
 
 export async function checkAndAwardBadges(userId: number): Promise<string[]> {
@@ -30,7 +40,7 @@ export async function checkAndAwardBadges(userId: number): Promise<string[]> {
     // Skip if user already has this badge
     if (earnedBadgeIds.has(badge.id)) continue;
 
-    const criteria: BadgeCriteria = JSON.parse(badge.criteria);
+    const criteria = parseBadgeCriteria(badge);
     let earned = false;
 
     switch (criteria.type) {
@@ -109,4 +119,33 @@ export async function getAllBadges() {
     icon: b.icon,
     rarity: b.rarity,
   }));
+}
+
+export async function getAchievementsForUser(userId: number) {
+  const [badges, userBadges] = await Promise.all([
+    prisma.badge.findMany({
+      orderBy: { rarity: 'asc' },
+    }),
+    prisma.userBadge.findMany({
+      where: { userId },
+    }),
+  ]);
+
+  const earnedBadgeMap = new Map(
+    userBadges.map((badge) => [badge.badgeId, badge])
+  );
+
+  return badges.map((badge) => {
+    const earned = earnedBadgeMap.get(badge.id);
+    return {
+      id: badge.id,
+      name: badge.name,
+      description: badge.description,
+      icon: badge.icon,
+      rarity: badge.rarity,
+      criteria: parseBadgeCriteria(badge),
+      earned: Boolean(earned),
+      earnedAt: earned?.earnedAt ?? null,
+    };
+  });
 }
