@@ -6,6 +6,8 @@ import Card from "@/components/ui/card";
 import Button from "@/components/ui/button";
 import Badge from "@/components/ui/badge";
 import { useAuthStore } from "@/lib/store/authStore";
+import ChatBotPanel from "@/components/ChatBotPanel";
+import { FileText, TrendingUp, Award, Upload } from "lucide-react";
 
 interface Resume {
   id: string;
@@ -171,75 +173,116 @@ export default function DashboardPage() {
     );
   }
 
+  // Get the latest resume for AI Coach context
+  const latestResume = resumes.length > 0 ? resumes[0] : null;
+  const resumeContext = latestResume
+    ? {
+        overall_score: latestResume.score || 0,
+        sections: {
+          structure: latestResume.data?.sections?.structure || 0,
+          content: latestResume.data?.sections?.content || 0,
+          tailoring: latestResume.data?.sections?.tailoring || 0,
+        },
+        summary: latestResume.summary || '',
+        actionables: latestResume.data?.actionables || [],
+      }
+    : undefined;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">
-            My Resume Analyses
-          </h1>
-          <p className="text-gray-600">
-            View and manage all your resume analyses in one place
-          </p>
+        {/* Professional Header */}
+        <div className="mb-8 bg-white rounded-2xl shadow-lg p-6 md:p-8 border border-gray-100">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                Dashboard
+              </h1>
+              <p className="text-gray-600">
+                Track your resume performance and get AI-powered insights
+              </p>
+            </div>
+            <Button
+              onClick={handleReanalyze}
+              className="!bg-gradient-to-r !from-blue-600 !to-purple-600 hover:!from-blue-700 hover:!to-purple-700 !text-white !shadow-lg hover:!shadow-xl transition-all duration-300 flex items-center gap-2"
+            >
+              <Upload className="w-4 h-4" />
+              Analyze New Resume
+            </Button>
+          </div>
         </div>
 
-        {/* Stats Summary */}
+        {/* Professional Stats Summary */}
         {resumes.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <Card>
+            <Card className="!bg-gradient-to-br !from-blue-50 !to-blue-100 !border-blue-200 hover:!shadow-xl transition-all duration-300">
               <div className="text-center">
-                <p className="text-3xl font-bold text-blue-600">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-500 text-white mb-4">
+                  <FileText className="w-8 h-8" />
+                </div>
+                <p className="text-4xl font-bold text-blue-700 mb-1">
                   {resumes.length}
                 </p>
-                <p className="text-gray-600 mt-1">Total Analyses</p>
+                <p className="text-gray-700 font-medium">Total Analyses</p>
               </div>
             </Card>
-            <Card>
+            <Card className="!bg-gradient-to-br !from-green-50 !to-emerald-100 !border-green-200 hover:!shadow-xl transition-all duration-300">
               <div className="text-center">
-                <p className="text-3xl font-bold text-green-600">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500 text-white mb-4">
+                  <TrendingUp className="w-8 h-8" />
+                </div>
+                <p className="text-4xl font-bold text-green-700 mb-1">
                   {Math.round(
                     resumes.reduce((acc, r) => acc + (r.score || 0), 0) /
                       resumes.length
                   )}
                 </p>
-                <p className="text-gray-600 mt-1">Average Score</p>
+                <p className="text-gray-700 font-medium">Average Score</p>
               </div>
             </Card>
-            <Card>
+            <Card className="!bg-gradient-to-br !from-purple-50 !to-purple-100 !border-purple-200 hover:!shadow-xl transition-all duration-300">
               <div className="text-center">
-                <p className="text-3xl font-bold text-purple-600">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-purple-500 text-white mb-4">
+                  <Award className="w-8 h-8" />
+                </div>
+                <p className="text-4xl font-bold text-purple-700 mb-1">
                   {Math.max(...resumes.map((r) => r.score || 0))}
                 </p>
-                <p className="text-gray-600 mt-1">Highest Score</p>
+                <p className="text-gray-700 font-medium">Highest Score</p>
               </div>
             </Card>
           </div>
         )}
 
-        {/* Empty State */}
+        {/* Professional Empty State */}
         {resumes.length === 0 && (
-          <Card>
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">📄</div>
-              <h2 className="text-2xl font-semibold text-gray-700 mb-2">
-                No resumes analyzed yet
+          <Card className="!bg-gradient-to-br !from-white !to-blue-50 !border-blue-200">
+            <div className="text-center py-16">
+              <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-r from-blue-100 to-purple-100 mb-6">
+                <FileText className="w-12 h-12 text-blue-600" />
+              </div>
+              <h2 className="text-3xl font-bold text-gray-800 mb-3">
+                Start Your Journey
               </h2>
-              <p className="text-gray-600 mb-6">
-                Upload your first resume to get started with AI-powered analysis
+              <p className="text-gray-600 mb-8 max-w-md mx-auto text-lg">
+                Upload your first resume to unlock AI-powered insights and personalized coaching
               </p>
-              <Button onClick={handleReanalyze}>
+              <Button
+                onClick={handleReanalyze}
+                className="!bg-gradient-to-r !from-blue-600 !to-purple-600 hover:!from-blue-700 hover:!to-purple-700 !text-white !shadow-lg hover:!shadow-xl transition-all duration-300 !px-8 !py-6 !text-lg"
+              >
+                <Upload className="w-5 h-5 mr-2" />
                 Analyze Your First Resume
               </Button>
             </div>
           </Card>
         )}
 
-        {/* Resume List */}
+        {/* Professional Resume List */}
         {resumes.length > 0 && (
           <div className="grid gap-6 md:grid-cols-2">
             {resumes.map((resume) => (
-              <Card key={resume.id} className="hover:shadow-lg transition-shadow">
+              <Card key={resume.id} className="!bg-white hover:!shadow-2xl !border-gray-200 transition-all duration-300 hover:scale-[1.02]">
                 <div className="space-y-4">
                   {/* Header */}
                   <div className="flex justify-between items-start">
@@ -317,18 +360,19 @@ export default function DashboardPage() {
                     </div>
                   )}
 
-                  {/* Actions */}
-                  <div className="flex gap-2 pt-2 border-t">
+                  {/* Professional Actions */}
+                  <div className="flex gap-3 pt-4 border-t border-gray-200">
                     <Button
                       onClick={handleReanalyze}
-                      className="flex-1 !bg-gradient-to-r !from-green-500 !to-emerald-500 hover:!from-green-600 hover:!to-emerald-600"
+                      className="flex-1 !bg-gradient-to-r !from-blue-600 !to-purple-600 hover:!from-blue-700 hover:!to-purple-700 !text-white !shadow-md hover:!shadow-lg transition-all duration-300"
                     >
-                      Analyze New Resume
+                      <Upload className="w-4 h-4 mr-2" />
+                      New Analysis
                     </Button>
                     <Button
                       onClick={() => handleDelete(resume.id)}
                       variant="secondary"
-                      className="!border-red-200 !text-red-600 hover:!bg-red-50"
+                      className="!border-red-300 !text-red-600 hover:!bg-red-50 hover:!border-red-400 !shadow-sm transition-all duration-300"
                     >
                       Delete
                     </Button>
@@ -339,6 +383,9 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* AI Coach Button - Floating bottom right */}
+      <ChatBotPanel resumeContext={resumeContext} />
     </div>
   );
 }
