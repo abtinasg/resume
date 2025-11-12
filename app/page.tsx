@@ -12,6 +12,8 @@ import ChatBotPanel from '@/components/ChatBotPanel';
 import TrustBadges from '@/components/TrustBadges';
 import MobileCTA from '@/components/MobileCTA';
 import TestimonialsSection from '@/components/TestimonialsSection';
+import RegistrationModal from '@/components/RegistrationModal';
+import { useAuthStore } from '@/lib/store/authStore';
 import type { AnalysisResult } from '@/lib/types/analysis';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -29,6 +31,8 @@ import {
 export default function Home() {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [isAnalyzed, setIsAnalyzed] = useState(false);
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  const { isAuthenticated, isLoading: authLoading } = useAuthStore();
 
   const navItems = [
     { label: 'Platform', href: '#features' },
@@ -59,6 +63,13 @@ export default function Home() {
     setAnalysis(data);
     setIsAnalyzed(true);
     console.log('Analysis complete:', data);
+
+    // Show registration modal after a short delay if user is not authenticated
+    if (!isAuthenticated && !authLoading) {
+      setTimeout(() => {
+        setShowRegistrationModal(true);
+      }, 2000); // 2 second delay to let user see their results first
+    }
   };
 
   const handleReset = () => {
@@ -616,6 +627,13 @@ export default function Home() {
 
       {/* Sticky Mobile CTA */}
       <MobileCTA />
+
+      {/* Registration Modal - shown after analysis for non-authenticated users */}
+      <RegistrationModal
+        isOpen={showRegistrationModal}
+        onClose={() => setShowRegistrationModal(false)}
+        analysisScore={analysis?.summary?.overall}
+      />
     </div>
   );
 }
