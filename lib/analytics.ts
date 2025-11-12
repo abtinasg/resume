@@ -7,6 +7,9 @@ export type AnalyticsEventName =
   | 'resume_upload'
   | 'analysis_complete'
   | 'user_registration'
+  | 'user_login'
+  | 'resume_deleted'
+  | 'dashboard_viewed'
   | 'exit_feedback_submitted';
 
 interface TrackEventOptions {

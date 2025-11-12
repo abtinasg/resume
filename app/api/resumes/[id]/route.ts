@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyToken } from "@/lib/auth";
+import { trackEvent } from "@/lib/analytics";
 
 /**
  * GET /api/resumes/[id]
@@ -98,6 +99,16 @@ export async function DELETE(
     // Delete the resume
     await prisma.resume.delete({
       where: { id: resumeId },
+    });
+
+    // Track deletion event
+    await trackEvent('resume_deleted', {
+      userId: user.userId,
+      request: req,
+      metadata: {
+        resumeId,
+        resumeScore: resume.score,
+      },
     });
 
     return NextResponse.json(
