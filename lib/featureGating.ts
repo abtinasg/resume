@@ -1,5 +1,14 @@
 import { SubscriptionTier } from './store/authStore';
 
+export type UserRole = 'user' | 'admin';
+
+/**
+ * Check if user is admin
+ */
+export function isAdmin(role?: string): boolean {
+  return role === 'admin';
+}
+
 /**
  * Feature definitions with their required subscription tiers
  */

@@ -2,9 +2,13 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifyTokenOnEdge } from '@/lib/edge/token';
 import { getToken } from 'next-auth/jwt';
+import { prisma } from '@/lib/prisma';
 
 // Define protected routes that require authentication
 const protectedRoutes = ['/profile', '/dashboard'];
+
+// Define admin routes that require admin role
+const adminRoutes = ['/admin'];
 
 // Define auth routes that authenticated users shouldn't access
 const authRoutes = ['/auth/login', '/auth/register'];
@@ -25,6 +29,12 @@ export async function middleware(request: NextRequest) {
   // User is authenticated if either legacy JWT or NextAuth session exists
   const isAuthenticated = !!(legacyUser || nextAuthToken);
 
+  // Get user ID from either token
+  const userId = legacyUser?.userId || nextAuthToken?.sub;
+
+  // Check if the current route is an admin route
+  const isAdminRoute = adminRoutes.some((route) => pathname.startsWith(route));
+
   // Check if the current route is protected
   const isProtectedRoute = protectedRoutes.some((route) =>
     pathname.startsWith(route)
@@ -32,6 +42,32 @@ export async function middleware(request: NextRequest) {
 
   // Check if the current route is an auth route
   const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
+
+  // Admin route protection
+  if (isAdminRoute) {
+    if (!isAuthenticated) {
+      const loginUrl = new URL('/auth/login', request.url);
+      loginUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    // Check if user has admin role
+    if (userId) {
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: parseInt(userId as string) },
+          select: { role: true },
+        });
+
+        if (user?.role !== 'admin') {
+          return NextResponse.redirect(new URL('/dashboard', request.url));
+        }
+      } catch (error) {
+        console.error('Error checking admin role:', error);
+        return NextResponse.redirect(new URL('/dashboard', request.url));
+      }
+    }
+  }
 
   // Redirect authenticated users away from auth pages
   if (isAuthenticated && isAuthRoute) {
