@@ -8,6 +8,7 @@ import { HYBRID_MODE, validateEnvironment } from '@/lib/env';
 import { verifyToken } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { trackEvent } from '@/lib/analytics';
+import { checkUsageLimit, decrementUsage } from '@/lib/premium';
 import { recordResumeProgress } from '@/lib/progress';
 import OpenAI from 'openai';
 import type {
@@ -315,6 +316,31 @@ export async function POST(req: NextRequest) {
 
     const tokenValue = req.cookies.get('token')?.value;
     const authenticatedUser = tokenValue ? verifyToken(tokenValue) : null;
+
+    // Check usage limits for authenticated users
+    if (authenticatedUser) {
+      const userId = authenticatedUser.userId;
+      const usageCheck = await checkUsageLimit(userId, 'resumeScan');
+
+      if (!usageCheck.allowed) {
+        return NextResponse.json<ErrorResponse>(
+          {
+            success: false,
+            error: {
+              code: 'USAGE_LIMIT_REACHED',
+              message: 'Resume scan limit reached for this period',
+              details: {
+                remaining: usageCheck.remaining,
+                limit: usageCheck.limit,
+                reason: usageCheck.reason,
+              },
+            },
+            timestamp: new Date().toISOString(),
+          },
+          { status: 429 }
+        );
+      }
+    }
 
     await trackEvent('resume_upload', {
       userId: authenticatedUser?.userId,
@@ -684,6 +710,10 @@ export async function POST(req: NextRequest) {
           previousScore: previousResume?.score ?? null,
         });
         console.log('[API 3D] ✓ Resume saved to database for user:', authenticatedUser.email);
+
+        // Decrement usage count after successful analysis
+        await decrementUsage(authenticatedUser.userId, 'resumeScan');
+        console.log('[API 3D] ✓ Usage limit decremented for user:', authenticatedUser.userId);
       } else {
         console.log('[API 3D] ℹ️ Analysis completed without authentication - resume not saved');
       }

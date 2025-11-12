@@ -28,6 +28,8 @@ model User {
   userBadges    UserBadge[]
   analyticsEvents AnalyticsEvent[]
   exitFeedbacks    ExitFeedback[]
+  subscription  Subscription?
+  usageLimit    UsageLimit?
   resumeVersions   ResumeVersion[]
   resumeScoreHistory ResumeScoreHistory[]
 }
@@ -161,26 +163,36 @@ model ExitFeedback {
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 }
 
-enum PostStatus {
-  DRAFT
-  PUBLISHED
-  ARCHIVED
+model Subscription {
+  id                 Int       @id @default(autoincrement())
+  userId             Int       @unique
+  tier               String    @default("free")  // free, premium, pro_plus
+  status             String    @default("active") // active, canceled, past_due, expired
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean   @default(false)
+  metadata           Json?     // Store additional subscription metadata
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tier])
+  @@index([status])
 }
 
-model Post {
-  id          Int        @id @default(autoincrement())
-  title       String
-  slug        String     @unique
-  excerpt     String?
-  content     String
-  status      PostStatus @default(DRAFT)
-  coverImage  String?
-  publishedAt DateTime?
-  metadata    Json?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+model UsageLimit {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @unique
+  resumeScans     Int      @default(3)      // Number of scans remaining this period
+  maxResumeScans  Int      @default(3)      // Maximum scans allowed per period
+  jobMatches      Int      @default(0)      // Number of job matches used
+  maxJobMatches   Int      @default(0)      // Maximum job matches per period
+  lastResetDate   DateTime @default(now())  // When the limits were last reset
+  updatedAt       DateTime @updatedAt
 
-  @@index([title])
-  @@index([status])
-  @@index([publishedAt])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
