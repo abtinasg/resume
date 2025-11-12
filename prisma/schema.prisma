@@ -14,21 +14,210 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  resumes   Resume[]
+  id            Int          @id @default(autoincrement())
+  email         String       @unique
+  password      String?      // Optional for OAuth users
+  name          String?
+  image         String?
+  emailVerified DateTime?
+  role          String       @default("user") // user, admin
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  resumes       Resume[]
+  accounts      Account[]
+  sessions      Session[]
+  userBadges    UserBadge[]
+  analyticsEvents AnalyticsEvent[]
+  exitFeedbacks    ExitFeedback[]
+  subscription  Subscription?
+  usageLimit    UsageLimit?
+  resumeVersions   ResumeVersion[]
+  resumeScoreHistory ResumeScoreHistory[]
+}
+
+model Account {
+  id                Int     @id @default(autoincrement())
+  userId            Int
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           Int      @id @default(autoincrement())
+  sessionToken String   @unique
+  userId       Int
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
 }
 
 model Resume {
+  id         Int      @id @default(autoincrement())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     Int
+  fileName   String
+  score      Int
+  summary    String?
+  data       Json
+  version    Int      @default(1)
+  isArchived Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  versions   ResumeVersion[]
+  scoreHistory ResumeScoreHistory[]
+}
+
+model ResumeVersion {
   id        Int      @id @default(autoincrement())
-  user      User     @relation(fields: [userId], references: [id])
+  resume    Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  resumeId  Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    Int
-  fileName  String
+  version   Int
   score     Int
   summary   String?
-  data      Json
+  data      Json?
   createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([resumeId, version])
+}
+
+model ResumeScoreHistory {
+  id            Int      @id @default(autoincrement())
+  resume        Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  resumeId      Int
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        Int
+  score         Int
+  previousScore Int?
+  change        Int?
+  recordedAt    DateTime @default(now())
+
+  @@index([userId, recordedAt])
+  @@index([resumeId, recordedAt])
+}
+
+model Badge {
+  id          Int         @id @default(autoincrement())
+  name        String      @unique
+  description String
+  icon        String
+  criteria    String      // JSON string describing unlock criteria
+  rarity      String      // common, rare, epic, legendary
+  createdAt   DateTime    @default(now())
+  userBadges  UserBadge[]
+}
+
+model UserBadge {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  badgeId   Int
+  earnedAt  DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge     Badge    @relation(fields: [badgeId], references: [id])
+
+  @@unique([userId, badgeId])
+}
+
+model AnalyticsEvent {
+  id        Int       @id @default(autoincrement())
+  event     String
+  metadata  Json?
+  userId    Int?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime  @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model ExitFeedback {
+  id                 Int      @id @default(autoincrement())
+  userId             Int?
+  rating             Int?
+  likelihoodToReturn Int?
+  reason             String?
+  comment            String?
+  email              String?
+  metadata           Json?
+  createdAt          DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model Subscription {
+  id                 Int       @id @default(autoincrement())
+  userId             Int       @unique
+  tier               String    @default("free")  // free, premium, pro_plus
+  status             String    @default("active") // active, canceled, past_due, expired
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean   @default(false)
+  metadata           Json?     // Store additional subscription metadata
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tier])
+  @@index([status])
+}
+
+model UsageLimit {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @unique
+  resumeScans     Int      @default(3)      // Number of scans remaining this period
+  maxResumeScans  Int      @default(3)      // Maximum scans allowed per period
+  jobMatches      Int      @default(0)      // Number of job matches used
+  maxJobMatches   Int      @default(0)      // Maximum job matches per period
+  lastResetDate   DateTime @default(now())  // When the limits were last reset
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Post {
+  id          Int        @id @default(autoincrement())
+  title       String
+  slug        String     @unique
+  excerpt     String?
+  content     String
+  coverImage  String?
+  status      PostStatus @default(DRAFT)
+  publishedAt DateTime?
+  metadata    Json?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([slug])
+  @@index([status])
+  @@index([publishedAt])
 }

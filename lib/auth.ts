@@ -14,17 +14,6 @@ function getJwtSecret(): string {
 }
 const SALT_ROUNDS = 10;
 
-// Interfaces
-export interface JWTPayload {
-  userId: number;
-  email: string;
-}
-
-export interface TokenData extends JWTPayload {
-  iat?: number;
-  exp?: number;
-}
-
 /**
  * Hash a plain text password using bcrypt
  * @param password - Plain text password to hash
@@ -127,3 +116,5 @@ export function validatePassword(password: string): {
 
   return { isValid: true };
 }
+
+export type { JWTPayload, TokenData } from '@/lib/types/auth';

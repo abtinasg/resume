@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { extractTextFromBase64PDF } from '@/lib/pdfParser';
+import { extractTextFromBase64Image } from '@/lib/imageParser';
 import { calculate3DScore } from '@/lib/scoring/algorithms';
 import { build3DStrictAIPrompt } from '@/lib/prompts-pro';
 import { HYBRID_MODE, validateEnvironment } from '@/lib/env';
 import { verifyToken } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { trackEvent } from '@/lib/analytics';
+import { checkUsageLimit, decrementUsage } from '@/lib/premium';
+import { recordResumeProgress } from '@/lib/progress';
 import OpenAI from 'openai';
 import type {
   ResumeScores,
@@ -18,18 +22,32 @@ export const runtime = 'nodejs';
 
 const MAX_TEXT_LENGTH = 15000;
 
-const ResumeAnalyzeSchema = z.object({
-  resumeText: z.string().min(1, 'Resume content missing'),
-  format: z.enum(['pdf', 'text']),
-  jobRole: z.string().optional().default('Software Engineer'),
-  jobDescription: z.string().optional(),
-}).refine(
-  (data) => data.format === 'pdf' || data.resumeText.length >= 15,
-  { message: 'Resume text is too short (minimum 15 characters for text input)', path: ['resumeText'] }
-).refine(
-  (data) => data.format === 'pdf' || data.resumeText.length <= MAX_TEXT_LENGTH,
-  { message: `Resume text is too long (maximum ${MAX_TEXT_LENGTH} characters)`, path: ['resumeText'] }
-);
+const ResumeAnalyzeSchema = z
+  .object({
+    resumeText: z.string().min(1, 'Resume content missing'),
+    format: z.enum(['pdf', 'text', 'image']),
+    jobRole: z.string().optional().default('Software Engineer'),
+    jobDescription: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.format === 'text') {
+      if (data.resumeText.length < 15) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Resume text is too short (minimum 15 characters for text input)',
+          path: ['resumeText'],
+        });
+      }
+
+      if (data.resumeText.length > MAX_TEXT_LENGTH) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Resume text is too long (maximum ${MAX_TEXT_LENGTH} characters)`,
+          path: ['resumeText'],
+        });
+      }
+    }
+  });
 
 type ResumeAnalyzeInput = z.infer<typeof ResumeAnalyzeSchema>;
 
@@ -296,7 +314,44 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Extract text from PDF if needed
+    const tokenValue = req.cookies.get('token')?.value;
+    const authenticatedUser = tokenValue ? verifyToken(tokenValue) : null;
+
+    // Check usage limits for authenticated users
+    if (authenticatedUser) {
+      const userId = authenticatedUser.userId;
+      const usageCheck = await checkUsageLimit(userId, 'resumeScan');
+
+      if (!usageCheck.allowed) {
+        return NextResponse.json<ErrorResponse>(
+          {
+            success: false,
+            error: {
+              code: 'USAGE_LIMIT_REACHED',
+              message: 'Resume scan limit reached for this period',
+              details: {
+                remaining: usageCheck.remaining,
+                limit: usageCheck.limit,
+                reason: usageCheck.reason,
+              },
+            },
+            timestamp: new Date().toISOString(),
+          },
+          { status: 429 }
+        );
+      }
+    }
+
+    await trackEvent('resume_upload', {
+      userId: authenticatedUser?.userId,
+      request: req,
+      metadata: {
+        format: validatedInput.format,
+        hasJobDescription: Boolean(validatedInput.jobDescription),
+      },
+    });
+
+    // Extract text from PDF or image if needed
     let resumeText = validatedInput.resumeText;
 
     if (validatedInput.format === 'pdf') {
@@ -366,16 +421,97 @@ export async function POST(req: NextRequest) {
           );
         }
       } catch (error) {
+        console.error('[API 3D] ✗ PDF extraction failed:', error);
         return NextResponse.json<ErrorResponse>(
           {
             success: false,
             error: {
               code: 'PDF_PARSE_ERROR',
-              message: error instanceof Error ? error.message : 'Failed to parse PDF',
+              message: 'Failed to process PDF resume',
             },
             timestamp: new Date().toISOString(),
           },
-          { status: 400 }
+          { status: 500 }
+        );
+      }
+    } else if (validatedInput.format === 'image') {
+      try {
+        const extractionResult = await extractTextFromBase64Image(validatedInput.resumeText);
+
+        if (extractionResult.status === 'failed') {
+          return NextResponse.json<ErrorResponse>(
+            {
+              success: false,
+              error: {
+                code: 'IMAGE_EXTRACTION_FAILED',
+                message: extractionResult.message,
+              },
+              timestamp: new Date().toISOString(),
+            },
+            { status: 400 }
+          );
+        }
+
+        if (extractionResult.status === 'partial' && extractionResult.characterCount < 15) {
+          return NextResponse.json<ErrorResponse>(
+            {
+              success: false,
+              error: {
+                code: 'IMAGE_INSUFFICIENT_CONTENT',
+                message: 'Captured image does not contain enough readable text',
+              },
+              timestamp: new Date().toISOString(),
+            },
+            { status: 400 }
+          );
+        }
+
+        resumeText = extractionResult.text;
+
+        if (resumeText.length > MAX_TEXT_LENGTH) {
+          return NextResponse.json<ErrorResponse>(
+            {
+              success: false,
+              error: {
+                code: 'IMAGE_TEXT_TOO_LARGE',
+                message: `Extracted text exceeds maximum length of ${MAX_TEXT_LENGTH} characters`,
+              },
+              timestamp: new Date().toISOString(),
+            },
+            { status: 400 }
+          );
+        }
+
+        if (resumeText.length < 15) {
+          return NextResponse.json<ErrorResponse>(
+            {
+              success: false,
+              error: {
+                code: 'IMAGE_INSUFFICIENT_CONTENT',
+                message: 'Captured image does not contain enough readable text',
+              },
+              timestamp: new Date().toISOString(),
+            },
+            { status: 400 }
+          );
+        }
+
+        console.log('[API 3D] ✓ Image extraction:', {
+          status: extractionResult.status,
+          characters: extractionResult.characterCount,
+        });
+      } catch (error) {
+        console.error('[API 3D] ✗ Image extraction failed:', error);
+        return NextResponse.json<ErrorResponse>(
+          {
+            success: false,
+            error: {
+              code: 'IMAGE_EXTRACTION_FAILED',
+              message: 'Failed to process captured resume photo',
+            },
+            timestamp: new Date().toISOString(),
+          },
+          { status: 500 }
         );
       }
     }
@@ -514,35 +650,72 @@ export async function POST(req: NextRequest) {
       totalTime: `${totalTime}ms`,
     });
 
+    await trackEvent('analysis_complete', {
+      userId: authenticatedUser?.userId,
+      request: req,
+      metadata: {
+        format: validatedInput.format,
+        aiStatus: response.ai_status,
+        overallScore: response.overall_score,
+        processingTimeMs: totalTime,
+      },
+    });
+
     // Save resume to database if user is authenticated
     try {
-      const token = req.cookies.get('token')?.value;
-      if (token) {
-        const user = verifyToken(token);
+      if (authenticatedUser) {
+        const fileName =
+          validatedInput.format === 'pdf'
+            ? 'Uploaded Resume (PDF)'
+            : validatedInput.format === 'image'
+              ? 'Uploaded Resume (Photo)'
+              : 'Uploaded Resume (Text)';
 
-        if (user) {
-          await prisma.resume.create({
-            data: {
-              userId: user.userId,
-              fileName: validatedInput.format === 'pdf' ? 'Uploaded Resume (PDF)' : 'Uploaded Resume (Text)',
-              score: response.overall_score,
-              summary: response.summary,
-              data: JSON.parse(JSON.stringify({
-                sections: response.sections,
-                actionables: response.actionables,
-                ai_status: response.ai_status,
-                metadata: response.metadata,
-                estimatedImprovementTime: response.estimatedImprovementTime,
-                targetScore: response.targetScore,
-                localScores: finalResult.localScores,
-                aiScores: finalResult.aiScores,
-              })),
-            },
-          });
-          console.log('[API 3D] ✓ Resume saved to database for user:', user.email);
-        } else {
-          console.log('[API 3D] ℹ️ Analysis completed without authentication - resume not saved');
-        }
+        const previousResume = await prisma.resume.findFirst({
+          where: { userId: authenticatedUser.userId },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        const resumePayload = JSON.parse(
+          JSON.stringify({
+            sections: response.sections,
+            actionables: response.actionables,
+            ai_status: response.ai_status,
+            metadata: response.metadata,
+            estimatedImprovementTime: response.estimatedImprovementTime,
+            targetScore: response.targetScore,
+            localScores: finalResult.localScores,
+            aiScores: finalResult.aiScores,
+          })
+        );
+
+        const createdResume = await prisma.resume.create({
+          data: {
+            userId: authenticatedUser.userId,
+            fileName,
+            score: response.overall_score,
+            summary: response.summary,
+            data: resumePayload,
+            version: previousResume ? previousResume.version + 1 : 1,
+          },
+        });
+
+        await recordResumeProgress({
+          userId: authenticatedUser.userId,
+          resumeId: createdResume.id,
+          version: createdResume.version,
+          score: createdResume.score,
+          summary: createdResume.summary,
+          data: createdResume.data,
+          previousScore: previousResume?.score ?? null,
+        });
+        console.log('[API 3D] ✓ Resume saved to database for user:', authenticatedUser.email);
+
+        // Decrement usage count after successful analysis
+        await decrementUsage(authenticatedUser.userId, 'resumeScan');
+        console.log('[API 3D] ✓ Usage limit decremented for user:', authenticatedUser.userId);
+      } else {
+        console.log('[API 3D] ℹ️ Analysis completed without authentication - resume not saved');
       }
     } catch (dbError) {
       // Don't fail the request if database save fails
