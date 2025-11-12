@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Card from "@/components/ui/card";
 import Button from "@/components/ui/button";
@@ -8,9 +8,10 @@ import Badge from "@/components/ui/badge";
 import { useAuthStore } from "@/lib/store/authStore";
 import ChatBotPanel from "@/components/ChatBotPanel";
 import { FileText, TrendingUp, Award, Upload } from "lucide-react";
+import ComparisonView from "@/components/ComparisonView";
 
 interface Resume {
-  id: string;
+  id: number;
   fileName: string | null;
   score: number | null;
   summary: string | null;
@@ -22,6 +23,8 @@ export default function DashboardPage() {
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedForComparison, setSelectedForComparison] = useState<number[]>([]);
+  const [isComparisonOpen, setIsComparisonOpen] = useState(false);
   const router = useRouter();
 
   // Get auth state from store
@@ -50,7 +53,12 @@ export default function DashboardPage() {
         throw new Error(data.error || "Failed to fetch resumes");
       }
 
-      setResumes(data.resumes || []);
+      const normalizedResumes: Resume[] = (data.resumes || []).map((resume: any) => ({
+        ...resume,
+        id: Number(resume.id),
+      }));
+
+      setResumes(normalizedResumes);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load resumes");
     } finally {
@@ -58,7 +66,7 @@ export default function DashboardPage() {
     }
   };
 
-  const handleDelete = async (resumeId: string) => {
+  const handleDelete = async (resumeId: number) => {
     if (!confirm("Are you sure you want to delete this resume analysis?")) {
       return;
     }
@@ -73,7 +81,8 @@ export default function DashboardPage() {
       }
 
       // Remove from local state
-      setResumes(resumes.filter((r) => r.id !== resumeId));
+      setResumes((prev) => prev.filter((r) => r.id !== resumeId));
+      setSelectedForComparison((prev) => prev.filter((id) => id !== resumeId));
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to delete resume");
     }
@@ -121,6 +130,41 @@ export default function DashboardPage() {
 
     return <Badge variant={status.variant}>{status.text}</Badge>;
   };
+
+  const toggleComparisonSelection = (resumeId: number) => {
+    setSelectedForComparison((prev) => {
+      if (prev.includes(resumeId)) {
+        return prev.filter((id) => id !== resumeId);
+      }
+
+      if (prev.length >= 2) {
+        return [...prev.slice(1), resumeId];
+      }
+
+      return [...prev, resumeId];
+    });
+  };
+
+  const clearComparisonSelection = () => {
+    setSelectedForComparison([]);
+    setIsComparisonOpen(false);
+  };
+
+  const openComparison = () => {
+    if (selectedForComparison.length === 2) {
+      setIsComparisonOpen(true);
+    }
+  };
+
+  const closeComparison = () => {
+    setIsComparisonOpen(false);
+  };
+
+  const selectedComparisonResumes = useMemo(() => {
+    return selectedForComparison
+      .map((id) => resumes.find((resume) => resume.id === id))
+      .filter(Boolean) as Resume[];
+  }, [selectedForComparison, resumes]);
 
   // Show loading while checking authentication
   if (authLoading) {
@@ -212,6 +256,40 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Comparison Selection Summary */}
+        {selectedForComparison.length > 0 && (
+          <div className="mb-6 bg-white rounded-2xl border border-blue-200 shadow-sm p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <p className="text-sm md:text-base font-semibold text-blue-900">
+                {selectedForComparison.length} of 2 resumes selected for comparison
+              </p>
+              {selectedComparisonResumes.length > 0 && (
+                <p className="text-xs md:text-sm text-gray-600 mt-1">
+                  {selectedComparisonResumes
+                    .map((resume) => resume.fileName || `Resume ${resume.id}`)
+                    .join(" vs ")}
+                </p>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                onClick={openComparison}
+                disabled={selectedForComparison.length !== 2}
+                className="!px-5"
+              >
+                View Comparison
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={clearComparisonSelection}
+                className="!px-5"
+              >
+                Clear Selection
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Professional Stats Summary */}
         {resumes.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -281,111 +359,153 @@ export default function DashboardPage() {
         {/* Professional Resume List */}
         {resumes.length > 0 && (
           <div className="grid gap-6 md:grid-cols-2">
-            {resumes.map((resume) => (
-              <Card key={resume.id} className="!bg-white hover:!shadow-2xl !border-gray-200 transition-all duration-300 hover:scale-[1.02]">
-                <div className="space-y-4">
-                  {/* Header */}
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <h2 className="font-semibold text-lg text-gray-800 mb-1">
-                        {resume.fileName || "Untitled Resume"}
-                      </h2>
-                      <div className="flex gap-2 items-center">
-                        {getAIStatusBadge(resume.data)}
-                        <span className="text-xs text-gray-500">
-                          {formatDate(resume.createdAt)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className={`text-3xl font-bold ${getScoreColor(resume.score)}`}>
-                        {resume.score !== null ? Math.round(resume.score) : "N/A"}
-                      </div>
-                      <div className="text-xs text-gray-500">out of 100</div>
-                    </div>
-                  </div>
+            {resumes.map((resume) => {
+              const isSelectedForComparison = selectedForComparison.includes(resume.id);
 
-                  {/* Score Breakdown */}
-                  {resume.data?.sections && (
-                    <div className="grid grid-cols-3 gap-2 text-center text-sm">
-                      <div>
-                        <p className="text-gray-600 text-xs mb-1">Structure</p>
-                        <Badge variant="format">
-                          {resume.data.sections.structure}/40
-                        </Badge>
+              return (
+                <Card
+                  key={resume.id}
+                  className={`!bg-white hover:!shadow-2xl transition-all duration-300 hover:scale-[1.02] ${
+                    isSelectedForComparison
+                      ? '!border-blue-400 !ring-2 !ring-blue-200'
+                      : '!border-gray-200'
+                  }`}
+                >
+                  <div className="space-y-4">
+                    {/* Header */}
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h2 className="font-semibold text-lg text-gray-800 mb-1">
+                          {resume.fileName || "Untitled Resume"}
+                        </h2>
+                        <div className="flex gap-2 items-center">
+                          {getAIStatusBadge(resume.data)}
+                          {isSelectedForComparison && (
+                            <Badge variant="content">Selected</Badge>
+                          )}
+                          <span className="text-xs text-gray-500">
+                            {formatDate(resume.createdAt)}
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-gray-600 text-xs mb-1">Content</p>
-                        <Badge variant="content">
-                          {resume.data.sections.content}/60
-                        </Badge>
-                      </div>
-                      <div>
-                        <p className="text-gray-600 text-xs mb-1">Tailoring</p>
-                        <Badge variant="ats">
-                          {resume.data.sections.tailoring}/40
-                        </Badge>
+                      <div className="text-right">
+                        <div className={`text-3xl font-bold ${getScoreColor(resume.score)}`}>
+                          {resume.score !== null ? Math.round(resume.score) : "N/A"}
+                        </div>
+                        <div className="text-xs text-gray-500">out of 100</div>
                       </div>
                     </div>
-                  )}
 
-                  {/* Summary */}
-                  {resume.summary && (
-                    <div className="border-t pt-3">
-                      <p className="text-sm text-gray-600 line-clamp-3">
-                        {resume.summary}
-                      </p>
-                    </div>
-                  )}
+                    {/* Score Breakdown */}
+                    {resume.data?.sections && (
+                      <div className="grid grid-cols-3 gap-2 text-center text-sm">
+                        <div>
+                          <p className="text-gray-600 text-xs mb-1">Structure</p>
+                          <Badge variant="format">
+                            {resume.data.sections.structure}/40
+                          </Badge>
+                        </div>
+                        <div>
+                          <p className="text-gray-600 text-xs mb-1">Content</p>
+                          <Badge variant="content">
+                            {resume.data.sections.content}/60
+                          </Badge>
+                        </div>
+                        <div>
+                          <p className="text-gray-600 text-xs mb-1">Tailoring</p>
+                          <Badge variant="ats">
+                            {resume.data.sections.tailoring}/40
+                          </Badge>
+                        </div>
+                      </div>
+                    )}
 
-                  {/* Actionables Preview */}
-                  {resume.data?.actionables && resume.data.actionables.length > 0 && (
-                    <div className="border-t pt-3">
-                      <p className="text-xs font-semibold text-gray-700 mb-2">
-                        Top Improvements:
-                      </p>
-                      <ul className="space-y-1">
-                        {resume.data.actionables.slice(0, 2).map((action: any, idx: number) => (
-                          <li key={idx} className="text-xs text-gray-600 flex items-start">
-                            <span className="mr-2">•</span>
-                            <span className="line-clamp-1">{action.title}</span>
-                          </li>
-                        ))}
-                      </ul>
-                      {resume.data.actionables.length > 2 && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          +{resume.data.actionables.length - 2} more improvements
+                    {/* Summary */}
+                    {resume.summary && (
+                      <div className="border-t pt-3">
+                        <p className="text-sm text-gray-600 line-clamp-3">
+                          {resume.summary}
                         </p>
-                      )}
-                    </div>
-                  )}
+                      </div>
+                    )}
 
-                  {/* Professional Actions */}
-                  <div className="flex gap-3 pt-4 border-t border-gray-200">
-                    <Button
-                      onClick={handleReanalyze}
-                      className="flex-1 !bg-gradient-to-r !from-blue-600 !to-purple-600 hover:!from-blue-700 hover:!to-purple-700 !text-white !shadow-md hover:!shadow-lg transition-all duration-300"
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      New Analysis
-                    </Button>
-                    <Button
-                      onClick={() => handleDelete(resume.id)}
-                      variant="secondary"
-                      className="!border-red-300 !text-red-600 hover:!bg-red-50 hover:!border-red-400 !shadow-sm transition-all duration-300"
-                    >
-                      Delete
-                    </Button>
+                    {/* Actionables Preview */}
+                    {resume.data?.actionables && resume.data.actionables.length > 0 && (
+                      <div className="border-t pt-3">
+                        <p className="text-xs font-semibold text-gray-700 mb-2">
+                          Top Improvements:
+                        </p>
+                        <ul className="space-y-1">
+                          {resume.data.actionables.slice(0, 2).map((action: any, idx: number) => (
+                            <li key={idx} className="text-xs text-gray-600 flex items-start">
+                              <span className="mr-2">•</span>
+                              <span className="line-clamp-1">{action.title}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        {resume.data.actionables.length > 2 && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            +{resume.data.actionables.length - 2} more improvements
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Professional Actions */}
+                    <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-200">
+                      <Button
+                        onClick={handleReanalyze}
+                        className="flex-1 !bg-gradient-to-r !from-blue-600 !to-purple-600 hover:!from-blue-700 hover:!to-purple-700 !text-white !shadow-md hover:!shadow-lg transition-all duration-300"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        New Analysis
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        onClick={() => toggleComparisonSelection(resume.id)}
+                        className={`flex-1 min-w-[140px] ${
+                          isSelectedForComparison
+                            ? '!border-blue-400 !text-blue-600 !bg-blue-50'
+                            : '!border-blue-200 !text-blue-600'
+                        }`}
+                      >
+                        {isSelectedForComparison ? "Selected" : "Compare"}
+                      </Button>
+                      <Button
+                        onClick={() => handleDelete(resume.id)}
+                        variant="secondary"
+                        className="!border-red-300 !text-red-600 hover:!bg-red-50 hover:!border-red-400 !shadow-sm transition-all duration-300"
+                      >
+                        Delete
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
 
       {/* AI Coach Button - Floating bottom right */}
       <ChatBotPanel resumeContext={resumeContext} />
+
+      {isComparisonOpen && selectedForComparison.length === 2 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div
+            className="absolute inset-0"
+            onClick={closeComparison}
+            role="presentation"
+          />
+          <div className="relative z-10 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+            <ComparisonView
+              resumeId1={selectedForComparison[0]}
+              resumeId2={selectedForComparison[1]}
+              onClose={closeComparison}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
