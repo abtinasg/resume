@@ -41,8 +41,11 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  const hasLegacySession = !!legacyUser;
+  const hasNextAuthSession = !!nextAuthToken;
+
   // User is authenticated if either legacy JWT or NextAuth session exists
-  const isAuthenticated = !!(legacyUser || nextAuthToken);
+  const isAuthenticated = hasLegacySession || hasNextAuthSession;
 
   // Get user ID from either token
   const userId = legacyUser?.userId || nextAuthToken?.sub;
@@ -84,9 +87,15 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Redirect authenticated users away from auth pages
-  if (isAuthenticated && isAuthRoute) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+  if (isAuthRoute) {
+    if (hasLegacySession) {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+
+    if (hasNextAuthSession) {
+      // Allow the login/register routes to render so users can clear stale sessions
+      return NextResponse.next();
+    }
   }
 
   // Redirect unauthenticated users to login for protected routes

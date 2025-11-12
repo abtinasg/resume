@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, FormEvent, Suspense } from 'react';
+import { useState, FormEvent, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { signIn } from 'next-auth/react';
+import { signIn, signOut } from 'next-auth/react';
 import { useAuthStore } from '@/lib/store/authStore';
 
 function LoginForm() {
@@ -11,18 +11,18 @@ function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const searchParams = useSearchParams();
 
   // Get auth state and checkAuth function from the auth store
-  const { isAuthenticated, isLoading: authLoading, checkAuth } = useAuthStore();
+  const { isAuthenticated, isLoading: authLoading, checkAuth, logout } =
+    useAuthStore();
 
-  // Redirect to dashboard if already authenticated
-  useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      const redirectPath = searchParams.get('redirect');
-      router.push(redirectPath || '/dashboard');
-    }
-  }, [authLoading, isAuthenticated, router, searchParams]);
+  const redirectParam = searchParams.get('redirect');
+  const safeRedirectPath =
+    redirectParam && redirectParam.startsWith('/')
+      ? redirectParam
+      : '/dashboard';
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -38,23 +38,66 @@ function LoginForm() {
       });
 
       if (response.ok) {
-        // Update auth state after successful login
+        // Update auth state after successful login and navigate the user
         await checkAuth();
-        setLoading(false);
-        // Note: Don't manually redirect here - let the useEffect handle it
-        // This prevents double navigation and race conditions
+        router.push(safeRedirectPath);
         return;
       }
 
       // Handle error response
       const data = await response.json();
       alert(data.error || 'Login failed');
-      setLoading(false);
     } catch (err) {
       alert('An error occurred. Please try again.');
+    } finally {
       setLoading(false);
     }
   };
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    try {
+      await logout();
+      await signOut({ redirect: false });
+      await checkAuth();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    } finally {
+      setSigningOut(false);
+    }
+  };
+
+  if (!authLoading && isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 px-4">
+        <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-lg">
+          <div className="space-y-2 text-center">
+            <h2 className="text-3xl font-bold text-gray-900">You’re already signed in</h2>
+            <p className="text-gray-600">
+              Continue to your dashboard or sign out to switch accounts.
+            </p>
+          </div>
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => router.push(safeRedirectPath)}
+              className="w-full flex justify-center py-2 px-4 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+            >
+              Go to dashboard
+            </button>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              disabled={signingOut}
+              className="w-full flex justify-center py-2 px-4 rounded-lg text-sm font-medium text-blue-600 border border-blue-200 hover:border-blue-300 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+            >
+              {signingOut ? 'Signing out...' : 'Sign out'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 px-4">
