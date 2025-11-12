@@ -2,11 +2,12 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import Navbar from '@/components/Navbar';
 import ComparisonTable from '@/components/ComparisonTable';
 import Card from '@/components/ui/card';
 import Button from '@/components/ui/button';
 import Badge from '@/components/ui/badge';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/lib/store/authStore';
 import {
   Check,
   X,
@@ -39,9 +40,93 @@ interface PricingTier {
 export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
+  const [loadingTier, setLoadingTier] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<
+    { type: 'success' | 'error'; text: string } | null
+  >(null);
+  const router = useRouter();
+  const { isAuthenticated, checkAuth } = useAuthStore();
 
   const toggleFAQ = (index: number) => {
     setExpandedFAQ(expandedFAQ === index ? null : index);
+  };
+
+  const handleTierSelection = async (tierName: PricingTier['name']) => {
+    setActionMessage(null);
+
+    if (tierName === 'Free') {
+      if (!isAuthenticated) {
+        router.push('/auth/register?redirect=/pricing');
+        return;
+      }
+
+      setActionMessage({
+        type: 'success',
+        text: 'You already have access to the Free plan with your account.',
+      });
+      return;
+    }
+
+    const tierMap: Record<'Premium' | 'Pro+', 'premium' | 'pro_plus'> = {
+      Premium: 'premium',
+      'Pro+': 'pro_plus',
+    };
+
+    const selectedTier = tierMap[tierName as 'Premium' | 'Pro+'];
+
+    if (!selectedTier) {
+      return;
+    }
+
+    if (!isAuthenticated) {
+      const redirectTarget = `/pricing?plan=${selectedTier}`;
+      router.push(`/auth/login?redirect=${encodeURIComponent(redirectTarget)}`);
+      return;
+    }
+
+    setLoadingTier(tierName);
+
+    try {
+      const response = await fetch('/api/subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tier: selectedTier,
+          periodInDays: billingCycle === 'yearly' ? 365 : 30,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data?.success) {
+        throw new Error(
+          data?.error?.message || 'Unable to update your subscription right now.'
+        );
+      }
+
+      await checkAuth();
+
+      setActionMessage({
+        type: 'success',
+        text:
+          tierName === 'Premium'
+            ? 'Awesome! Your Premium subscription is now active.'
+            : 'Welcome to Pro+! Every ResumeIQ feature is now unlocked for you.',
+      });
+    } catch (error) {
+      console.error('Subscription upgrade failed:', error);
+      setActionMessage({
+        type: 'error',
+        text:
+          error instanceof Error
+            ? error.message
+            : 'Something went wrong while upgrading your subscription. Please try again.',
+      });
+    } finally {
+      setLoadingTier(null);
+    }
   };
 
   const pricingTiers: PricingTier[] = [
@@ -163,8 +248,6 @@ export default function PricingPage() {
         <div className="absolute bottom-0 left-1/2 w-96 h-96 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000" />
       </div>
 
-      <Navbar />
-
       {/* Hero Section */}
       <section className="pt-32 pb-16 px-6">
         <div className="max-w-6xl mx-auto text-center space-y-6">
@@ -227,6 +310,25 @@ export default function PricingPage() {
               Save 17%
             </Badge>
           </motion.div>
+
+          {actionMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="max-w-3xl mx-auto"
+            >
+              <div
+                className={`rounded-xl border px-4 py-3 text-sm md:text-base ${
+                  actionMessage.type === 'success'
+                    ? 'bg-green-50 border-green-200 text-green-700'
+                    : 'bg-red-50 border-red-200 text-red-700'
+                }`}
+              >
+                {actionMessage.text}
+              </div>
+            </motion.div>
+          )}
         </div>
       </section>
 
@@ -282,8 +384,10 @@ export default function PricingPage() {
                   <Button
                     variant="primary"
                     className={`w-full mb-6 bg-gradient-to-r ${tier.buttonGradient} text-white hover:scale-105`}
+                    onClick={() => handleTierSelection(tier.name)}
+                    disabled={loadingTier !== null}
                   >
-                    {tier.cta}
+                    {loadingTier === tier.name ? 'Processing...' : tier.cta}
                   </Button>
 
                   <div className="space-y-3">

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, FormEvent, Suspense } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
 import { useAuthStore } from '@/lib/store/authStore';
@@ -11,6 +11,7 @@ function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const searchParams = useSearchParams();
 
   // Get auth state and checkAuth function from the auth store
   const { isAuthenticated, isLoading: authLoading, checkAuth } = useAuthStore();
@@ -18,9 +19,10 @@ function LoginForm() {
   // Redirect to dashboard if already authenticated
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      router.push('/dashboard');
+      const redirectPath = searchParams.get('redirect');
+      router.push(redirectPath || '/dashboard');
     }
-  }, [authLoading, isAuthenticated, router]);
+  }, [authLoading, isAuthenticated, router, searchParams]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -38,6 +40,7 @@ function LoginForm() {
       if (response.ok) {
         // Update auth state after successful login
         await checkAuth();
+        setLoading(false);
         // Note: Don't manually redirect here - let the useEffect handle it
         // This prevents double navigation and race conditions
         return;

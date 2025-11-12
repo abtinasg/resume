@@ -18,13 +18,28 @@ export async function middleware(request: NextRequest) {
 
   // Check for both JWT token (legacy) and NextAuth session
   const jwtToken = request.cookies.get('token')?.value;
-  const nextAuthToken = await getToken({
-    req: request,
-    secret: process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET
-  });
+
+  let nextAuthToken = null;
+  try {
+    nextAuthToken = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET,
+    });
+  } catch (error) {
+    console.error('Error retrieving NextAuth token in middleware:', error);
+    nextAuthToken = null;
+  }
 
   // Verify legacy JWT token if it exists
-  const legacyUser = jwtToken ? await verifyTokenOnEdge(jwtToken) : null;
+  let legacyUser = null;
+  if (jwtToken) {
+    try {
+      legacyUser = await verifyTokenOnEdge(jwtToken);
+    } catch (error) {
+      console.error('Error verifying legacy token in middleware:', error);
+      legacyUser = null;
+    }
+  }
 
   // User is authenticated if either legacy JWT or NextAuth session exists
   const isAuthenticated = !!(legacyUser || nextAuthToken);
