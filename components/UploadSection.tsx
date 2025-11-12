@@ -210,239 +210,433 @@ JavaScript, TypeScript, React, Node.js, Python, AWS, Docker`;
   // If analysis is complete, show success message and "Analyze Another" button
   if (analysisComplete) {
     return (
-      <div className="w-full max-w-xl mx-auto px-4 py-8">
-        <div className="relative">
-          {/* Blue glow effect behind the card */}
-          <div className="absolute inset-0 bg-blue-100/40 blur-3xl opacity-50 rounded-3xl" />
+      <div className="w-full max-w-2xl mx-auto px-4 py-12">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{
+            duration: 0.6,
+            ease: [0.16, 1, 0.3, 1],
+            staggerChildren: 0.1
+          }}
+          className="relative"
+        >
+          {/* Ambient success glow - Apple style */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1, ease: "easeOut" }}
+            className="absolute -inset-8 bg-gradient-to-r from-emerald-500/10 via-green-400/10 to-teal-500/10 blur-3xl"
+          />
 
-          {/* Success card */}
-          <div className="relative bg-white shadow-lg rounded-2xl p-6 md:p-8 space-y-6 text-center">
-            {/* Success icon */}
-            <div className="flex justify-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                <svg
-                  className="w-8 h-8 text-green-500"
+          {/* Glass morphism success card */}
+          <div className="relative backdrop-blur-xl bg-white/80 border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.06)] rounded-[28px] p-8 md:p-12 space-y-8 overflow-hidden">
+            {/* Subtle top gradient bar - Apple style */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 via-green-500 to-teal-500" />
+
+            {/* Success icon with ring animation */}
+            <motion.div
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{
+                type: "spring",
+                stiffness: 200,
+                damping: 20,
+                delay: 0.2
+              }}
+              className="flex justify-center"
+            >
+              <div className="relative">
+                {/* Outer ring with pulse */}
+                <motion.div
+                  animate={{
+                    scale: [1, 1.2, 1],
+                    opacity: [0.5, 0.2, 0.5]
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                  className="absolute inset-0 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 blur-xl opacity-40"
+                />
+
+                {/* Main icon container */}
+                <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 flex items-center justify-center ring-[3px] ring-emerald-100/50 shadow-[0_8px_30px_rgba(16,185,129,0.2)]">
+                  <motion.svg
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 1 }}
+                    transition={{
+                      pathLength: { duration: 0.6, delay: 0.4, ease: "easeOut" },
+                      opacity: { duration: 0.3, delay: 0.4 }
+                    }}
+                    className="w-12 h-12 text-emerald-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <motion.path d="M5 13l4 4L19 7" />
+                  </motion.svg>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Content */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.5 }}
+              className="space-y-4 text-center"
+            >
+              <h2 className="font-grotesk text-3xl md:text-4xl font-bold text-gray-900 tracking-tight">
+                Analysis Complete
+              </h2>
+              <p className="text-base md:text-lg text-gray-600 leading-relaxed max-w-md mx-auto">
+                Your resume has been analyzed with precision. Discover actionable insights below.
+              </p>
+            </motion.div>
+
+            {/* Button */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.5 }}
+              className="flex justify-center pt-2"
+            >
+              <motion.button
+                onClick={handleAnalyzeAnother}
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                className="group relative inline-flex items-center gap-2 px-8 py-4 bg-gray-900 text-white font-semibold rounded-2xl shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.16)] transition-all duration-300 overflow-hidden"
+              >
+                <span className="relative z-10">Analyze Another Resume</span>
+                <motion.svg
+                  className="relative z-10 w-5 h-5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  animate={{ x: [0, 4, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              </div>
-            </div>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </motion.svg>
 
-            <div className="space-y-2">
-              <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 tracking-tight">
-                Analysis Complete!
-              </h2>
-              <p className="text-sm md:text-base text-gray-500 leading-relaxed">
-                Your resume has been analyzed successfully. Scroll down to see the results.
-              </p>
-            </div>
+                {/* Gradient overlay on hover */}
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-gray-800 to-gray-900 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                />
+              </motion.button>
+            </motion.div>
 
-            <Button onClick={handleAnalyzeAnother}>
-              Analyze Another Resume
-            </Button>
+            {/* Subtle decoration dots - Apple style */}
+            <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-gradient-to-br from-emerald-100/30 to-teal-100/30 rounded-full blur-2xl" />
+            <div className="absolute -top-4 -left-4 w-24 h-24 bg-gradient-to-br from-green-100/30 to-emerald-100/30 rounded-full blur-2xl" />
           </div>
-        </div>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-xl mx-auto px-4 py-8">
-      <div className="relative">
-        {/* Blue glow effect behind the card */}
-        <div className="absolute inset-0 bg-blue-100/40 blur-3xl opacity-50 rounded-3xl" />
+    <div className="w-full max-w-2xl mx-auto px-4 py-8">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        className="relative"
+      >
+        {/* Ambient glow - subtle Apple-style lighting */}
+        <div className="absolute -inset-8 bg-gradient-to-r from-brand-indigo/8 via-purple-500/6 to-brand-teal/8 blur-3xl" />
 
-        {/* Main card */}
-        <div className="relative bg-white shadow-lg rounded-2xl p-6 md:p-8 space-y-6">
+        {/* Glass morphism main card */}
+        <div className="relative backdrop-blur-xl bg-white/80 border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.06)] rounded-[28px] p-8 md:p-10 space-y-8 overflow-hidden">
+          {/* Subtle gradient bar at top - Apple style accent */}
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-brand-indigo/40 to-transparent" />
+
           {/* Header */}
-          <div className="text-center space-y-2">
-            <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 tracking-tight">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.5 }}
+            className="text-center space-y-3"
+          >
+            <h2 className="font-grotesk text-3xl md:text-4xl font-bold text-gray-900 tracking-tight">
               Upload Your Resume
             </h2>
-            <p className="text-sm md:text-base text-gray-500 leading-relaxed">
-              Get instant AI-powered feedback to improve your resume
+            <p className="text-base md:text-lg text-gray-600 leading-relaxed max-w-lg mx-auto">
+              Get instant AI-powered insights to elevate your career story
             </p>
-          </div>
+          </motion.div>
 
           {/* Error Alert */}
           {error && (
-            <Alert message={error} mode="error" />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Alert message={error} mode="error" />
+            </motion.div>
           )}
 
           {/* Show LoadingProgress when analyzing */}
           {isAnalyzing ? (
-            <LoadingProgress />
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4 }}
+            >
+              <LoadingProgress />
+            </motion.div>
           ) : (
             <>
-          {/* Dropzone Area with Enhanced Microinteractions */}
-          <div className="relative">
-            {/* Ambient glow on hover/drag */}
-            <div
-              className={`absolute -inset-1 bg-gradient-to-r from-brand-indigo to-brand-teal rounded-3xl opacity-0 blur-xl transition-all duration-500 ${
-                isDragActive ? 'opacity-30' : 'group-hover:opacity-20'
-              }`}
+          {/* Dropzone Area - Apple-inspired with glass morphism */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+            className="relative"
+          >
+            {/* Subtle glow on interaction */}
+            <motion.div
+              animate={{
+                opacity: isDragActive ? 0.4 : 0,
+                scale: isDragActive ? 1 : 0.95
+              }}
+              transition={{ duration: 0.3 }}
+              className="absolute -inset-2 bg-gradient-to-r from-brand-indigo/20 via-purple-500/20 to-brand-teal/20 rounded-[32px] blur-xl"
             />
 
             <div
               {...getRootProps()}
               className={`
-                group relative border-2 border-dashed rounded-3xl p-8 md:p-10 text-center cursor-pointer
-                transition-all duration-500 ease-out overflow-hidden
+                group relative border-2 border-dashed rounded-[24px] p-10 md:p-12 text-center cursor-pointer
+                transition-all duration-300 ease-out backdrop-blur-sm overflow-hidden
                 ${
                   isDragActive
-                    ? 'border-brand-indigo bg-brand-indigo/5 scale-[1.02] shadow-glow'
-                    : 'border-gray-300 hover:border-brand-indigo hover:bg-gray-50 hover:scale-[1.01]'
+                    ? 'border-brand-indigo/60 bg-brand-indigo/5 shadow-[0_8px_32px_rgba(79,70,229,0.15)] scale-[1.01]'
+                    : 'border-gray-300/60 hover:border-brand-indigo/50 hover:bg-gray-50/50 hover:scale-[1.01]'
                 }
                 ${isAnalyzing ? 'opacity-50 cursor-not-allowed' : ''}
               `}
             >
               <input {...getInputProps()} />
 
-              <div className="space-y-4">
-                  {/* Document Icon with enhanced hover animation */}
-                  <motion.div
-                    className="flex justify-center"
-                    whileHover={{ scale: 1.1, rotate: 5 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  >
-                    <div className="relative">
+              {/* Floating gradient orbs in background - subtle Apple style */}
+              <div className="absolute top-4 right-4 w-20 h-20 bg-gradient-to-br from-brand-teal/10 to-transparent rounded-full blur-2xl" />
+              <div className="absolute bottom-4 left-4 w-24 h-24 bg-gradient-to-br from-brand-indigo/10 to-transparent rounded-full blur-2xl" />
+
+              <div className="relative space-y-6">
+                {/* Document Icon - refined Apple-style */}
+                <motion.div
+                  className="flex justify-center"
+                  whileHover={{ y: -4 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                >
+                  <div className="relative">
+                    {/* Icon background with subtle gradient */}
+                    <motion.div
+                      animate={isDragActive ? { scale: [1, 1.1, 1] } : {}}
+                      transition={{ duration: 1, repeat: isDragActive ? Infinity : 0 }}
+                      className="absolute inset-0 bg-gradient-to-br from-brand-indigo/20 via-purple-400/10 to-brand-teal/20 rounded-2xl blur-xl"
+                    />
+
+                    <div className="relative w-20 h-20 bg-gradient-to-br from-gray-50 to-white rounded-2xl flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.04)] ring-1 ring-gray-100/50">
                       <svg
-                        className="w-16 h-16 text-brand-indigo transition-colors duration-300"
+                        className={`w-10 h-10 transition-colors duration-300 ${
+                          isDragActive ? 'text-brand-indigo' : 'text-gray-400 group-hover:text-brand-indigo'
+                        }`}
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                        />
+                        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
-                      {/* Glow effect on hover */}
-                      <div className="absolute inset-0 bg-brand-indigo/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     </div>
-                  </motion.div>
-
-                  {/* Text */}
-                  <div className="space-y-2">
-                    <p className="text-gray-900 font-semibold text-base md:text-lg">
-                      {isDragActive ? (
-                        <motion.span
-                          initial={{ scale: 0.95 }}
-                          animate={{ scale: 1.05 }}
-                          transition={{ repeat: Infinity, duration: 1, repeatType: "reverse" }}
-                          className="text-brand-indigo"
-                        >
-                          Drop your resume here
-                        </motion.span>
-                      ) : (
-                        <>
-                          <span className="text-brand-indigo hover:text-brand-teal transition-colors duration-300">Click to upload</span> or drag & drop
-                        </>
-                      )}
-                    </p>
-                    <p className="text-xs md:text-sm text-gray-500">PDF only (Max 5MB)</p>
                   </div>
+                </motion.div>
 
-                  {/* Upload hint on hover */}
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    whileHover={{ opacity: 1 }}
-                    className="pt-2"
-                  >
-                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-brand-indigo/5 rounded-full border border-brand-indigo/20">
-                      <div className="w-2 h-2 bg-brand-indigo rounded-full animate-pulse" />
-                      <span className="text-xs text-brand-indigo font-medium">Ready to analyze</span>
-                    </div>
-                  </motion.div>
+                {/* Text content - refined typography */}
+                <div className="space-y-3">
+                  <div className="text-gray-900 font-semibold text-lg">
+                    {isDragActive ? (
+                      <motion.span
+                        animate={{ scale: [1, 1.02, 1] }}
+                        transition={{ duration: 1, repeat: Infinity }}
+                        className="text-brand-indigo"
+                      >
+                        Drop your resume here
+                      </motion.span>
+                    ) : (
+                      <>
+                        <span className="text-brand-indigo">Click to upload</span>
+                        <span className="text-gray-600"> or drag and drop</span>
+                      </>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-500 font-medium">PDF only • Max 5MB</p>
                 </div>
-            </div>
-          </div>
 
-          {/* Separator */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200"></div>
+                {/* Status indicator - appears on hover */}
+                <motion.div
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{
+                    opacity: isDragActive ? 1 : 0,
+                    y: isDragActive ? 0 : 4
+                  }}
+                  className="flex justify-center"
+                >
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-brand-indigo/10 backdrop-blur-sm rounded-full border border-brand-indigo/20">
+                    <motion.div
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                      className="w-2 h-2 bg-brand-indigo rounded-full"
+                    />
+                    <span className="text-xs text-brand-indigo font-semibold">Ready to analyze</span>
+                  </div>
+                </motion.div>
+              </div>
             </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500">
+          </motion.div>
+
+          {/* Separator - refined Apple style */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+            className="relative py-2"
+          >
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
+            </div>
+            <div className="relative flex justify-center">
+              <span className="px-4 bg-white/80 backdrop-blur-sm text-sm font-medium text-gray-500">
                 or paste your resume below
               </span>
             </div>
-          </div>
+          </motion.div>
 
-          {/* Textarea */}
-          <div className="space-y-4">
-            <textarea
-              value={pastedText}
-              onChange={(e) => {
-                setPastedText(e.target.value);
-                setError('');
-              }}
-              placeholder="Paste your resume text here..."
-              disabled={isAnalyzing}
-              className="w-full min-h-[200px] max-h-[400px] px-4 py-3 border border-gray-300 rounded-xl resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed transition-all placeholder:text-gray-400"
-              style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
-            />
+          {/* Textarea - Apple-inspired with glass effect */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.5 }}
+            className="space-y-4"
+          >
+            <div className="relative">
+              {/* Subtle focus glow */}
+              <motion.div
+                initial={false}
+                animate={{
+                  opacity: pastedText ? 0.3 : 0,
+                  scale: pastedText ? 1 : 0.95
+                }}
+                className="absolute -inset-1 bg-gradient-to-r from-brand-indigo/20 to-brand-teal/20 rounded-[20px] blur-xl"
+              />
 
-            <div className="flex flex-col sm:flex-row gap-3">
-              <motion.div className="flex-1">
-                <Button
+              <textarea
+                value={pastedText}
+                onChange={(e) => {
+                  setPastedText(e.target.value);
+                  setError('');
+                }}
+                placeholder="Paste your resume text here..."
+                disabled={isAnalyzing}
+                className="relative w-full min-h-[220px] max-h-[400px] px-5 py-4 border border-gray-200/80 rounded-[18px] resize-y
+                          focus:outline-none focus:ring-2 focus:ring-brand-indigo/30 focus:border-brand-indigo/50
+                          text-gray-900 text-[15px] leading-relaxed
+                          disabled:opacity-50 disabled:cursor-not-allowed
+                          transition-all duration-300
+                          placeholder:text-gray-400
+                          backdrop-blur-sm bg-white/60
+                          shadow-[0_2px_8px_rgba(0,0,0,0.04)]
+                          hover:border-gray-300/80"
+                style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}
+              />
+            </div>
+
+            {/* Buttons - refined Apple style */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <motion.div
+                className="flex-1"
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+              >
+                <button
                   onClick={handleTextSubmit}
                   disabled={isAnalyzing || !pastedText.trim()}
-                  className="w-full group relative overflow-hidden"
+                  className={`
+                    w-full group relative inline-flex items-center justify-center gap-2
+                    px-6 py-3.5 rounded-[14px] font-semibold text-[15px]
+                    transition-all duration-300 overflow-hidden
+                    ${
+                      isAnalyzing || !pastedText.trim()
+                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        : 'bg-gray-900 text-white shadow-[0_4px_16px_rgba(0,0,0,0.12)] hover:shadow-[0_6px_24px_rgba(0,0,0,0.16)] hover:-translate-y-0.5'
+                    }
+                  `}
                 >
-                  <span className="relative z-10 flex items-center justify-center gap-2">
-                    {isAnalyzing ? (
-                      <>
-                        <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Analyzing...
-                      </>
-                    ) : (
-                      <>
-                        Analyze Resume
-                        <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                        </svg>
-                      </>
-                    )}
-                  </span>
-                  {/* Pulse effect on hover when enabled */}
-                  {!isAnalyzing && pastedText.trim() && (
-                    <motion.div
-                      className="absolute inset-0 bg-gradient-to-r from-brand-indigo to-purple-600 opacity-0 group-hover:opacity-100"
-                      whileHover={{ scale: 1.05 }}
-                      transition={{ duration: 0.3 }}
-                    />
+                  {isAnalyzing ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Analyzing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Analyze Resume</span>
+                      <motion.svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        strokeWidth={2.5}
+                        animate={{ x: [0, 3, 0] }}
+                        transition={{
+                          duration: 1.5,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                      </motion.svg>
+                    </>
                   )}
-                </Button>
+                </button>
               </motion.div>
 
-              <Button
-                variant="secondary"
+              <motion.button
                 onClick={handleTryExample}
                 disabled={isAnalyzing}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                className="px-6 py-3.5 rounded-[14px] font-semibold text-[15px]
+                          border border-gray-200 text-gray-700 bg-white/60 backdrop-blur-sm
+                          hover:border-gray-300 hover:bg-white/80 hover:-translate-y-0.5
+                          disabled:opacity-50 disabled:cursor-not-allowed
+                          transition-all duration-300
+                          shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
               >
                 Try Example
-              </Button>
+              </motion.button>
             </div>
-          </div>
+          </motion.div>
             </>
           )}
+
+          {/* Subtle bottom decoration */}
+          <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-48 h-12 bg-gradient-to-t from-brand-indigo/5 to-transparent rounded-full blur-2xl" />
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };
