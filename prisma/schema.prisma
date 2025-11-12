@@ -125,3 +125,27 @@ model ExitFeedback {
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 }
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Post {
+  id          Int        @id @default(autoincrement())
+  title       String
+  slug        String     @unique
+  excerpt     String?
+  content     String
+  status      PostStatus @default(DRAFT)
+  coverImage  String?
+  publishedAt DateTime?
+  metadata    Json?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([title])
+  @@index([status])
+  @@index([publishedAt])
+}
