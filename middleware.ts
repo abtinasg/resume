@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifyTokenOnEdge } from '@/lib/edge/token';
+import { getToken } from 'next-auth/jwt';
 
 // Define protected routes that require authentication
 const protectedRoutes = ['/profile', '/dashboard'];
@@ -10,11 +11,19 @@ const authRoutes = ['/auth/login', '/auth/register'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const token = request.cookies.get('token')?.value;
 
-  // Verify token if it exists
-  const user = token ? await verifyTokenOnEdge(token) : null;
-  const isAuthenticated = !!user;
+  // Check for both JWT token (legacy) and NextAuth session
+  const jwtToken = request.cookies.get('token')?.value;
+  const nextAuthToken = await getToken({
+    req: request,
+    secret: process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET
+  });
+
+  // Verify legacy JWT token if it exists
+  const legacyUser = jwtToken ? await verifyTokenOnEdge(jwtToken) : null;
+
+  // User is authenticated if either legacy JWT or NextAuth session exists
+  const isAuthenticated = !!(legacyUser || nextAuthToken);
 
   // Check if the current route is protected
   const isProtectedRoute = protectedRoutes.some((route) =>
