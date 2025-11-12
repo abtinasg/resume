@@ -97,7 +97,7 @@ export default function RootLayout({
         <SessionProvider>
           <AuthProvider>
             <Navbar />
-            <main>{children}</main>
+            <main className="pt-24 md:pt-28">{children}</main>
           </AuthProvider>
         </SessionProvider>
       </body>
