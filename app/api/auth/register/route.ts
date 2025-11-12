@@ -6,6 +6,7 @@ import {
   validateEmail,
   validatePassword,
 } from '@/lib/auth';
+import { trackEvent } from '@/lib/analytics';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -67,6 +68,12 @@ export async function POST(request: NextRequest) {
     const token = generateToken({
       userId: user.id,
       email: user.email,
+    });
+
+    await trackEvent('user_registration', {
+      userId: user.id,
+      request,
+      metadata: { method: 'email_password' },
     });
 
     // Create response with token in HttpOnly cookie

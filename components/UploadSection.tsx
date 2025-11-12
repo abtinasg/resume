@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { motion } from 'framer-motion';
 import Button from '@/components/ui/button';
@@ -24,8 +24,15 @@ const UploadSection: React.FC<UploadSectionProps> = ({
   const [pdfDataUrl, setPdfDataUrl] = useState<string>('');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [processingStep, setProcessingStep] = useState<string>('');
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string>('');
+
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
 
   const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
+  const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB in bytes for mobile captures
+
+  const isPdfFile = uploadedFile?.type === 'application/pdf';
+  const isImageFile = uploadedFile?.type?.startsWith('image/');
 
   // Convert file to base64
   const fileToBase64 = (file: File): Promise<string> => {
@@ -56,7 +63,11 @@ const UploadSection: React.FC<UploadSectionProps> = ({
   };
 
   // Handle API call to analyze resume
-  const analyzeResume = useCallback(async (text: string, format: 'text' | 'pdf', pdfUrl?: string) => {
+  const analyzeResume = useCallback(async (
+    text: string,
+    format: 'text' | 'pdf' | 'image',
+    previewUrl?: string
+  ) => {
     setIsAnalyzing(true);
     setError('');
 
@@ -78,8 +89,8 @@ const UploadSection: React.FC<UploadSectionProps> = ({
         // Transform unified hybrid API response to UI format
         const transformedData = transformApiToAnalysisResult(result);
         // Add PDF URL if available
-        if (pdfUrl) {
-          transformedData.pdfUrl = pdfUrl;
+        if (format === 'pdf' && previewUrl) {
+          transformedData.pdfUrl = previewUrl;
         }
         setAnalysisComplete(true);
         onAnalyzeComplete(transformedData);
@@ -100,6 +111,15 @@ const UploadSection: React.FC<UploadSectionProps> = ({
           case 'PDF_INSUFFICIENT_CONTENT':
             setError('Invalid file format or file too large. Please try a different file.');
             break;
+          case 'IMAGE_EXTRACTION_FAILED':
+            setError('We could not read your photo. Please retake the picture in good lighting.');
+            break;
+          case 'IMAGE_INSUFFICIENT_CONTENT':
+            setError('The captured photo did not contain enough readable text. Try again with a clearer photo.');
+            break;
+          case 'IMAGE_TEXT_TOO_LARGE':
+            setError('The captured resume text is too long to analyze. Please capture fewer pages or upload a PDF.');
+            break;
           default:
             setError(errorMessage);
         }
@@ -112,11 +132,69 @@ const UploadSection: React.FC<UploadSectionProps> = ({
     }
   }, [onAnalyzeComplete]);
 
+  const handleCameraCapture = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+
+    setError('');
+    setUploadProgress(0);
+    setProcessingStep('');
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setError('Please capture a valid image file.');
+      event.target.value = '';
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_SIZE) {
+      setError('Photo size must be less than 10MB.');
+      event.target.value = '';
+      return;
+    }
+
+    setUploadedFile(file);
+    setPdfDataUrl('');
+    setImagePreviewUrl('');
+    setUploadProgress(20);
+    setProcessingStep('Processing photo...');
+
+    try {
+      const base64Content = await fileToBase64(file);
+      setUploadProgress(40);
+      setProcessingStep('Improving clarity...');
+
+      const dataUrl = await fileToDataUrl(file);
+      setImagePreviewUrl(dataUrl);
+      setUploadProgress(60);
+      setProcessingStep('Extracting text...');
+
+      setUploadProgress(80);
+      setProcessingStep('Starting analysis...');
+
+      await analyzeResume(base64Content, 'image');
+    } catch (err) {
+      console.error('Error processing image:', err);
+      setError('Failed to process image. Please try again.');
+      setUploadProgress(0);
+      setProcessingStep('');
+      setUploadedFile(null);
+      setImagePreviewUrl('');
+    } finally {
+      event.target.value = '';
+    }
+  };
+
   const onDrop = useCallback(
     async (acceptedFiles: File[], rejectedFiles: any[]) => {
       setError('');
       setUploadProgress(0);
       setProcessingStep('');
+      setImagePreviewUrl('');
 
       // Handle rejected files
       if (rejectedFiles.length > 0) {
@@ -159,11 +237,11 @@ const UploadSection: React.FC<UploadSectionProps> = ({
           // Convert PDF to data URL for preview
           const dataUrl = await fileToDataUrl(file);
           setPdfDataUrl(dataUrl);
-          setUploadProgress(70);
-          setProcessingStep('Starting analysis...');
+        setUploadProgress(70);
+        setProcessingStep('Starting analysis...');
 
-          await analyzeResume(base64Content, 'pdf', dataUrl);
-        } catch (err) {
+        await analyzeResume(base64Content, 'pdf', dataUrl);
+      } catch (err) {
           console.error('Error processing file:', err);
           setError('Failed to process PDF file. Please try again.');
           setUploadProgress(0);
@@ -199,6 +277,7 @@ const UploadSection: React.FC<UploadSectionProps> = ({
     setPastedText('');
     setUploadedFile(null);
     setPdfDataUrl('');
+    setImagePreviewUrl('');
     setUploadProgress(0);
     setProcessingStep('');
   };
@@ -414,13 +493,40 @@ JavaScript, TypeScript, React, Node.js, Python, AWS, Docker`;
             >
               <div className="backdrop-blur-sm bg-white/60 border border-gray-200/80 rounded-[20px] p-6 shadow-[0_4px_16px_rgba(0,0,0,0.06)]">
                 <div className="flex items-start gap-4">
-                  {/* PDF Icon */}
                   <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-gradient-to-br from-red-50 to-red-100 rounded-xl flex items-center justify-center shadow-sm">
-                      <svg className="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
-                      </svg>
-                    </div>
+                    {isImageFile ? (
+                      <div className="w-14 h-14 rounded-xl overflow-hidden shadow-sm ring-1 ring-emerald-100/60 bg-emerald-50">
+                        {imagePreviewUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={imagePreviewUrl}
+                            alt="Captured resume preview"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-emerald-500">
+                            <svg
+                              className="w-6 h-6"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                              strokeWidth={1.8}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M4 7h3l2-3h6l2 3h3a2 2 0 012 2v9a2 2 0 01-2 2H4a2 2 0 01-2-2V9a2 2 0 012-2z" />
+                              <circle cx="12" cy="13" r="3" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 bg-gradient-to-br from-red-50 to-red-100 rounded-xl flex items-center justify-center shadow-sm">
+                        <svg className="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    )}
                   </div>
 
                   {/* File Info */}
@@ -429,7 +535,12 @@ JavaScript, TypeScript, React, Node.js, Python, AWS, Docker`;
                       {uploadedFile.name}
                     </h3>
                     <p className="text-xs text-gray-500 mt-1">
-                      {(uploadedFile.size / 1024).toFixed(1)} KB • PDF Document
+                      {(uploadedFile.size / 1024).toFixed(1)} KB •
+                      {isImageFile
+                        ? ' Captured Photo'
+                        : isPdfFile
+                          ? ' PDF Document'
+                          : ` ${uploadedFile.type || 'File'}`}
                     </p>
 
                     {/* Upload Progress Bar */}
@@ -482,11 +593,46 @@ JavaScript, TypeScript, React, Node.js, Python, AWS, Docker`;
             </motion.div>
           ) : (
             <>
-          {/* Dropzone Area - Apple-inspired with glass morphism */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
+              {/* Mobile camera capture option */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15, duration: 0.5 }}
+              >
+                <div className="relative overflow-hidden rounded-2xl border border-brand-indigo/15 bg-white/70 backdrop-blur-sm p-5 md:p-6">
+                  <div className="flex flex-col md:flex-row md:items-center gap-4">
+                    <div className="flex-1 text-left space-y-1.5">
+                      <p className="text-sm font-semibold text-gray-900">
+                        Capture with your phone
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Snap a clear photo of your printed resume. Works best in bright, even lighting on a flat surface.
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => cameraInputRef.current?.click()}
+                      disabled={isAnalyzing}
+                      className="min-w-[180px]"
+                    >
+                      Use mobile camera
+                    </Button>
+                  </div>
+                  <input
+                    ref={cameraInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={handleCameraCapture}
+                  />
+                </div>
+              </motion.div>
+
+              {/* Dropzone Area - Apple-inspired with glass morphism */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
             className="relative"
           >
             {/* Subtle glow on interaction */}
@@ -569,7 +715,9 @@ JavaScript, TypeScript, React, Node.js, Python, AWS, Docker`;
                       </>
                     )}
                   </div>
-                  <p className="text-sm text-gray-500 font-medium">PDF only • Max 5MB</p>
+                  <p className="text-sm text-gray-500 font-medium">
+                    PDF only • Max 5MB (use mobile capture above for photos)
+                  </p>
                 </div>
 
                 {/* Status indicator - appears on hover */}
