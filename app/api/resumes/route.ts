@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyToken } from "@/lib/auth";
 import { recordResumeProgress } from "@/lib/progress";
+import { trackEvent } from "@/lib/analytics";
 
 /**
  * GET /api/resumes
@@ -30,6 +31,15 @@ export async function GET(req: NextRequest) {
     const resumes = await prisma.resume.findMany({
       where: { userId: user.userId },
       orderBy: { createdAt: "desc" },
+    });
+
+    // Track dashboard view event
+    await trackEvent('dashboard_viewed', {
+      userId: user.userId,
+      request: req,
+      metadata: {
+        resumeCount: resumes.length,
+      },
     });
 
     return NextResponse.json({ resumes });

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { comparePassword, generateToken, validateEmail } from '@/lib/auth';
+import { trackEvent } from '@/lib/analytics';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -52,6 +53,13 @@ export async function POST(request: NextRequest) {
     const token = generateToken({
       userId: user.id,
       email: user.email,
+    });
+
+    // Track login event
+    await trackEvent('user_login', {
+      userId: user.id,
+      request,
+      metadata: { method: 'email_password' },
     });
 
     // Create response with user data (excluding password)
