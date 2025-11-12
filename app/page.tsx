@@ -184,26 +184,31 @@ export default function Home() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.28, ease: [0.16, 1, 0.3, 1] }}
-                className="flex flex-col sm:flex-row gap-4"
+                className="space-y-4"
               >
-                <button
-                  onClick={scrollToUpload}
-                  className="group relative inline-flex items-center justify-center gap-3 rounded-2xl bg-slate-900 px-9 py-4 text-base font-semibold text-white shadow-[0_24px_45px_-18px_rgba(15,23,42,0.65)] transition duration-300 hover:-translate-y-1"
-                >
-                  Start your free analysis
-                  <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={2.4} />
-                  <span className="absolute inset-0 rounded-2xl border border-white/20" />
-                </button>
-                <button
-                  onClick={() => {
-                    const demoSection = document.getElementById('demo-section');
-                    demoSection?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 px-9 py-4 text-base font-semibold text-slate-700 transition hover:border-brand-indigo/40 hover:text-brand-indigo"
-                >
-                  View interactive demo
-                  <span className="text-lg">→</span>
-                </button>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <button
+                    onClick={scrollToUpload}
+                    className="group relative inline-flex items-center justify-center gap-3 rounded-2xl bg-slate-900 px-9 py-4 text-base font-semibold text-white shadow-[0_24px_45px_-18px_rgba(15,23,42,0.65)] transition duration-300 hover:-translate-y-1"
+                  >
+                    Get My Free Resume Score
+                    <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={2.4} />
+                    <span className="absolute inset-0 rounded-2xl border border-white/20" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      const demoSection = document.getElementById('demo-section');
+                      demoSection?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 px-9 py-4 text-base font-semibold text-slate-700 transition hover:border-brand-indigo/40 hover:text-brand-indigo"
+                  >
+                    View interactive demo
+                    <span className="text-lg">→</span>
+                  </button>
+                </div>
+                <p className="text-sm text-slate-500 max-w-md">
+                  Instant AI analysis • Actionable improvements • No sign-up required
+                </p>
               </motion.div>
 
               <motion.div
