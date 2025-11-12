@@ -9,6 +9,8 @@ import { useAuthStore } from "@/lib/store/authStore";
 import ChatBotPanel from "@/components/ChatBotPanel";
 import { FileText, TrendingUp, Award, Upload } from "lucide-react";
 import ComparisonView from "@/components/ComparisonView";
+import FeatureGate from "@/components/FeatureGate";
+import { FEATURES } from "@/lib/featureGating";
 
 interface Resume {
   id: number;
@@ -488,7 +490,9 @@ export default function DashboardPage() {
       </div>
 
       {/* AI Coach Button - Floating bottom right */}
-      <ChatBotPanel resumeContext={resumeContext} />
+      <FeatureGate feature={FEATURES.RESUME_COACH}>
+        <ChatBotPanel resumeContext={resumeContext} />
+      </FeatureGate>
 
       {isComparisonOpen && selectedForComparison.length === 2 && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
@@ -498,11 +502,13 @@ export default function DashboardPage() {
             role="presentation"
           />
           <div className="relative z-10 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
-            <ComparisonView
-              resumeId1={selectedForComparison[0]}
-              resumeId2={selectedForComparison[1]}
-              onClose={closeComparison}
-            />
+            <FeatureGate feature={FEATURES.RESUME_COMPARISON}>
+              <ComparisonView
+                resumeId1={selectedForComparison[0]}
+                resumeId2={selectedForComparison[1]}
+                onClose={closeComparison}
+              />
+            </FeatureGate>
           </div>
         </div>
       )}

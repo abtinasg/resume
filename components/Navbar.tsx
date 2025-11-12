@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store/authStore';
+import PremiumBadge from './PremiumBadge';
 
 export default function Navbar() {
   const router = useRouter();
@@ -12,7 +13,7 @@ export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Use auth store instead of local state
-  const { isAuthenticated, isLoading, logout } = useAuthStore();
+  const { isAuthenticated, isLoading, logout, user, isPremium, isProPlus } = useAuthStore();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -31,11 +32,10 @@ export default function Navbar() {
 
   const navLinks = [
     { name: 'Home', href: '/' },
-    { name: 'Features', href: '#features' },
+    { name: 'How It Works', href: '/how-it-works' },
     { name: 'Methodology', href: '/methodology' },
+    { name: 'Pricing', href: '/pricing' },
     { name: 'Insights', href: '/insights' },
-    { name: 'About', href: '#about' },
-    { name: 'Contact', href: '#contact' },
   ];
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
@@ -109,6 +109,12 @@ export default function Navbar() {
               <>
                 {isAuthenticated ? (
                   <>
+                    {isPremium() && (
+                      <PremiumBadge
+                        variant={isProPlus() ? 'pro' : 'premium'}
+                        size="sm"
+                      />
+                    )}
                     <Link
                       href="/profile"
                       className="px-4 py-2 text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-all duration-200"
@@ -131,10 +137,10 @@ export default function Navbar() {
                       Login
                     </Link>
                     <Link
-                      href="/auth/register"
+                      href="/pricing"
                       className="group relative px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] overflow-hidden"
                     >
-                      <span className="relative z-10">Sign Up</span>
+                      <span className="relative z-10">Get Started</span>
                       <div className="absolute inset-0 bg-gradient-to-r from-blue-700 to-indigo-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     </Link>
                   </>
