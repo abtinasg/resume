@@ -9,6 +9,9 @@ import DemoSection from '@/components/DemoSection';
 import AboutSection from '@/components/AboutSection';
 import ContactSection from '@/components/ContactSection';
 import ChatBotPanel from '@/components/ChatBotPanel';
+import TrustBadges from '@/components/TrustBadges';
+import MobileCTA from '@/components/MobileCTA';
+import TestimonialsSection from '@/components/TestimonialsSection';
 import type { AnalysisResult } from '@/lib/types/analysis';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -184,26 +187,29 @@ export default function Home() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.28, ease: [0.16, 1, 0.3, 1] }}
-                className="flex flex-col sm:flex-row gap-4"
+                className="space-y-4"
               >
-                <button
-                  onClick={scrollToUpload}
-                  className="group relative inline-flex items-center justify-center gap-3 rounded-2xl bg-slate-900 px-9 py-4 text-base font-semibold text-white shadow-[0_24px_45px_-18px_rgba(15,23,42,0.65)] transition duration-300 hover:-translate-y-1"
-                >
-                  Start your free analysis
-                  <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={2.4} />
-                  <span className="absolute inset-0 rounded-2xl border border-white/20" />
-                </button>
-                <button
-                  onClick={() => {
-                    const demoSection = document.getElementById('demo-section');
-                    demoSection?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 px-9 py-4 text-base font-semibold text-slate-700 transition hover:border-brand-indigo/40 hover:text-brand-indigo"
-                >
-                  View interactive demo
-                  <span className="text-lg">→</span>
-                </button>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <button
+                    onClick={scrollToUpload}
+                    className="group relative inline-flex items-center justify-center gap-3 rounded-2xl bg-slate-900 px-9 py-4 text-base font-semibold text-white shadow-[0_24px_45px_-18px_rgba(15,23,42,0.65)] transition duration-300 hover:-translate-y-1"
+                  >
+                    Start your free analysis
+                    <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={2.4} />
+                    <span className="absolute inset-0 rounded-2xl border border-white/20" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      const demoSection = document.getElementById('demo-section');
+                      demoSection?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 px-9 py-4 text-base font-semibold text-slate-700 transition hover:border-brand-indigo/40 hover:text-brand-indigo"
+                  >
+                    View interactive demo
+                    <span className="text-lg">→</span>
+                  </button>
+                </div>
+                <TrustBadges variant="light" />
               </motion.div>
 
               <motion.div
@@ -440,6 +446,9 @@ export default function Home() {
         {/* Demo Section */}
         <DemoSection />
 
+        {/* Testimonials Section */}
+        <TestimonialsSection />
+
         {/* About Section */}
         <AboutSection />
 
@@ -485,7 +494,7 @@ export default function Home() {
               </div>
 
               {/* CTA Button - Glowing white */}
-              <div className="pt-6">
+              <div className="pt-6 space-y-4">
                 <motion.button
                   onClick={() => {
                     const uploadSection = document.getElementById('upload-section');
@@ -502,28 +511,7 @@ export default function Home() {
                   {/* Subtle gradient on hover */}
                   <div className="absolute inset-0 bg-gradient-to-r from-brand-teal/10 to-brand-indigo/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 </motion.button>
-              </div>
-
-              {/* Trust indicators */}
-              <div className="flex flex-wrap justify-center items-center gap-6 pt-8 text-sm text-indigo-200/70">
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                  <span>No credit card required</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                  <span>Privacy guaranteed</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                  <span>Results in seconds</span>
-                </div>
+                <TrustBadges variant="dark" />
               </div>
             </motion.div>
           </div>
@@ -625,6 +613,9 @@ export default function Home() {
         }
         autoOpen={isAnalyzed}
       />
+
+      {/* Sticky Mobile CTA */}
+      <MobileCTA />
     </div>
   );
 }
