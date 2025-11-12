@@ -22,6 +22,8 @@ const UploadSection: React.FC<UploadSectionProps> = ({
   const [analysisComplete, setAnalysisComplete] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [pdfDataUrl, setPdfDataUrl] = useState<string>('');
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [processingStep, setProcessingStep] = useState<string>('');
 
   const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
 
@@ -113,6 +115,8 @@ const UploadSection: React.FC<UploadSectionProps> = ({
   const onDrop = useCallback(
     async (acceptedFiles: File[], rejectedFiles: any[]) => {
       setError('');
+      setUploadProgress(0);
+      setProcessingStep('');
 
       // Handle rejected files
       if (rejectedFiles.length > 0) {
@@ -137,18 +141,33 @@ const UploadSection: React.FC<UploadSectionProps> = ({
           return;
         }
 
+        // Instant preview - set file immediately
         setUploadedFile(file);
+        setUploadProgress(10);
+        setProcessingStep('File received');
 
         try {
+          // Simulate upload progress
+          setUploadProgress(30);
+          setProcessingStep('Reading PDF...');
+
           // Convert PDF to base64 for analysis
           const base64Content = await fileToBase64(file);
+          setUploadProgress(50);
+          setProcessingStep('Generating preview...');
+
           // Convert PDF to data URL for preview
           const dataUrl = await fileToDataUrl(file);
           setPdfDataUrl(dataUrl);
+          setUploadProgress(70);
+          setProcessingStep('Starting analysis...');
+
           await analyzeResume(base64Content, 'pdf', dataUrl);
         } catch (err) {
           console.error('Error processing file:', err);
           setError('Failed to process PDF file. Please try again.');
+          setUploadProgress(0);
+          setProcessingStep('');
         }
       }
     },
@@ -180,6 +199,8 @@ const UploadSection: React.FC<UploadSectionProps> = ({
     setPastedText('');
     setUploadedFile(null);
     setPdfDataUrl('');
+    setUploadProgress(0);
+    setProcessingStep('');
   };
 
   const handleTryExample = () => {
@@ -380,6 +401,73 @@ JavaScript, TypeScript, React, Node.js, Python, AWS, Docker`;
               transition={{ duration: 0.3 }}
             >
               <Alert message={error} mode="error" />
+            </motion.div>
+          )}
+
+          {/* Instant File Preview - Shows immediately when file is uploaded */}
+          {uploadedFile && !isAnalyzing && !analysisComplete && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className="relative"
+            >
+              <div className="backdrop-blur-sm bg-white/60 border border-gray-200/80 rounded-[20px] p-6 shadow-[0_4px_16px_rgba(0,0,0,0.06)]">
+                <div className="flex items-start gap-4">
+                  {/* PDF Icon */}
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 bg-gradient-to-br from-red-50 to-red-100 rounded-xl flex items-center justify-center shadow-sm">
+                      <svg className="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* File Info */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-semibold text-gray-900 truncate">
+                      {uploadedFile.name}
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {(uploadedFile.size / 1024).toFixed(1)} KB • PDF Document
+                    </p>
+
+                    {/* Upload Progress Bar */}
+                    {uploadProgress > 0 && uploadProgress < 100 && (
+                      <div className="mt-3 space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-brand-indigo font-medium">{processingStep}</span>
+                          <span className="text-gray-500">{uploadProgress}%</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${uploadProgress}%` }}
+                            transition={{ duration: 0.3 }}
+                            className="h-full bg-gradient-to-r from-brand-indigo to-brand-teal rounded-full"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Success Checkmark */}
+                  {uploadProgress >= 70 && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                      className="flex-shrink-0"
+                    >
+                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+              </div>
             </motion.div>
           )}
 
