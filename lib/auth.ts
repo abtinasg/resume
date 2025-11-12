@@ -1,9 +1,17 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-import type { JWTPayload, TokenData } from '@/lib/types/auth';
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_for_development_only';
+  if (!secret) {
+    throw new Error(
+      'JWT_SECRET environment variable is not defined. Set it to a strong, random value before generating or verifying tokens.'
+    );
+  }
+
+  return secret;
+}
 const SALT_ROUNDS = 10;
 
 /**
@@ -36,7 +44,7 @@ export async function comparePassword(
  * @returns Signed JWT token
  */
 export function generateToken(payload: JWTPayload): string {
-  const token = jwt.sign(payload, JWT_SECRET, {
+  const token = jwt.sign(payload, getJwtSecret(), {
     expiresIn: '7d', // Token expires in 7 days
   });
   return token;
@@ -48,8 +56,10 @@ export function generateToken(payload: JWTPayload): string {
  * @returns Decoded token data or null if invalid
  */
 export function verifyToken(token: string): TokenData | null {
+  const secret = getJwtSecret();
+
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as TokenData;
+    const decoded = jwt.verify(token, secret) as TokenData;
     return decoded;
   } catch (error) {
     // Token is invalid or expired

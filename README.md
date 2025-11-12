@@ -51,6 +51,10 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 The page auto-updates as you edit files in the `app/` directory.
 
+### Environment Configuration
+
+Before running the application, create a `.env` file based on `.env.example` and set all required variables. In particular, `JWT_SECRET` **must** be configured to a strong, random value; the application will refuse to generate or verify authentication tokens if it is missing.
+
 ### Building for Production
 
 Create an optimized production build:
