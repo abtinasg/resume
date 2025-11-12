@@ -74,6 +74,7 @@ const UploadSection: React.FC<UploadSectionProps> = ({
     try {
       const response = await fetch('/api/analyze', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
