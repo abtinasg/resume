@@ -42,11 +42,22 @@ export default function RegisterPage() {
       return;
     }
 
+    // Validate password complexity (must match backend requirements)
+    const hasUpperCase = /[A-Z]/.test(formData.password);
+    const hasLowerCase = /[a-z]/.test(formData.password);
+    const hasNumber = /[0-9]/.test(formData.password);
+
+    if (!hasUpperCase || !hasLowerCase || !hasNumber) {
+      setError('Password must contain uppercase, lowercase, and numbers');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -60,7 +71,6 @@ export default function RegisterPage() {
 
       if (!response.ok) {
         setError(data.error || 'Registration failed');
-        setIsLoading(false);
         return;
       }
 
@@ -69,9 +79,9 @@ export default function RegisterPage() {
 
       // Redirect to dashboard after successful registration
       router.push('/dashboard');
-      router.refresh();
     } catch (err) {
       setError('An error occurred. Please try again.');
+    } finally {
       setIsLoading(false);
     }
   };
