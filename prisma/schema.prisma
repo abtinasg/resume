@@ -197,3 +197,27 @@ model UsageLimit {
 
   @@index([userId])
 }
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Post {
+  id          Int        @id @default(autoincrement())
+  title       String
+  slug        String     @unique
+  excerpt     String?
+  content     String
+  coverImage  String?
+  status      PostStatus @default(DRAFT)
+  publishedAt DateTime?
+  metadata    Json?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([slug])
+  @@index([status])
+  @@index([publishedAt])
+}
