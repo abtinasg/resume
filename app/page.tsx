@@ -138,16 +138,6 @@ export default function Home() {
               </a>
             ))}
           </nav>
-
-          <motion.button
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={scrollToUpload}
-            className="hidden sm:inline-flex items-center gap-2 rounded-full border border-brand-indigo/40 px-5 py-2.5 text-sm font-semibold text-brand-indigo shadow-[0_8px_20px_-12px_rgba(79,70,229,0.55)] transition hover:bg-brand-indigo hover:text-white"
-          >
-            Launch workspace
-            <ArrowRight className="w-4 h-4" strokeWidth={2.4} />
-          </motion.button>
         </motion.header>
 
         {/* Hero Section - Immersive experience */}
