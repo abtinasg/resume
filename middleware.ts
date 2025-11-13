@@ -89,11 +89,13 @@ export async function middleware(request: NextRequest) {
         });
 
         if (user?.role !== 'admin') {
-          return NextResponse.redirect(new URL('/dashboard', request.url));
+          // Redirect non-admin users to homepage with error message
+          return NextResponse.redirect(new URL('/?error=access_denied', request.url));
         }
       } catch (error) {
         console.error('Error checking admin role:', error);
-        return NextResponse.redirect(new URL('/dashboard', request.url));
+        // Redirect to homepage on error
+        return NextResponse.redirect(new URL('/?error=server_error', request.url));
       }
     }
   }
