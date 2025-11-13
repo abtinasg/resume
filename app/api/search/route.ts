@@ -3,6 +3,7 @@ import { PostStatus } from '@prisma/client';
 import { z } from 'zod';
 
 import prisma from '@/lib/prisma';
+import { verifyAdminAuth } from '@/lib/adminAuth';
 
 export const runtime = 'nodejs';
 
@@ -39,6 +40,23 @@ export async function GET(req: NextRequest) {
     }
 
     const { query, limit, includeDrafts } = parsed.data;
+
+    // Require admin authentication to search drafts
+    if (includeDrafts) {
+      const authResult = await verifyAdminAuth(req);
+      if (!authResult.isAuthorized) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: 'UNAUTHORIZED',
+              message: 'Admin access required to search draft posts',
+            },
+          },
+          { status: authResult.error?.includes('Forbidden') ? 403 : 401 }
+        );
+      }
+    }
 
     const posts = await prisma.post.findMany({
       where: {
