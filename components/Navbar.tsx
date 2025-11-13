@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Search } from 'lucide-react';
 import { useAuthStore } from '@/lib/store/authStore';
 import PremiumBadge from './PremiumBadge';
 
@@ -30,13 +31,25 @@ export default function Navbar() {
     router.refresh();
   };
 
-  const navLinks = [
+  // Navigation links based on authentication state
+  const publicNavLinks = [
     { name: 'Home', href: '/' },
     { name: 'How It Works', href: '/how-it-works' },
     { name: 'Methodology', href: '/methodology' },
     { name: 'Pricing', href: '/pricing' },
     { name: 'Insights', href: '/insights' },
   ];
+
+  const authenticatedNavLinks = [
+    { name: 'Home', href: '/' },
+    { name: 'Dashboard', href: '/dashboard' },
+    { name: 'Achievements', href: '/achievements' },
+    { name: 'Job Match', href: '/job-match' },
+    { name: 'Insights', href: '/insights' },
+    { name: 'Contact', href: '/contact' },
+  ];
+
+  const navLinks = isAuthenticated ? authenticatedNavLinks : publicNavLinks;
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (href.startsWith('#')) {
@@ -107,6 +120,15 @@ export default function Navbar() {
           >
             {!isLoading && (
               <>
+                {/* Search Icon */}
+                <Link
+                  href="/search"
+                  className="p-2.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                  aria-label="Search"
+                >
+                  <Search className="w-5 h-5" />
+                </Link>
+
                 {isAuthenticated ? (
                   <>
                     {isPremium() && (
@@ -205,6 +227,22 @@ export default function Navbar() {
                     </Link>
                   </motion.div>
                 ))}
+
+                {/* Search Link for Mobile */}
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: navLinks.length * 0.1 }}
+                >
+                  <Link
+                    href="/search"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-2 py-2 text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200"
+                  >
+                    <Search className="w-5 h-5" />
+                    <span>Search</span>
+                  </Link>
+                </motion.div>
 
                 {!isLoading && (
                   <motion.div
