@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import Navbar from '@/components/Navbar';
 import ScoringCalculator from '@/components/ScoringCalculator';
 import Card from '@/components/ui/card';
 import Button from '@/components/ui/button';
@@ -263,10 +262,8 @@ export default function MethodologyPage() {
         <div className="absolute bottom-0 left-1/2 w-96 h-96 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000" />
       </div>
 
-      <Navbar />
-
       {/* Hero Section */}
-      <section className="pt-32 pb-16 px-6">
+      <section className="pb-16 px-6">
         <div className="max-w-6xl mx-auto text-center space-y-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -695,28 +692,6 @@ export default function MethodologyPage() {
           </motion.div>
 
           <ScoringCalculator />
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 px-6">
-        <div className="max-w-4xl mx-auto">
-          <Card className="p-12 bg-gradient-to-br from-indigo-600 to-purple-700 text-white text-center">
-            <Sparkles className="w-16 h-16 mx-auto mb-6" />
-            <h2 className="text-4xl font-bold mb-4">Ready to Score Your Resume?</h2>
-            <p className="text-xl text-indigo-100 mb-8 max-w-2xl mx-auto">
-              Upload your resume now and get instant, actionable feedback powered by our
-              AI-enhanced 3D scoring algorithm.
-            </p>
-            <Button
-              variant="primary"
-              className="bg-white text-indigo-600 hover:bg-gray-100 font-semibold px-10 py-4 text-lg"
-              onClick={() => (window.location.href = '/')}
-            >
-              Analyze My Resume
-              <ArrowRight className="w-5 h-5 ml-2 inline" />
-            </Button>
-          </Card>
         </div>
       </section>
     </div>

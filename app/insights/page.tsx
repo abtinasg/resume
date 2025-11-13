@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import Navbar from '@/components/Navbar';
 import Card from '@/components/ui/card';
 import Button from '@/components/ui/button';
 import Badge from '@/components/ui/badge';
@@ -181,10 +180,8 @@ export default function InsightsPage() {
         <div className="absolute bottom-0 left-1/2 w-96 h-96 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000" />
       </div>
 
-      <Navbar />
-
       {/* Hero Section */}
-      <section className="pt-32 pb-16 px-6">
+      <section className="pb-16 px-6">
         <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
