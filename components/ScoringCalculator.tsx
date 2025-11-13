@@ -457,7 +457,7 @@ export default function ScoringCalculator() {
 
       {/* Call to Action */}
       <div className="text-center">
-        <Card className="p-8 bg-gradient-to-br from-indigo-500 to-purple-600 text-white">
+        <Card className="p-8 bg-gradient-to-br from-indigo-600 to-purple-700 text-white">
           <div className="space-y-4">
             <Sparkles className="w-12 h-12 mx-auto" />
             <h3 className="text-2xl font-bold">Ready to optimize your resume?</h3>

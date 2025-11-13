@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
 import Card from '@/components/ui/card';
 import Button from '@/components/ui/button';
 import Badge from '@/components/ui/badge';
@@ -143,8 +142,7 @@ export default function ArticlePage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white">
-        <Navbar />
-        <div className="max-w-4xl mx-auto px-6 py-32 text-center">
+        <div className="max-w-4xl mx-auto px-6 text-center">
           <Loader2 className="w-12 h-12 animate-spin text-indigo-600 mx-auto mb-4" />
           <p className="text-gray-600">Loading article...</p>
         </div>
@@ -155,8 +153,7 @@ export default function ArticlePage() {
   if (error || !article) {
     return (
       <div className="min-h-screen bg-white">
-        <Navbar />
-        <div className="max-w-4xl mx-auto px-6 py-32 text-center">
+        <div className="max-w-4xl mx-auto px-6 text-center">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Article Not Found</h1>
           <p className="text-gray-600 mb-8">{error || 'The article you are looking for does not exist.'}</p>
           <Link href="/insights">
@@ -182,10 +179,8 @@ export default function ArticlePage() {
         <div className="absolute top-0 right-1/4 w-96 h-96 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000" />
       </div>
 
-      <Navbar />
-
       {/* Back Button */}
-      <div className="max-w-4xl mx-auto px-6 pt-32 pb-8">
+      <div className="max-w-4xl mx-auto px-6 pb-8">
         <Link href="/insights">
           <Button variant="ghost" className="text-gray-600 hover:text-gray-900">
             <ArrowLeft className="w-4 h-4 mr-2" />
