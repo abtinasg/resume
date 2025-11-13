@@ -16,6 +16,17 @@ const authRoutes = ['/auth/login', '/auth/register'];
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Force HTTPS in production
+  if (
+    process.env.NODE_ENV === 'production' &&
+    request.headers.get('x-forwarded-proto') !== 'https'
+  ) {
+    return NextResponse.redirect(
+      `https://${request.headers.get('host')}${request.nextUrl.pathname}${request.nextUrl.search}`,
+      301
+    );
+  }
+
   // Check for both JWT token (legacy) and NextAuth session
   const jwtToken = request.cookies.get('token')?.value;
 

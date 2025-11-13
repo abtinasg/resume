@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { z } from 'zod';
+import { rateLimiters } from '@/lib/rateLimit';
 
 const contactSchema = z.object({
   name: z.string().min(2),
@@ -9,6 +10,25 @@ const contactSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // Apply strict rate limiting for contact form to prevent spam
+  const rateLimitResult = await rateLimiters.contact(request);
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: 'Too many contact form submissions. Please try again later.',
+      },
+      {
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': rateLimitResult.limit.toString(),
+          'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+          'X-RateLimit-Reset': new Date(rateLimitResult.reset).toISOString(),
+        },
+      }
+    );
+  }
+
   try {
     const body = await request.json();
 
@@ -71,10 +91,10 @@ export async function POST(request: NextRequest) {
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #3B82F6;">New Contact Form Submission</h2>
           <div style="background-color: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <p><strong>Name:</strong> ${name}</p>
-            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Name:</strong> ${name.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+            <p><strong>Email:</strong> ${email.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
             <p><strong>Message:</strong></p>
-            <p style="background-color: white; padding: 15px; border-radius: 4px; white-space: pre-wrap;">${message}</p>
+            <p style="background-color: white; padding: 15px; border-radius: 4px; white-space: pre-wrap;">${message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
           </div>
           <p style="color: #6B7280; font-size: 12px;">This message was sent from the ResumeIQ contact form.</p>
         </div>

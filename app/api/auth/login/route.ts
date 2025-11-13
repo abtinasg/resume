@@ -2,11 +2,31 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { comparePassword, generateToken, validateEmail } from '@/lib/auth';
 import { trackEvent } from '@/lib/analytics';
+import { rateLimiters } from '@/lib/rateLimit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
+  // Apply rate limiting for login attempts
+  const rateLimitResult = await rateLimiters.auth(request);
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Too many login attempts. Please try again later.',
+      },
+      {
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': rateLimitResult.limit.toString(),
+          'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+          'X-RateLimit-Reset': new Date(rateLimitResult.reset).toISOString(),
+        },
+      }
+    );
+  }
+
   try {
     const body = await request.json();
     const { email, password } = body;

@@ -3,6 +3,7 @@ import { Prisma, PostStatus } from '@prisma/client';
 import { z } from 'zod';
 
 import prisma from '@/lib/prisma';
+import { verifyAdminAuth } from '@/lib/adminAuth';
 
 export const runtime = 'nodejs';
 
@@ -194,6 +195,21 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  // Verify admin authentication
+  const authResult = await verifyAdminAuth(req);
+  if (!authResult.isAuthorized) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: authResult.error || 'Admin access required',
+        },
+      },
+      { status: authResult.error?.includes('Forbidden') ? 403 : 401 }
+    );
+  }
+
   try {
     const json = await req.json().catch(() => null);
 
@@ -283,6 +299,21 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
+  // Verify admin authentication
+  const authResult = await verifyAdminAuth(req);
+  if (!authResult.isAuthorized) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: authResult.error || 'Admin access required',
+        },
+      },
+      { status: authResult.error?.includes('Forbidden') ? 403 : 401 }
+    );
+  }
+
   try {
     const json = await req.json().catch(() => null);
 

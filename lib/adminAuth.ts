@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { verifyToken } from './auth';
-import { prisma } from './db';
+import { prisma } from './prisma';
 
 export interface AdminAuthResult {
   isAuthorized: boolean;

@@ -33,6 +33,9 @@ model User {
   usageLimit    UsageLimit?
   resumeVersions   ResumeVersion[]
   resumeScoreHistory ResumeScoreHistory[]
+
+  @@index([role])
+  @@index([createdAt])
 }
 
 model Account {
@@ -83,6 +86,10 @@ model Resume {
   createdAt  DateTime @default(now())
   versions   ResumeVersion[]
   scoreHistory ResumeScoreHistory[]
+
+  @@index([userId, createdAt])
+  @@index([userId, isArchived])
+  @@index([score])
 }
 
 model ResumeVersion {
@@ -125,6 +132,8 @@ model Badge {
   rarity      String      // common, rare, epic, legendary
   createdAt   DateTime    @default(now())
   userBadges  UserBadge[]
+
+  @@index([rarity])
 }
 
 model UserBadge {
@@ -146,6 +155,10 @@ model AnalyticsEvent {
   ipAddress String?
   userAgent String?
   createdAt DateTime  @default(now())
+
+  @@index([event])
+  @@index([userId, createdAt])
+  @@index([createdAt])
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 }

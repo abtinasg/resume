@@ -314,6 +314,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validate file size on backend to prevent bypass of frontend validation
+    if (validatedInput.format === 'pdf' || validatedInput.format === 'image') {
+      const base64Length = validatedInput.resumeText.length;
+      const fileSizeBytes = (base64Length * 3) / 4; // Approximate size of base64 decoded file
+      const maxSizeMB = validatedInput.format === 'pdf' ? 5 : 10;
+      const maxSizeBytes = maxSizeMB * 1024 * 1024;
+
+      if (fileSizeBytes > maxSizeBytes) {
+        return NextResponse.json<ErrorResponse>(
+          {
+            success: false,
+            error: {
+              code: 'FILE_TOO_LARGE',
+              message: `File size exceeds maximum of ${maxSizeMB}MB`,
+              details: {
+                fileSize: `${(fileSizeBytes / (1024 * 1024)).toFixed(2)}MB`,
+                maxSize: `${maxSizeMB}MB`,
+              },
+            },
+            timestamp: new Date().toISOString(),
+          },
+          { status: 413 }
+        );
+      }
+    }
+
     const tokenValue = req.cookies.get('token')?.value;
     const authenticatedUser = tokenValue ? verifyToken(tokenValue) : null;
 

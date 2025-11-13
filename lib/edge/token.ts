@@ -1,7 +1,12 @@
 import type { TokenData } from '@/lib/types/auth';
 
-const JWT_SECRET =
-  process.env.JWT_SECRET || 'fallback_secret_for_development_only';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  throw new Error(
+    'JWT_SECRET environment variable is not set. This is required for secure authentication.'
+  );
+}
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
