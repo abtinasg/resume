@@ -1,4 +1,15 @@
-بله کاملاً می‌تونم — همین حالا نسخه‌ی **کامل، ادغام‌شده، تمیز، استاندارد و آماده‌ی کپی در GitHub** رو برات می‌سازم.
+---
+**⚠️ LEGACY DOCUMENT (UPLOADED ARCHIVE)**
+
+This document describes the pre-Agent v2 architecture (4-engine system) and is preserved for historical reference and implementation details.
+
+**Current Architecture:** [Agent Architecture v2](../../agent/agent_architecture_v2.md)  
+**Migration Guide:** [Migration Guide](../../agent/migration_guide.md)  
+**Status:** Historical reference only  
+**Archive Date:** December 7, 2025
+
+---
+
 فقط **به‌صورت یک فایل مارک‌داون کامل** در همین پیام.
 این فایل شامل:
 
