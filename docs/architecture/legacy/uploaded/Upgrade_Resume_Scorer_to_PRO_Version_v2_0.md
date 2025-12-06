@@ -10,18 +10,6 @@ This document describes the pre-Agent v2 architecture (4-engine system) and is p
 
 ---
 
-فقط **به‌صورت یک فایل مارک‌داون کامل** در همین پیام.
-این فایل شامل:
-
-* کل محتوای فعلی «Resume Scorer PRO – Upgrade Documentation»
-* * پنج بخش «Required Enhancements» که قبلاً گفتیم
-* * ساختاردهی حرفه‌ای‌تر
-* * هماهنگ با معماری موجود
-
-**بریم 👇 — نسخه نهایی قابل استفاده در ریپازیتوری**
-
----
-
 # ✅ **Resume Scorer PRO — Upgrade Documentation (FINAL MERGED VERSION)**
 
 **Version:** 2.1
@@ -352,5 +340,6 @@ Includes:
 * Browser extension
 * “Real-Time Assistant” mode
 * Training dataset for v3 ML scoring
+
 
 
