@@ -1,3 +1,17 @@
+---
+**⚠️ LEGACY DOCUMENT**
+
+This document describes the old 4-engine architecture (v1) which has been replaced by the 8-layer AI Career Agent architecture (v2).
+
+**For current architecture, see:**
+- [Agent Architecture v2](../agent/agent_architecture_v2.md)
+- [Migration Guide](../agent/migration_guide.md)
+
+**Status:** Historical reference only
+**Last Updated:** December 7, 2025
+
+---
+
 # 🧠 ResumeIQ — System Architecture Overview (Engines + APIs + Routes)
 
 **Version:** 1.0  
