@@ -1,4 +1,15 @@
-# Career Path Analyzer (CPA) — MVP Scope
+---
+**⚠️ LEGACY DOCUMENT (UPLOADED ARCHIVE)**
+
+This document describes the pre-Agent v2 architecture (4-engine system) and is preserved for historical reference and implementation details.
+
+**Current Architecture:** [Agent Architecture v2](../../agent/agent_architecture_v2.md)  
+**Migration Guide:** [Migration Guide](../../agent/migration_guide.md)  
+**Status:** Historical reference only  
+**Archive Date:** December 7, 2025
+
+---
+
 **Version:** v1.0-MVP
 **Purpose:** This document defines the exact scope for the MVP implementation of the Career Path Analyzer.
 
