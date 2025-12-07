@@ -1,20 +1,8 @@
 import { prisma } from '../db';
+import { EventType } from '@prisma/client';
 
-export type EventType =
-  | 'APPLICATION_CREATED'
-  | 'APPLICATION_SUBMITTED'
-  | 'APPLICATION_UPDATED'
-  | 'INTERVIEW_SCHEDULED'
-  | 'INTERVIEW_COMPLETED'
-  | 'OFFER_RECEIVED'
-  | 'SUGGESTION_GENERATED'
-  | 'SUGGESTION_ACCEPTED'
-  | 'SUGGESTION_REJECTED'
-  | 'STRATEGY_MODE_CHANGED'
-  | 'JOB_DISCOVERED'
-  | 'JOB_SCORED'
-  | 'RESUME_UPLOADED'
-  | 'RESUME_SCORED';
+// Re-export Prisma's EventType for convenience
+export { EventType };
 
 export class EventLogger {
   async log(params: {
@@ -59,6 +47,24 @@ export class EventLogger {
       },
       orderBy: { timestamp: 'desc' },
     });
+  }
+
+  async getEventStats(userId: string, since?: Date) {
+    const where = {
+      userId,
+      ...(since && { timestamp: { gte: since } }),
+    };
+
+    const grouped = await prisma.interactionEvent.groupBy({
+      by: ['eventType'],
+      where,
+      _count: true,
+    });
+
+    return grouped.reduce((acc, item) => {
+      acc[item.eventType] = item._count;
+      return acc;
+    }, {} as Record);
   }
 }
 
