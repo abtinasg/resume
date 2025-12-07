@@ -1,18 +1,16 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-generator client {
-  provider = "prisma-client-js"
-}
-
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
+generator client {
+  provider = "prisma-client-js"
+}
+
 model User {
   id              String             @id @default(cuid())
   email           String             @unique
+  password        String?
   name            String?
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
@@ -33,15 +31,15 @@ model UserProfile {
 
   experienceYears     Int?
   currentRole         String?
-  targetRoles         String   // JSON array stored as string for SQLite
-  techStack           String   // JSON array stored as string for SQLite
+  targetRoles         Json     @default("[]")
+  techStack           Json     @default("[]")
   currentLocation     String?
-  targetLocations     String   // JSON array stored as string for SQLite
+  targetLocations     Json     @default("[]")
   workAuthorization   String?
   remoteOnly          Boolean  @default(false)
-  companySizePrefs    String   // JSON array stored as string for SQLite
-  industries          String   // JSON array stored as string for SQLite
-  salaryExpectation   String?  // JSON object stored as string for SQLite
+  companySizePrefs    Json     @default("[]")
+  industries          Json     @default("[]")
+  salaryExpectation   Json?
   currentStrategyMode String   @default("IMPROVE_RESUME_FIRST")
   weeklyAppTarget     Int      @default(5)
 
@@ -53,19 +51,24 @@ model ResumeVersion {
   id               String        @id @default(cuid())
   userId           String
   user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   versionNumber    Int
   name             String?
   isMaster         Boolean       @default(false)
-  content          String        // JSON object stored as string for SQLite
+
+  content          Json
   overallScore     Int?
-  sectionScores    String?       // JSON object stored as string for SQLite
-  improvementAreas String        // JSON array stored as string for SQLite
-  targetRoles      String        // JSON array stored as string for SQLite
+  sectionScores    Json?
+  improvementAreas Json          @default("[]")
+  targetRoles      Json          @default("[]")
+
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
+
   applications     Application[]
 
   @@index([userId, isMaster])
+  @@index([userId, versionNumber])
 }
 
 model JobPosting {
@@ -76,74 +79,97 @@ model JobPosting {
   jobUrl              String
   description         String?
   seniorityLevel      String?
-  requiredSkills      String        // JSON array stored as string for SQLite
+  requiredSkills      Json          @default("[]")
   remoteOption        Boolean       @default(false)
-  salaryRange         String?       // JSON object stored as string for SQLite
+  salaryRange         Json?
   discoveredAt        DateTime      @default(now())
   source              String        @default("user_provided")
   discoveredViaQuery  String?
   matchScore          Int?
-  matchReasoning      String?       // JSON object stored as string for SQLite
-  status              String        @default("discovered")
-  updatedAt           DateTime      @updatedAt
+  matchReasoning      Json?
+
   applications        Application[]
+
+  @@index([source, discoveredAt])
 }
 
 model Application {
-  id                  String        @id @default(cuid())
-  userId              String
-  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  jobId               String
-  job                 JobPosting    @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  resumeVersionId     String
-  resumeVersion       ResumeVersion @relation(fields: [resumeVersionId], references: [id])
+  id                 String        @id @default(cuid())
+  userId             String
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  appliedAt           DateTime?
-  status              String        @default("draft")
-  coverLetterUsed     String?
-  outreachSent        Boolean       @default(false)
-  outreachMessage     String?
-  lastFollowUp        DateTime?
-  followUpCount       Int           @default(0)
-  outcome             String?
-  outcomeDate         DateTime?
-  outcomeNotes        String?
-  strategyModeAtApply String?
+  resumeId           String
+  resume             ResumeVersion @relation(fields: [resumeId], references: [id])
 
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
+  jobId              String
+  job                JobPosting    @relation(fields: [jobId], references: [id])
+
+  status             String        @default("draft")
+  appliedAt          DateTime?
+  lastFollowUpAt     DateTime?
+  followUpCount      Int           @default(0)
+
+  customCoverLetter  String?
+  customMessage      String?
+
+  interviewScheduledAt DateTime?
+  offerReceivedAt      DateTime?
+  rejectedAt           DateTime?
+
+  notes              String?
+  metadata           Json?
+
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
   @@index([userId, status])
-  @@index([userId, appliedAt])
-  @@index([userId, lastFollowUp])
+  @@index([userId, createdAt])
+}
+
+enum EventType {
+  APPLICATION_CREATED
+  APPLICATION_SUBMITTED
+  APPLICATION_UPDATED
+  INTERVIEW_SCHEDULED
+  INTERVIEW_COMPLETED
+  OFFER_RECEIVED
+  SUGGESTION_GENERATED
+  SUGGESTION_ACCEPTED
+  SUGGESTION_REJECTED
+  STRATEGY_MODE_CHANGED
+  JOB_DISCOVERED
+  JOB_SCORED
+  RESUME_UPLOADED
+  RESUME_SCORED
 }
 
 model InteractionEvent {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  eventType String
-  timestamp DateTime @default(now())
-  context   String   // JSON object stored as string for SQLite
-  sessionId String?
-  metadata  String?  // JSON object stored as string for SQLite
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  eventType EventType
+  context   Json
+  metadata  Json?
+  timestamp DateTime  @default(now())
 
   @@index([userId, timestamp])
-  @@index([userId, eventType, timestamp])
+  @@index([eventType, timestamp])
 }
 
 model StrategyHistory {
-  id                 String    @id @default(cuid())
-  userId             String
-  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  strategyMode       String
-  activatedAt        DateTime  @default(now())
-  deactivatedAt      DateTime?
-  reason             String
-  metricsAtStart     String    // JSON object stored as string for SQLite
-  metricsAtEnd       String?   // JSON object stored as string for SQLite
-  applicationsInMode Int       @default(0)
-  interviewsInMode   Int       @default(0)
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, deactivatedAt])
+  strategyMode  String
+  reason        String
+  triggeredBy   String
+
+  activatedAt   DateTime @default(now())
+  deactivatedAt DateTime?
+
+  performanceData Json?
+
+  @@index([userId, activatedAt])
 }
