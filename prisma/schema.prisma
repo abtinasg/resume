@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,223 +11,139 @@ datasource db {
 }
 
 model User {
-  id            Int          @id @default(autoincrement())
-  email         String       @unique
-  password      String?      // Optional for OAuth users
-  name          String?
-  image         String?
-  emailVerified DateTime?
-  role          String       @default("user") // user, admin
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  resumes       Resume[]
-  accounts      Account[]
-  sessions      Session[]
-  userBadges    UserBadge[]
-  analyticsEvents AnalyticsEvent[]
-  exitFeedbacks    ExitFeedback[]
-  subscription  Subscription?
-  usageLimit    UsageLimit?
-  resumeVersions   ResumeVersion[]
-  resumeScoreHistory ResumeScoreHistory[]
+  id              String             @id @default(cuid())
+  email           String             @unique
+  name            String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 
-  @@index([role])
-  @@index([createdAt])
+  profile         UserProfile?
+  resumes         ResumeVersion[]
+  applications    Application[]
+  events          InteractionEvent[]
+  strategyHistory StrategyHistory[]
+
+  @@index([email])
 }
 
-model Account {
-  id                Int     @id @default(autoincrement())
-  userId            Int
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
+model UserProfile {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  experienceYears     Int?
+  currentRole         String?
+  targetRoles         String   // JSON array stored as string for SQLite
+  techStack           String   // JSON array stored as string for SQLite
+  currentLocation     String?
+  targetLocations     String   // JSON array stored as string for SQLite
+  workAuthorization   String?
+  remoteOnly          Boolean  @default(false)
+  companySizePrefs    String   // JSON array stored as string for SQLite
+  industries          String   // JSON array stored as string for SQLite
+  salaryExpectation   String?  // JSON object stored as string for SQLite
+  currentStrategyMode String   @default("IMPROVE_RESUME_FIRST")
+  weeklyAppTarget     Int      @default(5)
 
-  @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           Int      @id @default(autoincrement())
-  sessionToken String   @unique
-  userId       Int
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-}
-
-model Resume {
-  id         Int      @id @default(autoincrement())
-  user       User     @relation(fields: [userId], references: [id])
-  userId     Int
-  fileName   String
-  score      Int
-  summary    String?
-  data       Json
-  version    Int      @default(1)
-  isArchived Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  versions   ResumeVersion[]
-  scoreHistory ResumeScoreHistory[]
-
-  @@index([userId, createdAt])
-  @@index([userId, isArchived])
-  @@index([score])
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }
 
 model ResumeVersion {
-  id        Int      @id @default(autoincrement())
-  resume    Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
-  resumeId  Int
+  id               String        @id @default(cuid())
+  userId           String
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  versionNumber    Int
+  name             String?
+  isMaster         Boolean       @default(false)
+  content          String        // JSON object stored as string for SQLite
+  overallScore     Int?
+  sectionScores    String?       // JSON object stored as string for SQLite
+  improvementAreas String        // JSON array stored as string for SQLite
+  targetRoles      String        // JSON array stored as string for SQLite
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  applications     Application[]
+
+  @@index([userId, isMaster])
+}
+
+model JobPosting {
+  id                  String        @id @default(cuid())
+  title               String
+  company             String
+  location            String?
+  jobUrl              String
+  description         String?
+  seniorityLevel      String?
+  requiredSkills      String        // JSON array stored as string for SQLite
+  remoteOption        Boolean       @default(false)
+  salaryRange         String?       // JSON object stored as string for SQLite
+  discoveredAt        DateTime      @default(now())
+  source              String        @default("user_provided")
+  discoveredViaQuery  String?
+  matchScore          Int?
+  matchReasoning      String?       // JSON object stored as string for SQLite
+  status              String        @default("discovered")
+  updatedAt           DateTime      @updatedAt
+  applications        Application[]
+}
+
+model Application {
+  id                  String        @id @default(cuid())
+  userId              String
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId               String
+  job                 JobPosting    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  resumeVersionId     String
+  resumeVersion       ResumeVersion @relation(fields: [resumeVersionId], references: [id])
+
+  appliedAt           DateTime?
+  status              String        @default("draft")
+  coverLetterUsed     String?
+  outreachSent        Boolean       @default(false)
+  outreachMessage     String?
+  lastFollowUp        DateTime?
+  followUpCount       Int           @default(0)
+  outcome             String?
+  outcomeDate         DateTime?
+  outcomeNotes        String?
+  strategyModeAtApply String?
+
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  @@index([userId, status])
+  @@index([userId, appliedAt])
+  @@index([userId, lastFollowUp])
+}
+
+model InteractionEvent {
+  id        String   @id @default(cuid())
+  userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    Int
-  version   Int
-  score     Int
-  summary   String?
-  data      Json?
-  createdAt DateTime @default(now())
+  eventType String
+  timestamp DateTime @default(now())
+  context   String   // JSON object stored as string for SQLite
+  sessionId String?
+  metadata  String?  // JSON object stored as string for SQLite
 
-  @@index([userId, createdAt])
-  @@index([resumeId, version])
+  @@index([userId, timestamp])
+  @@index([userId, eventType, timestamp])
 }
 
-model ResumeScoreHistory {
-  id            Int      @id @default(autoincrement())
-  resume        Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
-  resumeId      Int
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId        Int
-  score         Int
-  previousScore Int?
-  change        Int?
-  recordedAt    DateTime @default(now())
+model StrategyHistory {
+  id                 String    @id @default(cuid())
+  userId             String
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  strategyMode       String
+  activatedAt        DateTime  @default(now())
+  deactivatedAt      DateTime?
+  reason             String
+  metricsAtStart     String    // JSON object stored as string for SQLite
+  metricsAtEnd       String?   // JSON object stored as string for SQLite
+  applicationsInMode Int       @default(0)
+  interviewsInMode   Int       @default(0)
 
-  @@index([userId, recordedAt])
-  @@index([resumeId, recordedAt])
-}
-
-model Badge {
-  id          Int         @id @default(autoincrement())
-  name        String      @unique
-  description String
-  icon        String
-  criteria    String      // JSON string describing unlock criteria
-  rarity      String      // common, rare, epic, legendary
-  createdAt   DateTime    @default(now())
-  userBadges  UserBadge[]
-
-  @@index([rarity])
-}
-
-model UserBadge {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  badgeId   Int
-  earnedAt  DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  badge     Badge    @relation(fields: [badgeId], references: [id])
-
-  @@unique([userId, badgeId])
-}
-
-model AnalyticsEvent {
-  id        Int       @id @default(autoincrement())
-  event     String
-  metadata  Json?
-  userId    Int?
-  ipAddress String?
-  userAgent String?
-  createdAt DateTime  @default(now())
-
-  @@index([event])
-  @@index([userId, createdAt])
-  @@index([createdAt])
-
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-}
-
-model ExitFeedback {
-  id                 Int      @id @default(autoincrement())
-  userId             Int?
-  rating             Int?
-  likelihoodToReturn Int?
-  reason             String?
-  comment            String?
-  email              String?
-  metadata           Json?
-  createdAt          DateTime @default(now())
-
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-}
-
-model Subscription {
-  id                 Int       @id @default(autoincrement())
-  userId             Int       @unique
-  tier               String    @default("free")  // free, premium, pro_plus
-  status             String    @default("active") // active, canceled, past_due, expired
-  currentPeriodStart DateTime?
-  currentPeriodEnd   DateTime?
-  cancelAtPeriodEnd  Boolean   @default(false)
-  metadata           Json?     // Store additional subscription metadata
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([tier])
-  @@index([status])
-}
-
-model UsageLimit {
-  id              Int      @id @default(autoincrement())
-  userId          Int      @unique
-  resumeScans     Int      @default(3)      // Number of scans remaining this period
-  maxResumeScans  Int      @default(3)      // Maximum scans allowed per period
-  jobMatches      Int      @default(0)      // Number of job matches used
-  maxJobMatches   Int      @default(0)      // Maximum job matches per period
-  lastResetDate   DateTime @default(now())  // When the limits were last reset
-  updatedAt       DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-enum PostStatus {
-  DRAFT
-  PUBLISHED
-  ARCHIVED
-}
-
-model Post {
-  id          Int        @id @default(autoincrement())
-  title       String
-  slug        String     @unique
-  excerpt     String?
-  content     String
-  coverImage  String?
-  status      PostStatus @default(DRAFT)
-  publishedAt DateTime?
-  metadata    Json?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-
-  @@index([slug])
-  @@index([status])
-  @@index([publishedAt])
+  @@index([userId, deactivatedAt])
 }
