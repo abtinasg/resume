@@ -109,6 +109,18 @@ resume/
 | `npm run start` | Runs the production server |
 | `npm run lint` | Runs ESLint to check code quality |
 
+### Database smoke tests
+
+To validate the Prisma schema and database utilities end-to-end, run the local SQLite migrations and then execute the TypeScript test scripts:
+
+```bash
+npx prisma db push
+npx tsx scripts/test-db.ts
+npx tsx scripts/test-db-simple.ts
+```
+
+These scripts create a temporary user, resume version, and interaction events while exercising JSON fields and the `EventType` enum.
+
 ## Dependencies
 
 ### Core Dependencies
