@@ -58,7 +58,13 @@ model ResumeVersion {
 
   content          Json
   overallScore     Int?
+
+  // @deprecated - Not used by Agent v2; use componentScores instead
   sectionScores    Json?
+
+  // Component scores from scoring engine (contentQuality, atsCompatibility, formatStructure, impactMetrics)
+  componentScores  Json?         @default("{}")
+
   improvementAreas Json          @default("[]")
   targetRoles      Json          @default("[]")
 
