@@ -6,12 +6,20 @@ export const resumeService = {
     name?: string;
     content: any;
     overallScore?: number;
+    sectionScores?: any;
+    improvementAreas?: string[];
     targetRoles?: string[];
   }) {
     return prisma.resumeVersion.create({
       data: {
         userId,
-        ...data,
+        versionNumber: data.versionNumber,
+        name: data.name,
+        content: data.content,
+        overallScore: data.overallScore,
+        sectionScores: data.sectionScores,
+        improvementAreas: data.improvementAreas || [],
+        targetRoles: data.targetRoles || [],
         isMaster: data.versionNumber === 1,
       },
     });
@@ -34,6 +42,18 @@ export const resumeService = {
     return prisma.resumeVersion.findMany({
       where: { userId },
       orderBy: { versionNumber: 'desc' },
+    });
+  },
+
+  async setMaster(userId: string, resumeId: string) {
+    await prisma.resumeVersion.updateMany({
+      where: { userId },
+      data: { isMaster: false },
+    });
+
+    return prisma.resumeVersion.update({
+      where: { id: resumeId },
+      data: { isMaster: true },
     });
   },
 };
