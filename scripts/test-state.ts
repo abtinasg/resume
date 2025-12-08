@@ -51,9 +51,8 @@ async function testStateService() {
     for (let i = 0; i < 5; i++) {
       const job = await prisma.jobPosting.create({
         data: {
-          jobTitle: `Software Engineer ${i + 1}`,
+          title: `Software Engineer ${i + 1}`,
           company: `Company ${i + 1}`,
-          jobDescription: 'Test job description',
           jobUrl: `https://example.com/job${i}`,
         },
       });
