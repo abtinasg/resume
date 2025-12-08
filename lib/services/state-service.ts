@@ -43,7 +43,7 @@ export interface ApplicationSummary {
   company: string;
   status: string;
   appliedAt: Date;
-  lastUpdatedAt: Date;
+  updatedAt: Date;
   daysSinceUpdate: number;
   needsFollowUp: boolean;
 }
@@ -157,8 +157,8 @@ export class StateService {
     const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
     return applications.map(app => {
-      // Null-safe: fallback to appliedAt if lastUpdatedAt is somehow null
-      const lastUpdated = app.lastUpdatedAt ?? app.appliedAt;
+      // Null-safe: fallback to appliedAt if updatedAt is somehow null
+      const lastUpdated = app.updatedAt ?? app.appliedAt;
       const daysSinceUpdate = Math.floor(
         (now.getTime() - lastUpdated.getTime()) / MS_PER_DAY
       );
@@ -169,7 +169,7 @@ export class StateService {
         company: app.job.company,
         status: app.status,
         appliedAt: app.appliedAt || now, // Fallback just in case
-        lastUpdatedAt: lastUpdated,
+        updatedAt: lastUpdated,
         daysSinceUpdate,
         needsFollowUp: daysSinceUpdate >= 7,
       };
@@ -244,12 +244,12 @@ export class StateService {
         status: {
           in: ['INTERVIEW_SCHEDULED', 'REJECTED', 'OFFER_RECEIVED'],
         },
-        lastUpdatedAt: { gte: since },
+        updatedAt: { gte: since },
       },
       include: {
         job: true,
       },
-      orderBy: { lastUpdatedAt: 'desc' },
+      orderBy: { updatedAt: 'desc' },
       take: 20,
     });
 
@@ -258,7 +258,7 @@ export class StateService {
       jobTitle: app.job.jobTitle,
       company: app.job.company,
       outcome: this.mapStatusToOutcome(app.status),
-      occurredAt: app.lastUpdatedAt,
+      occurredAt: app.updatedAt,
     }));
   }
 
@@ -362,7 +362,7 @@ export class StateService {
             'OFFER_RECEIVED', // Include offers as positive signal
           ],
         },
-        lastUpdatedAt: { gte: since },
+        updatedAt: { gte: since },
       },
     });
 
