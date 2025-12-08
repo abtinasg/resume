@@ -559,31 +559,40 @@ Do not include any text before or after the JSON. The response must be valid JSO
 
   private async callAI(prompt: string): Promise<any> {
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': process.env.ANTHROPIC_API_KEY || '',
-          'anthropic-version': '2023-06-01',
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'claude-3-5-sonnet-20241022',
-          max_tokens: 2000,
+          model: 'gpt-4-turbo-preview',
           messages: [
+            {
+              role: 'system',
+              content: 'You are a professional resume writer. Always respond with valid JSON only, no additional text or markdown.'
+            },
             {
               role: 'user',
               content: prompt,
             },
           ],
+          temperature: 0.7,
+          max_tokens: 2000,
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`AI API error: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`OpenAI API error: ${response.statusText} - ${JSON.stringify(errorData)}`);
       }
 
       const data = await response.json();
-      const content = data.content[0].text;
+      const content = data.choices[0]?.message?.content;
+
+      if (!content) {
+        throw new Error('No content in OpenAI response');
+      }
 
       // Extract JSON from response (handle markdown code blocks)
       let jsonText = content.trim();
