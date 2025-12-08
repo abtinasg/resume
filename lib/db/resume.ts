@@ -91,13 +91,8 @@ export const resumeService = {
     resumeId: string,
     scores: {
       overallScore: number;
-      componentScores: {
-        contentQuality: number;
-        atsCompatibility: number;
-        formatStructure: number;
-        impactMetrics: number;
-      };
-      improvementAreas: string[];
+      componentScores: any;  // Json field
+      improvementAreas: any; // Json field - accepts any JSON-serializable data
     }
   ) {
     return prisma.resumeVersion.update({
