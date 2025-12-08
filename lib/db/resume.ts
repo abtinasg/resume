@@ -38,13 +38,6 @@ export const resumeService = {
     });
   },
 
-  async findAllByUser(userId: string) {
-    return prisma.resumeVersion.findMany({
-      where: { userId },
-      orderBy: { versionNumber: 'desc' },
-    });
-  },
-
   async setMaster(userId: string, resumeId: string) {
     await prisma.resumeVersion.updateMany({
       where: { userId },
@@ -54,6 +47,67 @@ export const resumeService = {
     return prisma.resumeVersion.update({
       where: { id: resumeId },
       data: { isMaster: true },
+    });
+  },
+
+  /**
+   * Find resume by ID
+   */
+  async findById(resumeId: string) {
+    return prisma.resumeVersion.findUnique({
+      where: { id: resumeId },
+    });
+  },
+
+  /**
+   * Find all scored resumes for a user
+   * Only returns resumes that have been scored (overallScore is not null)
+   */
+  async findAllByUser(userId: string, limit = 20) {
+    return prisma.resumeVersion.findMany({
+      where: {
+        userId,
+        overallScore: { not: null },
+      },
+      select: {
+        id: true,
+        versionNumber: true,
+        name: true,
+        overallScore: true,
+        componentScores: true,
+        improvementAreas: true,
+        updatedAt: true,
+      },
+      orderBy: { versionNumber: 'desc' },
+      take: limit,
+    });
+  },
+
+  /**
+   * Update scores for a resume after scoring
+   * Sets sectionScores to null (deprecated field)
+   */
+  async updateScores(
+    resumeId: string,
+    scores: {
+      overallScore: number;
+      componentScores: {
+        contentQuality: number;
+        atsCompatibility: number;
+        formatStructure: number;
+        impactMetrics: number;
+      };
+      improvementAreas: string[];
+    }
+  ) {
+    return prisma.resumeVersion.update({
+      where: { id: resumeId },
+      data: {
+        overallScore: scores.overallScore,
+        componentScores: scores.componentScores,
+        improvementAreas: scores.improvementAreas,
+        sectionScores: null, // Explicitly set deprecated field to null
+      },
     });
   },
 };
