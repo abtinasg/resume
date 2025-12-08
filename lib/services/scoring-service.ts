@@ -1,4 +1,4 @@
-import { calculatePROScore } from '@/lib/scoring/algorithms';
+import { calculatePROScore } from '@/lib/scoring';
 import { ScoringResult } from '@/lib/scoring/types';
 import { resumeService } from '@/lib/db/resume';
 import { userService } from '@/lib/db/user';
@@ -10,7 +10,7 @@ export interface ResumeContent {
   text?: string;
   sections?: {
     summary?: string;
-    experience?: Array;
+    experience?: any[];
     skills?: string[];
     education?: any[];
   };
@@ -66,7 +66,7 @@ export class ScoringService {
     userId: string;
     resumeId: string;
     targetRole?: string;
-  }): Promise {
+  }): Promise<ScoringServiceResult> {
     const startTime = Date.now();
 
     // 1. Fetch resume
@@ -152,7 +152,7 @@ export class ScoringService {
         formatStructure: scoringResult.componentScores.formatStructure.score,
         impactMetrics: scoringResult.componentScores.impactMetrics.score,
       },
-      improvementAreas: this.extractImprovementActions(scoringResult),
+      improvementAreas: this.extractImprovementActions(scoringResult) as any,
     });
 
     // 7. Log success
@@ -191,7 +191,7 @@ export class ScoringService {
   async scoreTransientResume(params: {
     resumeContent: ResumeContent;
     targetRole?: string;
-  }): Promise {
+  }): Promise<ScoringResult> {
     const resumeText = this.extractTextFromContent(params.resumeContent);
 
     if (!resumeText.trim()) {
@@ -214,7 +214,7 @@ export class ScoringService {
     resumeId: string;
     jobDescription: string;
     jobTitle: string;
-  }): Promise {
+  }): Promise<JobMatchResult> {
     const resume = await resumeService.findById(params.resumeId);
 
     if (!resume || resume.userId !== params.userId) {
@@ -249,12 +249,12 @@ export class ScoringService {
   /**
    * Get score history for user
    */
-  async getScoreHistory(userId: string): Promise {
+  async getScoreHistory(userId: string): Promise<ScoreHistoryItem[]> {
     const resumes = await resumeService.findAllByUser(userId);
 
     return resumes
-      .filter(r => r.overallScore !== null)
-      .map(r => ({
+      .filter((r: any) => r.overallScore !== null)
+      .map((r: any) => ({
         resumeId: r.id,
         versionNumber: r.versionNumber,
         name: r.name,
@@ -268,7 +268,7 @@ export class ScoringService {
         improvementAreas: (r.improvementAreas ?? []) as ImprovementAction[],
         scoredAt: r.updatedAt,
       }))
-      .sort((a, b) => b.versionNumber - a.versionNumber);
+      .sort((a: ScoreHistoryItem, b: ScoreHistoryItem) => b.versionNumber - a.versionNumber);
   }
 
   // ==================== Private Helpers ====================
