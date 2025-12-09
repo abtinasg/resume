@@ -100,7 +100,12 @@ function performKeywordGapAnalysis(
 
     for (const keyword of keywords) {
       const normalizedKeyword = keyword.toLowerCase();
-      const keywordPattern = new RegExp(`\\b${normalizedKeyword.replace(/\s+/g, '\\s+')}\\b`, 'i');
+
+      // Escape special regex characters (like + in C++)
+      const escapedKeyword = normalizedKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+      // Replace spaces with \s+ for flexible matching
+      const keywordPattern = new RegExp(`\\b${escapedKeyword.replace(/\s+/g, '\\s+')}\\b`, 'i');
 
       if (keywordPattern.test(resumeText)) {
         found.push(keyword);
