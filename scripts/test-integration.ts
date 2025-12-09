@@ -66,12 +66,12 @@ async function testResumeImprovementFlow() {
   console.log(`   ✅ Resume created: ${resume.id}`);
 
   console.log('   Step 3: Scoring resume (initial)...');
-  const scoreResult1 = await scoringService.scoreResume({
+  const scoreResult1 = await scoringService.scoreAndPersistResume({
     userId: user.id,
     resumeId: resume.id,
-    persist: true,
+    targetRole: 'Software Engineer',
   });
-  console.log(`   ✅ Initial score: ${scoreResult1.score}/100`);
+  console.log(`   ✅ Initial score: ${scoreResult1.scoring.overallScore}/100`);
 
   console.log('   Step 4: Rewriting weak bullets...');
   const bulletResult = await rewriteService.rewriteBullet({
@@ -92,14 +92,14 @@ async function testResumeImprovementFlow() {
   });
 
   console.log('   Step 6: Scoring improved resume...');
-  const scoreResult2 = await scoringService.scoreResume({
+  const scoreResult2 = await scoringService.scoreAndPersistResume({
     userId: user.id,
     resumeId: updatedResume.id,
-    persist: true,
+    targetRole: 'Software Engineer',
   });
-  console.log(`   ✅ New score: ${scoreResult2.score}/100`);
+  console.log(`   ✅ New score: ${scoreResult2.scoring.overallScore}/100`);
 
-  const improvement = scoreResult2.score - scoreResult1.score;
+  const improvement = scoreResult2.scoring.overallScore - scoreResult1.scoring.overallScore;
   console.log(`   ✅ Total improvement: +${improvement} points`);
 
   if (improvement < 0) {
@@ -110,7 +110,7 @@ async function testResumeImprovementFlow() {
   const state = await stateService.getUserState(user.id);
   console.log(`   ✅ State resume score: ${state.resumeScore}`);
 
-  if (state.resumeScore !== scoreResult2.score) {
+  if (state.resumeScore !== scoreResult2.scoring.overallScore) {
     throw new Error('State score mismatch!');
   }
 
@@ -155,10 +155,10 @@ async function testApplicationManagementFlow() {
     },
   });
 
-  await scoringService.scoreResume({
+  await scoringService.scoreAndPersistResume({
     userId: user.id,
     resumeId: resume.id,
-    persist: true,
+    targetRole: 'Software Engineer',
   });
   console.log(`   ✅ Master resume created and scored`);
 
@@ -295,16 +295,15 @@ async function testJobMatchingFlow() {
   });
 
   console.log('   Step 3: Scoring resume (generic)...');
-  const genericScore = await scoringService.scoreResume({
+  const genericScore = await scoringService.scoreAndPersistResume({
     userId: user.id,
     resumeId: resume.id,
     targetRole: 'Software Engineer',
-    persist: false,
   });
-  console.log(`   ✅ Generic score: ${genericScore.score}/100`);
+  console.log(`   ✅ Generic score: ${genericScore.scoring.overallScore}/100`);
 
   console.log('   Step 4: Scoring for specific job...');
-  const jobScore = await scoringService.scoreResumeForJob({
+  const jobScore = await scoringService.scoreForJob({
     userId: user.id,
     resumeId: resume.id,
     jobTitle: 'Backend Engineer',
