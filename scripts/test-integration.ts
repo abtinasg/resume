@@ -213,7 +213,7 @@ async function testApplicationManagementFlow() {
       userId: user.id,
       resumeId: resume.id,
       jobId: job1.id,
-      status: 'INTERVIEW_SCHEDULED',
+      status: 'APPLIED',
       appliedAt: tenDaysAgo,
     },
   });
@@ -223,7 +223,7 @@ async function testApplicationManagementFlow() {
       userId: user.id,
       resumeId: resume.id,
       jobId: job2.id,
-      status: 'INTERVIEW_SCHEDULED',
+      status: 'APPLIED',
       appliedAt: weekAgo,
     },
   });
@@ -243,7 +243,7 @@ async function testApplicationManagementFlow() {
         userId: user.id,
         resumeId: resume.id,
         jobId: job.id,
-        status: 'INTERVIEW_SCHEDULED',
+        status: 'APPLIED',
         appliedAt: now,
       },
     });
