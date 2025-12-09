@@ -333,7 +333,7 @@ async function testJobMatchingFlow() {
   console.log(`   ✅ Generic score: ${genericScore.scoring.overallScore}/100`);
 
   console.log('   Step 4: Scoring for specific job...');
-  const jobScore = await scoringService.scoreForJob({
+  const jobScore = await scoringService.scoreResumeForJob({
     userId: user.id,
     resumeId: resume.id,
     jobTitle: 'Backend Engineer',
