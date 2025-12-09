@@ -46,20 +46,30 @@ async function testResumeImprovementFlow() {
     versionNumber: 1,
     name: 'Test Resume',
     content: {
-      summary: 'Experienced software engineer',
+      summary: 'Experienced software engineer with 3+ years building scalable backend systems using modern technologies and cloud infrastructure.',
       sections: {
         experience: [
           {
             role: 'Software Engineer',
             company: 'TechCorp',
+            duration: '2021-2024',
             bullets: [
-              'Worked on backend systems',
-              'Fixed bugs',
-              'Helped with deployments',
+              'Worked on backend systems processing over 10,000 requests per day using Node.js and PostgreSQL',
+              'Fixed critical production bugs reducing system downtime by 30% through improved error handling',
+              'Helped with deployments automating CI/CD pipeline reducing deployment time from 2 hours to 15 minutes',
+              'Collaborated with cross-functional teams to deliver 5 major features on time and under budget',
+              'Mentored 2 junior developers improving team code quality and development practices',
             ],
           },
         ],
-        skills: ['JavaScript', 'Python', 'AWS'],
+        skills: ['JavaScript', 'Python', 'AWS', 'Node.js', 'PostgreSQL', 'Docker', 'Kubernetes', 'REST APIs'],
+        education: [
+          {
+            degree: 'Bachelor of Science in Computer Science',
+            school: 'University of Technology',
+            year: '2021',
+          },
+        ],
       },
     },
   });
@@ -137,20 +147,30 @@ async function testApplicationManagementFlow() {
     name: 'Master Resume',
     isMaster: true,
     content: {
-      summary: 'Senior backend engineer with 5 years experience',
+      summary: 'Senior backend engineer with 5 years of experience building high-performance distributed systems. Expert in Node.js, PostgreSQL, and cloud infrastructure with proven track record of improving system reliability and team productivity.',
       sections: {
         experience: [
           {
             role: 'Senior Backend Engineer',
             company: 'TechCorp',
+            duration: '2019-2024',
             bullets: [
-              'Led team of 5 engineers',
-              'Increased system performance by 40%',
-              'Designed microservices architecture',
+              'Led team of 5 engineers delivering microservices architecture serving 1M+ daily active users',
+              'Increased system performance by 40% through database optimization and caching strategies reducing response time from 500ms to 300ms',
+              'Designed and implemented microservices architecture using Kubernetes reducing deployment complexity by 50%',
+              'Established coding standards and review processes improving code quality scores from 65% to 90%',
+              'Mentored junior engineers through pair programming and code reviews accelerating their growth by 6 months',
             ],
           },
         ],
-        skills: ['Node.js', 'PostgreSQL', 'Kubernetes'],
+        skills: ['Node.js', 'PostgreSQL', 'Kubernetes', 'Docker', 'Redis', 'AWS', 'Microservices', 'System Design'],
+        education: [
+          {
+            degree: 'Master of Science in Computer Science',
+            school: 'Tech University',
+            year: '2019',
+          },
+        ],
       },
     },
   });
@@ -276,20 +296,30 @@ async function testJobMatchingFlow() {
     versionNumber: 1,
     name: 'Test Resume',
     content: {
-      summary: 'Backend engineer with Python and AWS experience',
+      summary: 'Backend engineer with 4 years of experience specializing in Python, AWS, and PostgreSQL. Proven track record of building scalable REST APIs and optimizing database performance for high-traffic applications.',
       sections: {
         experience: [
           {
             role: 'Backend Engineer',
             company: 'StartupCo',
+            duration: '2020-2024',
             bullets: [
-              'Built REST APIs using Python and Flask',
-              'Deployed services on AWS Lambda',
-              'Optimized database queries in PostgreSQL',
+              'Built REST APIs using Python and Flask handling 50,000+ requests per day with 99.9% uptime',
+              'Deployed serverless services on AWS Lambda reducing infrastructure costs by 35% while improving scalability',
+              'Optimized database queries in PostgreSQL reducing query time from 2 seconds to 200ms improving user experience',
+              'Implemented automated testing with 90% code coverage reducing production bugs by 40%',
+              'Collaborated with frontend team to design efficient API contracts improving development velocity',
             ],
           },
         ],
-        skills: ['Python', 'AWS', 'PostgreSQL', 'Docker'],
+        skills: ['Python', 'AWS', 'PostgreSQL', 'Docker', 'Flask', 'Lambda', 'REST APIs', 'Redis'],
+        education: [
+          {
+            degree: 'Bachelor of Science in Software Engineering',
+            school: 'State University',
+            year: '2020',
+          },
+        ],
       },
     },
   });
