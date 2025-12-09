@@ -89,7 +89,7 @@ export class EventLogger {
     return grouped.reduce((acc, item) => {
       acc[item.eventType] = item._count;
       return acc;
-    }, {} as Record);
+    }, {} as Record<string, number>);
   }
 
   async getApplicationJourney(userId: string, days = 30): Promise<JourneyMetrics> {
@@ -138,23 +138,24 @@ export class EventLogger {
         userId,
         timestamp: { gte: since },
         eventType: {
-          in: ['SUGGESTION_ACCEPTED', 'SUGGESTION_REJECTED', 'SUGGESTION_EDITED'],
+          in: ['SUGGESTION_ACCEPTED', 'SUGGESTION_REJECTED'],
         },
       },
     });
 
     const accepted = events.filter(e => e.eventType === 'SUGGESTION_ACCEPTED').length;
-    const edited = events.filter(e => e.eventType === 'SUGGESTION_EDITED').length;
     const rejected = events.filter(e => e.eventType === 'SUGGESTION_REJECTED').length;
     const total = events.length;
 
+    // For now, we only track accepted vs rejected
+    // In future, we can add SUGGESTION_EDITED to the enum if needed
     return {
       totalSuggestions: total,
       accepted,
-      edited,
+      edited: 0, // Not tracked yet
       rejected,
       acceptanceRate: total > 0 ? (accepted / total) * 100 : 0,
-      editRate: total > 0 ? (edited / total) * 100 : 0,
+      editRate: 0, // Not tracked yet
     };
   }
 
