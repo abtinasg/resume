@@ -118,22 +118,24 @@ From resume:
 #### 3.1.3 Formula
 
 ```python
-def calculate_skill_capital_mvp(skills: List[str], total_years: int) -> float:
+def calculate_skill_capital_mvp(skills: List[str], total_years: int) -> Dict:
     """
     Simplified Skill Capital for MVP
-    
+
     Args:
         skills: List of skill names (normalized)
         total_years: Total years of professional experience
-    
+
     Returns:
-        Score from 0-100
+        Dict with score, flags, and breakdown
     """
-    
+
     # Step 1: Count unique skills
     unique_skills = deduplicate_skills(skills)
     skill_count = len(unique_skills)
-    
+
+    flags = []
+
     # Step 2: Breadth Score (0-100)
     # Logarithmic scaling to avoid rewarding spam
     # Sweet spot: 10-20 skills
@@ -142,7 +144,7 @@ def calculate_skill_capital_mvp(skills: List[str], total_years: int) -> float:
     else:
         # log(1 + count) / log(1 + 30) where 30 is reasonable max
         breadth = min(100, (math.log(1 + skill_count) / math.log(1 + 30)) * 100)
-    
+
     # Step 3: Depth proxy (simplified)
     # Assume depth correlates with years of experience
     # 0-2 years = beginner (0.5x)
@@ -154,12 +156,26 @@ def calculate_skill_capital_mvp(skills: List[str], total_years: int) -> float:
         depth_factor = 0.8
     else:
         depth_factor = 1.0
-    
-    # Step 4: Combine
-    # 60% breadth, 40% depth proxy
-    skill_capital = (0.6 * breadth) + (0.4 * breadth * depth_factor)
-    
-    return round(skill_capital, 1)
+
+    # Step 4: Combine with improved clarity
+    # Calculate component scores
+    breadth_score = breadth  # 0-100
+    depth_score = depth_factor * 100  # 50/80/100 based on years
+
+    # Combine: 60% breadth, 40% depth
+    skill_capital = (0.6 * breadth_score) + (0.4 * depth_score)
+
+    final_score = round(skill_capital, 1)
+
+    return {
+        'score': final_score,
+        'flags': flags,
+        'breakdown': {
+            'breadth': round(breadth, 1),
+            'depth_factor': depth_factor,
+            'skill_count': skill_count
+        }
+    }
 ```
 
 #### 3.1.4 Detailed Algorithm
@@ -249,12 +265,31 @@ if skill_count == 0:
     }
 ```
 
-**Case 2: Suspiciously high count (>40)**
+**Case 2: Suspiciously high count (>40) - Cascading Penalty Floor**
 ```python
 if skill_count > 40:
-    # Likely keyword stuffing
-    penalty = 0.7  # 30% penalty
-    final_score = base_score * penalty
+    # Likely keyword stuffing - apply penalties with floor
+    penalties = []
+
+    if skill_count > 40:
+        penalties.append(0.7)
+
+    recognized_count = count_recognized_skills(skills)
+    if recognized_count / skill_count < 0.5:
+        penalties.append(0.8)
+
+    generic_count = count_generic(skills)
+    if generic_count / skill_count > 0.3:
+        penalties.append(0.85)
+
+    # Calculate total penalty with minimum floor
+    total_penalty = 1.0
+    for p in penalties:
+        total_penalty *= p
+    total_penalty = max(total_penalty, 0.4)  # Floor at 40%
+
+    final_score = base_score * total_penalty
+
     return {
         'score': final_score,
         'flag': 'POSSIBLE_SPAM',
@@ -376,6 +411,11 @@ Interpretation: Quantity over quality, lacks focus
 #### 3.2.1 Definition
 Measures **tangible work output and impact** through evidence of real projects, quantified achievements, and ownership demonstrated in work experience descriptions.
 
+**Note on Metrics vs Signal Quality:**
+- Execution Impact measures: "Did you achieve concrete results?"
+- Signal Quality/Evidence measures: "Did you document those results well?"
+- Some overlap is intentional - both dimensions matter independently.
+
 #### 3.2.2 Input Requirements
 From resume:
 - Work experience bullet points
@@ -385,75 +425,115 @@ From resume:
 #### 3.2.3 Formula
 
 ```python
-def calculate_execution_impact(experiences: List[Experience]) -> float:
+def calculate_execution_impact(experiences: List[Experience]) -> Dict:
     """
     Execution Impact Score based on concrete evidence
-    
+
     Args:
         experiences: List of work experiences with bullet points
-    
+
     Returns:
-        Score from 0-100
+        Dict with score, flags, and breakdown
     """
-    
+
     # Counters for different signals
     metrics_count = 0
     action_verbs_count = 0
     ownership_signals = 0
     total_bullets = 0
-    
+    generic_count = 0
+
     # Strong action verbs indicating execution
     strong_verbs = [
         'built', 'designed', 'implemented', 'developed', 'created',
         'launched', 'shipped', 'delivered', 'architected', 'engineered',
         'optimized', 'improved', 'reduced', 'increased', 'automated'
     ]
-    
+
     # Ownership signals
     ownership_keywords = [
         'led', 'owned', 'managed', 'directed', 'coordinated',
         'drove', 'spearheaded', 'initiated', 'founded'
     ]
-    
+
+    # Generic phrases to flag
+    generic_phrases = ['responsible for', 'worked on', 'assisted with', 'involved in']
+
     # Scan all bullets
     for exp in experiences:
         for bullet in exp.bullets:
             total_bullets += 1
             text = bullet.lower()
-            
+
             # Check for metrics (numbers, %, x, k, m, etc.)
             if has_metrics(text):
                 metrics_count += 1
-            
+
             # Check for strong action verbs
             if any(verb in text for verb in strong_verbs):
                 action_verbs_count += 1
-            
+
             # Check for ownership signals
             if any(keyword in text for keyword in ownership_keywords):
                 ownership_signals += 1
-    
-    # Calculate component scores
+
+            # Check for generic phrases
+            if any(phrase in text for phrase in generic_phrases):
+                generic_count += 1
+
+    # Handle edge cases
+    score_raw = 0
+    penalty_factor = 1.0
+    flags = []
+
+    # Edge case: No bullets/experience
     if total_bullets == 0:
-        return 0
-    
+        return {
+            'score': 0,
+            'flags': ['NO_EXPERIENCE'],
+            'breakdown': {
+                'metrics_ratio': 0,
+                'action_ratio': 0,
+                'ownership_ratio': 0
+            }
+        }
+
     # Metrics ratio (0-1)
     metrics_ratio = min(metrics_count / max(total_bullets * 0.5, 1), 1)
-    
+
     # Action verbs ratio (0-1)
     action_ratio = min(action_verbs_count / total_bullets, 1)
-    
+
     # Ownership ratio (0-1)
     ownership_ratio = min(ownership_signals / max(total_bullets * 0.3, 1), 1)
-    
+
     # Combine with weights
-    execution_impact = (
+    score_raw = (
         0.40 * metrics_ratio * 100 +      # Metrics most important
         0.35 * action_ratio * 100 +       # Action verbs
         0.25 * ownership_ratio * 100      # Ownership
     )
-    
-    return round(execution_impact, 1)
+
+    # Apply edge case penalties
+    if generic_count / total_bullets > 0.7:
+        penalty_factor *= 0.6
+        flags.append('GENERIC_DESCRIPTIONS')
+
+    if metrics_count == 0 and total_bullets > 3:
+        score_raw = min(score_raw, 40)
+        flags.append('NO_METRICS')
+
+    final_score = round(score_raw * penalty_factor, 1)
+
+    return {
+        'score': final_score,
+        'flags': flags,
+        'breakdown': {
+            'metrics_ratio': round(metrics_ratio, 2),
+            'action_ratio': round(action_ratio, 2),
+            'ownership_ratio': round(ownership_ratio, 2)
+        }
+    }
 
 
 def has_metrics(text: str) -> bool:
@@ -753,60 +833,74 @@ From resume:
 #### 3.3.3 Formula
 
 ```python
-def calculate_learning_adaptivity(profile: Profile) -> float:
+def calculate_learning_adaptivity(profile: Profile) -> Dict:
     """
     Learning & Adaptivity Score
-    
+
     Args:
         profile: Complete profile with learning indicators
-    
+
     Returns:
-        Score from 0-100
+        Dict with score, flags, and breakdown
     """
-    
+
+    flags = []
+
     # Component 1: Formal Learning (courses, certifications)
     courses_score = score_courses(profile.courses, profile.certifications)
-    
+
     # Component 2: Self-Learning (projects, GitHub)
     self_learning_score = score_self_learning(
         profile.personal_projects,
         profile.github_activity
     )
-    
+
     # Component 3: Tech Evolution (learning new tech over time)
     tech_evolution_score = score_tech_evolution(
         profile.tech_timeline,
         profile.total_years
     )
-    
+
     # Combine with weights
     learning_adaptivity = (
         0.30 * courses_score +
         0.40 * self_learning_score +
         0.30 * tech_evolution_score
     )
-    
+
     # Penalty for stagnation
     if tech_evolution_score < 20:
         stagnation_penalty = 0.8
         learning_adaptivity *= stagnation_penalty
-    
-    return round(learning_adaptivity, 1)
+        flags.append('STAGNANT')
+
+    final_score = round(learning_adaptivity, 1)
+
+    return {
+        'score': final_score,
+        'flags': flags,
+        'breakdown': {
+            'courses_score': round(courses_score, 1),
+            'self_learning_score': round(self_learning_score, 1),
+            'tech_evolution_score': round(tech_evolution_score, 1)
+        }
+    }
 
 
 def score_courses(courses: List[Course], certs: List[Certification]) -> float:
     """
     Score formal learning
-    
+
     Courses/certifications in last 3 years count more
     Quality matters (verified, recognized institutions)
     """
+    import datetime
     recent_threshold = 3  # years
-    current_year = 2025
-    
-    recent_courses = [c for c in courses 
+    current_year = datetime.date.today().year
+
+    recent_courses = [c for c in courses
                      if current_year - c.year <= recent_threshold]
-    recent_certs = [c for c in certs 
+    recent_certs = [c for c in certs
                    if current_year - c.year <= recent_threshold]
     
     # Count with diminishing returns
@@ -847,20 +941,23 @@ def score_self_learning(projects: List[Project], github: GitHubProfile) -> float
 def score_tech_evolution(tech_timeline: List[TechEvent], total_years: int) -> float:
     """
     Score technology learning over time
-    
+
     TechEvent: { year: int, tech_name: str, action: 'started' }
-    
+
     Measures:
     - How many new technologies learned over time
     - Recency of learning (last 3 years weighted more)
     - Frequency (learning pace)
     """
+    import datetime
+    current_year = datetime.date.today().year
+
     if total_years == 0:
         return 50  # Neutral for fresh grads
-    
+
     # Count new tech introductions
-    recent_tech = [t for t in tech_timeline if 2025 - t.year <= 3]
-    older_tech = [t for t in tech_timeline if 2025 - t.year > 3]
+    recent_tech = [t for t in tech_timeline if current_year - t.year <= 3]
+    older_tech = [t for t in tech_timeline if current_year - t.year > 3]
     
     # Recent learning is more valuable
     recent_value = min(len(recent_tech), 5) / 5  # Cap at 5
@@ -1203,7 +1300,7 @@ def calculate_signal_quality(resume: Resume) -> float:
     issues.extend(polish_issues)
     
     return {
-        'score': max(0, score),
+        'score': max(0, min(score, 100)),
         'issues': issues,
         'breakdown': {
             'structure': structure_score,
@@ -1222,27 +1319,27 @@ def check_structure(resume: Resume) -> Tuple[int, List[str]]:
     """
     score = 20
     issues = []
-    
+
     required_sections = ['experience', 'education', 'skills']
     optional_sections = ['summary', 'projects', 'certifications']
-    
+
     # Check required sections (5 points each)
     for section in required_sections:
         if not resume.has_section(section):
             score -= 5
             issues.append(f"Missing {section} section")
-    
+
     # Bonus for optional sections (2 points each, max 5)
-    optional_present = sum(1 for s in optional_sections 
+    optional_present = sum(1 for s in optional_sections
                           if resume.has_section(s))
     score += min(optional_present * 2, 5)
-    
+
     # Check section order (logical flow)
     if not resume.has_logical_order():
         score -= 3
         issues.append("Section order is unconventional")
-    
-    return (max(0, score), issues)
+
+    return (max(0, min(score, 20)), issues)
 
 
 def check_formatting(resume: Resume) -> Tuple[int, List[str]]:
@@ -1252,31 +1349,31 @@ def check_formatting(resume: Resume) -> Tuple[int, List[str]]:
     """
     score = 15
     issues = []
-    
+
     # ATS compatibility checks
     if resume.has_tables:
         score -= 5
         issues.append("Contains tables - may break ATS parsing")
-    
+
     if resume.has_images:
         score -= 3
         issues.append("Contains images - not ATS-friendly")
-    
+
     if resume.has_complex_formatting:
         score -= 4
         issues.append("Complex formatting may cause parsing issues")
-    
+
     # Length check
     if resume.page_count > 2:
         score -= 3
         issues.append(f"Resume is {resume.page_count} pages - aim for 1-2")
-    
+
     # Font and margins
     if not resume.has_standard_font():
         score -= 2
         issues.append("Use standard fonts (Arial, Calibri, Times New Roman)")
-    
-    return (max(0, score), issues)
+
+    return (max(0, min(score, 15)), issues)
 
 
 def check_evidence(resume: Resume) -> Tuple[int, List[str]]:
@@ -1319,8 +1416,8 @@ def check_evidence(resume: Resume) -> Tuple[int, List[str]]:
         issues.append("Too many vague phrases ('various', 'multiple', 'many')")
     elif vague_phrases > 2:
         score -= 3
-    
-    return (max(0, score), issues)
+
+    return (max(0, min(score, 30)), issues)
 
 
 def check_writing(resume: Resume) -> Tuple[int, List[str]]:
@@ -1330,7 +1427,7 @@ def check_writing(resume: Resume) -> Tuple[int, List[str]]:
     """
     score = 20
     issues = []
-    
+
     # Grammar check (using basic NLP or grammar API)
     grammar_errors = count_grammar_errors(resume.text)
     if grammar_errors > 5:
@@ -1338,23 +1435,23 @@ def check_writing(resume: Resume) -> Tuple[int, List[str]]:
         issues.append(f"{grammar_errors} grammar errors detected")
     elif grammar_errors > 2:
         score -= 5
-    
+
     # Bullet point consistency
     if not resume.has_consistent_bullets():
         score -= 3
         issues.append("Inconsistent bullet point format")
-    
+
     # Tense consistency (past jobs = past tense)
     if not resume.has_correct_tenses():
         score -= 4
         issues.append("Incorrect verb tenses (use past tense for past roles)")
-    
+
     # First-person pronouns (should not have "I", "me", "my")
     if resume.has_first_person():
         score -= 3
         issues.append("Remove first-person pronouns (I, me, my)")
-    
-    return (max(0, score), issues)
+
+    return (max(0, min(score, 20)), issues)
 
 
 def check_polish(resume: Resume) -> Tuple[int, List[str]]:
@@ -1364,31 +1461,31 @@ def check_polish(resume: Resume) -> Tuple[int, List[str]]:
     """
     score = 15
     issues = []
-    
+
     # Contact information
     if not resume.has_email:
         score -= 5
         issues.append("Missing email address")
-    
+
     if not resume.has_phone:
         score -= 3
         issues.append("Missing phone number")
-    
+
     # Professional email check
     if resume.email and not is_professional_email(resume.email):
         score -= 3
         issues.append("Use a professional email address")
-    
+
     # Consistency
     if not resume.has_consistent_dates():
         score -= 2
         issues.append("Date formats are inconsistent")
-    
+
     if not resume.has_consistent_styling():
         score -= 2
         issues.append("Inconsistent text styling (bold, italics)")
-    
-    return (max(0, score), issues)
+
+    return (max(0, min(score, 15)), issues)
 ```
 
 #### 3.4.4 Helper Functions
@@ -1420,18 +1517,23 @@ def count_vague_phrases(resume: Resume) -> int:
 
 def count_grammar_errors(text: str) -> int:
     """
-    Use grammar checking library or API
-    For MVP, can use simple heuristics or language_tool_python
+    Grammar checking - MVP consideration:
+    For initial version, return 0 or use simple heuristics
+    due to performance concerns. Can enable post-MVP.
     """
-    import language_tool_python
-    tool = language_tool_python.LanguageTool('en-US')
-    matches = tool.check(text)
-    
-    # Filter out minor issues
-    serious_errors = [m for m in matches 
-                     if m.category in ['GRAMMAR', 'TYPOS']]
-    
-    return len(serious_errors)
+    # MVP: Skip grammar check
+    return 0
+
+    # Post-MVP implementation:
+    # import language_tool_python
+    # tool = language_tool_python.LanguageTool('en-US')
+    # matches = tool.check(text)
+    #
+    # # Filter out minor issues
+    # serious_errors = [m for m in matches
+    #                  if m.category in ['GRAMMAR', 'TYPOS']]
+    #
+    # return len(serious_errors)
 
 def is_professional_email(email: str) -> bool:
     """Check if email looks professional"""
@@ -1659,20 +1761,30 @@ def calculate_signal_factor(signal_quality: float) -> float:
 def apply_constraints(score: float, dimensions: Dict) -> float:
     """
     Apply hard caps based on dimension flags
+
+    Configuration (can be moved to config file)
     """
-    
+    CONSTRAINTS = {
+        'skill_capital_min': 25,
+        'skill_capital_cap': 50,
+        'execution_min': 20,
+        'execution_cap': 55,
+        'learning_min': 15,
+        'learning_cap': 70
+    }
+
     # If skill capital is very low, cap total score
-    if dimensions['skill_capital'] < 25:
-        score = min(score, 50)
-    
+    if dimensions['skill_capital'] < CONSTRAINTS['skill_capital_min']:
+        score = min(score, CONSTRAINTS['skill_capital_cap'])
+
     # If execution impact is very low, cap total score
-    if dimensions['execution_impact'] < 20:
-        score = min(score, 55)
-    
+    if dimensions['execution_impact'] < CONSTRAINTS['execution_min']:
+        score = min(score, CONSTRAINTS['execution_cap'])
+
     # If learning is stagnant but other scores high
-    if dimensions['learning_adaptivity'] < 15 and score > 70:
-        score = min(score, 70)
-    
+    if dimensions['learning_adaptivity'] < CONSTRAINTS['learning_min'] and score > CONSTRAINTS['learning_cap']:
+        score = min(score, CONSTRAINTS['learning_cap'])
+
     # Ensure 0-100 range
     return max(0, min(100, score))
 
