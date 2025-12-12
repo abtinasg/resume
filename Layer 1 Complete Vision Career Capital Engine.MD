@@ -280,6 +280,13 @@ def title_to_level(title: str) -> int:
     # Default: Mid-level
     return 2
 
+# Note: This is a simplified mapping for MVP
+# TODO for production:
+#   - Handle company-specific levels (L3, L4, T4, etc.)
+#   - Consider industry variations
+#   - Add machine learning classifier for ambiguous titles
+#   - Maintain title normalization database
+
 
 def calculate_linear_regression(x: List[float], y: List[float]) -> Tuple[float, float]:
     """
@@ -473,10 +480,10 @@ def calculate_coherence_focus(experiences: List[Experience]) -> Dict:
     # Step 3: Calculate Shannon Entropy
     import math
     entropy_raw = -sum(p * math.log2(p) for p in distribution.values() if p > 0)
-    
-    # Normalize by maximum possible entropy
-    num_categories = len(distribution)
-    max_entropy = math.log2(num_categories) if num_categories > 1 else 1
+
+    # Normalize by FIXED taxonomy size (all possible categories)
+    MAX_POSSIBLE_CATEGORIES = 12  # Total number of job categories in taxonomy
+    max_entropy = math.log2(MAX_POSSIBLE_CATEGORIES)
     normalized_entropy = entropy_raw / max_entropy if max_entropy > 0 else 0
     
     # Step 4: Score based on optimal range
@@ -607,12 +614,12 @@ def categorize_role(title: str, description: str) -> List[str]:
 def has_logical_progression(categories: List[str]) -> bool:
     """
     Check if category sequence represents logical career progression
-    
+
     Examples of logical progression:
         - Frontend → Full Stack → Backend
         - Backend → DevOps
-        - Engineering → Product Management
-        - Engineering → Management
+        - Any Engineering → Product Management
+        - Any Engineering → Management
     """
     logical_paths = [
         ['Frontend Engineering', 'Full Stack Engineering'],
@@ -621,16 +628,27 @@ def has_logical_progression(categories: List[str]) -> bool:
         ['Backend Engineering', 'DevOps / Infrastructure'],
         ['Backend Engineering', 'Machine Learning / AI'],
         ['Data Engineering', 'Machine Learning / AI'],
-        ['Engineering', 'Product Management'],
-        ['Engineering', 'Management / Leadership'],
+        ['Full Stack Engineering', 'DevOps / Infrastructure'],
+
+        # To Product/Management (from any engineering)
+        ['Backend Engineering', 'Product Management'],
+        ['Frontend Engineering', 'Product Management'],
+        ['Full Stack Engineering', 'Product Management'],
+        ['Backend Engineering', 'Management / Leadership'],
+        ['Frontend Engineering', 'Management / Leadership'],
+        ['Full Stack Engineering', 'Management / Leadership'],
+        ['Data Engineering', 'Product Management'],
+        ['Machine Learning / AI', 'Product Management'],
+
+        # Design to Product
         ['Design (UI/UX)', 'Product Management'],
     ]
-    
+
     # Check if any logical path subset exists in categories
     for path in logical_paths:
         if all(cat in categories for cat in path):
             return True
-    
+
     return False
 ```
 
@@ -661,44 +679,15 @@ Input:
   5 years Backend (50%)
   3 years Full Stack (30%)
   2 years DevOps (20%)
-  
+
 Calculation:
   distribution = {'Backend': 0.5, 'Full Stack': 0.3, 'DevOps': 0.2}
   entropy_raw = -(0.5*log2(0.5) + 0.3*log2(0.3) + 0.2*log2(0.2))
-               = 1.49
-  max_entropy = log2(3) = 1.58
-  normalized_entropy = 1.49/1.58 = 0.94... wait let me recalculate
-  
-Actually:
-  entropy_raw = 1.49
-  max_entropy = log2(3) = 1.58
-  normalized = 0.94
+               ≈ 1.485
 
-Hmm that's high. Let me fix the formula:
+  max_entropy = log2(12) = 3.585
+  normalized = 1.485 / 3.585 ≈ 0.41
 
-  p1=0.5, p2=0.3, p3=0.2
-  H = -(0.5*(-1) + 0.3*(-1.737) + 0.2*(-2.322))
-    = 0.5 + 0.521 + 0.464 = 1.485
-  max_H = log2(3) = 1.585
-  normalized = 1.485/1.585 = 0.937
-
-This is still too high (>0.65). Let me use actual distribution:
-
-Actually with these proportions:
-  50%, 30%, 20% → this is reasonably focused
-  But entropy calculation shows 0.94 which seems scattered
-
-Let me recalculate normalized differently - the issue is max_entropy grows with categories.
-
-Better approach:
-  Use absolute entropy, not normalized
-  Or use a fixed reference (e.g., 10 possible categories)
-  
-Let's use: max_possible_categories = 12 (all job categories)
-  max_entropy = log2(12) = 3.58
-  normalized = 1.485 / 3.58 = 0.41
-
-Now:
   0.41 is in optimal range [0.35, 0.65]
   distance_from_center = |0.41 - 0.50| = 0.09
   score = 100 - (0.09 * 100) = 91
@@ -936,19 +925,21 @@ def calculate_awards(awards: List[Award]) -> float:
 def calculate_strong_certifications(certs: List[Certification]) -> float:
     """
     Score credible certifications (max 15 points)
-    
+
     Only count:
         - Major cloud providers (AWS, GCP, Azure)
         - Professional designations (PMP, CFA)
         - Advanced technical (CCIE, etc)
-    
+
     Exclude:
         - Udemy certificates
         - Generic courses
         - Outdated certifications
     """
+    import datetime
+
     points = 0
-    
+
     strong_cert_keywords = [
         'AWS Certified Solutions Architect',
         'GCP Professional',
@@ -958,7 +949,7 @@ def calculate_strong_certifications(certs: List[Certification]) -> float:
         'CCIE',
         'CISSP',
     ]
-    
+
     for cert in certs:
         # Check if it's a strong certification
         if any(keyword in cert.name for keyword in strong_cert_keywords):
@@ -1226,7 +1217,7 @@ PROFILE_TYPES = {
         'criteria': {
             'coherence_focus': '< 50',
             'learning_adaptivity': '>= 60',
-            'trajectory_momentum': 'recent_inflection'
+            # 'trajectory_momentum': 'recent_inflection'  # TODO: Implement in v2.1
         },
         'description': 'Transitioning between domains with strong learning signals',
         'strengths': ['Adaptable', 'Motivated learner', 'Fresh perspective'],
@@ -1463,42 +1454,92 @@ def calculate_global_score_complete(dimensions: Dict, metadata: Dict) -> Dict:
     """
     Complete version with all 7 dimensions
     """
-    
+
+    # Extract numeric scores from dimension objects
+    dim_scores = {
+        'skill_capital': dimensions['skill_capital']['score'],
+        'execution_impact': dimensions['execution_impact']['score'],
+        'learning_adaptivity': dimensions['learning_adaptivity']['score'],
+        'signal_quality': dimensions['signal_quality']['score'],
+        'trajectory_momentum': dimensions['trajectory_momentum']['score'],
+        'coherence_focus': dimensions['coherence_focus']['score'],
+        'external_validation': dimensions['external_validation']['score']
+    }
+
     # Get industry-specific weights if available
     industry = metadata.get('industry', 'generic')
     weights = INDUSTRY_WEIGHTS.get(industry, WEIGHTS_COMPLETE)
-    
+
     # Base score with all dimensions
     base_score = sum(
-        dimensions[dim] * weights[dim]
-        for dim in dimensions.keys()
+        dim_scores[dim] * weights[dim]
+        for dim in weights.keys()  # Iterate over weights, not dimensions
     )
-    
+
     # Apply signal quality modifier
-    signal_factor = calculate_signal_factor(dimensions['signal_quality'])
+    signal_factor = calculate_signal_factor(dim_scores['signal_quality'])
     adjusted_score = base_score * signal_factor
-    
+
     # Apply constraints
-    final_score = apply_constraints_complete(adjusted_score, dimensions, metadata)
+    final_score = apply_constraints_complete(adjusted_score, dim_scores, metadata)
     
     # Calculate density score
     density = calculate_density_score(final_score, metadata['total_years'])
-    
+
     # Classify profile type
-    profile_type = classify_profile_type(dimensions, metadata['total_years'])
-    
+    profile_type = classify_profile_type(dim_scores, metadata['total_years'])
+
     # Determine level
     level = determine_level_complete(final_score, density['density_score'])
-    
+
     return {
         'global_score': round(final_score, 1),
         'level': level,
         'density_score': density['density_score'],
         'profile_type': profile_type,
-        'dimensions': dimensions,
+        'dimensions': dim_scores,
         'weights_used': weights,
         'signal_factor': signal_factor
     }
+
+
+def apply_constraints_complete(score: float, dim_scores: Dict, metadata: Dict) -> float:
+    """
+    Apply hard caps based on dimension flags and metadata
+
+    Complete version includes trajectory and coherence constraints
+    """
+
+    # MVP constraints (from v1.0)
+    if dim_scores['skill_capital'] < 25:
+        score = min(score, 50)
+
+    if dim_scores['execution_impact'] < 20:
+        score = min(score, 55)
+
+    if dim_scores['learning_adaptivity'] < 15 and score > 70:
+        score = min(score, 70)
+
+    # NEW: Complete version constraints
+
+    # Trajectory momentum constraint
+    # If stagnant trajectory (< 20) with 5+ years experience
+    total_years = metadata.get('total_years', 0)
+    if dim_scores['trajectory_momentum'] < 20 and total_years >= 5:
+        score = min(score, 65)  # Cap at Solid level
+
+    # Coherence constraint
+    # If highly scattered (< 30) and not compensated by high external validation
+    if dim_scores['coherence_focus'] < 30 and dim_scores['external_validation'] < 40:
+        score = min(score, 70)
+
+    # Combined low performers
+    # If multiple dimensions are very weak
+    low_dimensions = sum(1 for s in dim_scores.values() if s < 30)
+    if low_dimensions >= 3:
+        score = min(score, 60)
+
+    return score
 
 
 def determine_level_complete(score: float, density: float) -> str:
@@ -1638,11 +1679,43 @@ Additions:
   - Real-time benchmarking
   - Industry-specific models
   - Multi-language support
-  
+
 Estimated Effort: 12 weeks
 LOC: +5000
 Data Requirements: 10K+ outcomes
 ```
+
+### 7.4 Data Schema and Versioning
+
+**Database Schema:**
+```sql
+-- All new dimensions should be NULLABLE for backward compatibility
+CREATE TABLE resume_assessments (
+    id UUID PRIMARY KEY,
+    user_id UUID,
+    version VARCHAR(20),  -- "1.0-mvp" or "2.0-complete"
+
+    -- MVP dimensions (always present)
+    skill_capital FLOAT NOT NULL,
+    execution_impact FLOAT NOT NULL,
+    learning_adaptivity FLOAT NOT NULL,
+    signal_quality FLOAT NOT NULL,
+
+    -- Complete dimensions (nullable)
+    trajectory_momentum FLOAT NULL,
+    coherence_focus FLOAT NULL,
+    external_validation FLOAT NULL,
+    density_score FLOAT NULL,
+    profile_type VARCHAR(50) NULL,
+
+    -- ...
+);
+```
+
+**UI Handling:**
+- If `trajectory_momentum` is NULL, hide that section
+- Show "Upgrade to Complete Analysis" CTA for MVP results
+- Allow re-analysis of old resumes with new engine
 
 ---
 
