@@ -1,5 +1,5 @@
 {
-  "version": "2.1",
+  "version": "2.2",
   "defaults": {
     "language": "en",
     "evidence_scope": "section",
@@ -29,6 +29,13 @@
     "soft_skill_injection_block": true,
     "resume_level_enrichment": true,
     "persian_support": false
+  },
+  "validation": {
+    "evidence_map_strict": true,
+    "enforce_scope_rules": true,
+    "check_company_names": true,
+    "check_implied_metrics": true,
+    "allow_resume_enrichment_in_experience": false
   },
   "lists": {
     "fluff_words_en": [
@@ -70,6 +77,33 @@
       "did",
       "tasked with",
       "contributed to"
+    ],
+    "scale_claims": [
+      "massive",
+      "large-scale",
+      "enterprise-grade",
+      "enterprise-level",
+      "high-traffic",
+      "high-volume",
+      "significant",
+      "substantial",
+      "major",
+      "critical",
+      "extensive",
+      "considerable"
+    ],
+    "implied_metrics": [
+      "doubled",
+      "tripled",
+      "halved",
+      "quadrupled",
+      "increased significantly",
+      "dramatically improved",
+      "greatly enhanced",
+      "substantially reduced",
+      "millions of",
+      "thousands of",
+      "hundreds of"
     ]
   },
   "verb_mappings": {
