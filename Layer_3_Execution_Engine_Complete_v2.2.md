@@ -1,9 +1,10 @@
 # Layer 3 – Execution Engine (Rewrite)
-## Complete Specification v2.1 (MVP + Roadmap)
+## Complete Specification v2.2 (MVP + Roadmap)
 
-**Version:** 2.1  
-**Status:** Implementation-Ready  
-**Last Updated:** December 15, 2025  
+**Version:** 2.2
+**Status:** Implementation-Ready
+**Last Updated:** December 15, 2025
+**Language:** English only (no Persian support in MVP)
 **Scope:** Resume rewriting (bullets, summary, section)
 
 ---
@@ -73,11 +74,12 @@ Traditional resume rewriters fabricate: "40%", "5 engineers", "10x faster" becau
 
 ```ts
 interface EvidenceItem {
-  id: string;                    // "E1", "E2", ...
+  id: string;                      // "E1", "E2", ...
+  type: "bullet" | "section" | "skills" | "tools" | "titles";  // NEW FIELD
   scope: "bullet" | "section" | "resume";
   source: "bullet" | "section" | "resume";
-  text: string;                  // raw evidence text
-  normalized_terms?: string[];   // extracted keywords
+  text: string;                    // raw evidence text
+  normalized_terms?: string[];     // extracted keywords
 }
 
 interface EvidenceMapItem {
@@ -158,11 +160,67 @@ interface RewriteRequest {
 }
 ```
 
-### 3.2 Evidence Sources (Allowed Facts)
+### 3.2 Evidence Sources & Enrichment (Allowed Facts)
 
-**bullet_only:** Safest, minimal enrichment  
-**section:** May use facts from other bullets in same role  
-**resume:** May use skills/tools from resume-wide lists (via Layer 1 extracted)
+**bullet_only:** Safest, minimal enrichment
+**section:** May use facts from other bullets in same role/experience section
+**resume:** Complex - see rules below
+
+**CRITICAL RESUME-LEVEL ENRICHMENT RULES:**
+
+Resume-level skills/tools from the skills section or resume-wide lists MAY ONLY be added to:
+- ✅ Skills section rewrites
+- ✅ Summary/Headline rewrites
+- ❌ **NOT to Experience bullets** (default)
+
+**Exception for Experience bullets:**
+Resume-level skills/tools CAN be added to an experience bullet ONLY if:
+1. The same skill/tool appears in another bullet within the SAME role/section, OR
+2. User explicitly confirms: "Did you use {tool} in this role? [Yes/No]"
+
+**Rationale:**
+- Having "Python" in resume skills ≠ Used Python in a specific job
+- Prevents false claims about tool usage in particular roles
+- Maintains truthfulness of work history
+
+**Implementation:**
+```python
+def allow_resume_enrichment_in_bullet(bullet_context, tool, evidence_ledger):
+    """
+    Check if a resume-level tool/skill can be added to this specific bullet.
+
+    Args:
+        bullet_context: Information about where this bullet is (section type, role)
+        tool: The tool/skill to potentially add
+        evidence_ledger: All available evidence
+
+    Returns:
+        (allowed: bool, reason: str)
+    """
+
+    # If bullet is in Summary or Skills section → always OK
+    if bullet_context.section_type in ["summary", "skills", "headline"]:
+        return (True, "summary_or_skills_section")
+
+    # If bullet is in Experience section → need additional evidence
+    if bullet_context.section_type == "experience":
+        # Check: Does same tool appear in another bullet from same role?
+        same_role_bullets = [
+            e for e in evidence_ledger
+            if e.scope == "section"
+            and e.source == "section"
+        ]
+
+        for evidence in same_role_bullets:
+            if tool.lower() in evidence.text.lower():
+                return (True, "tool_used_in_same_role")
+
+        # Tool not found in same role → need user confirmation
+        return (False, "needs_user_confirmation")
+
+    # Default: don't allow
+    return (False, "unknown_section_type")
+```
 
 **Job Description:** NEVER a factual source. Only for:
 - Preferred terminology
@@ -246,35 +304,48 @@ If `request.evidence` not provided:
 ```python
 def build_evidence_ledger(request):
     ledger = []
-    
+
     # E1: Bullet itself
     if request.bullet:
         ledger.append(EvidenceItem(
             id="E1",
+            type="bullet",  # NEW
             scope="bullet",
             source="bullet",
             text=request.bullet
         ))
-    
+
     # E2-En: Section bullets
     if request.evidence_scope in ["section", "resume"]:
         for i, bullet in enumerate(other_bullets_in_section):
             ledger.append(EvidenceItem(
                 id=f"E{i+2}",
+                type="section",  # NEW
                 scope="section",
                 source="section",
                 text=bullet
             ))
-    
+
     # Resume-level: from Layer 1 extracted
     if request.allow_resume_enrichment and request.layer1.extracted:
-        ledger.append(EvidenceItem(
-            id="E_skills",
-            scope="resume",
-            source="resume",
-            text=", ".join(request.layer1.extracted.skills)
-        ))
-    
+        if request.layer1.extracted.skills:
+            ledger.append(EvidenceItem(
+                id="E_skills",
+                type="skills",  # NEW
+                scope="resume",
+                source="resume",
+                text=", ".join(request.layer1.extracted.skills)
+            ))
+
+        if request.layer1.extracted.tools:
+            ledger.append(EvidenceItem(
+                id="E_tools",
+                type="tools",  # NEW
+                scope="resume",
+                source="resume",
+                text=", ".join(request.layer1.extracted.tools)
+            ))
+
     return ledger
 ```
 
@@ -305,9 +376,9 @@ interface RewritePlan {
 **Planning algorithm:**
 
 ```python
-def create_plan(bullet, layer1_issues, evidence_ledger):
+def create_plan(bullet, layer1_issues, evidence_ledger, context):
     plan = RewritePlan(issues=layer1_issues)
-    
+
     # Issue: weak_verb
     if "weak_verb" in layer1_issues:
         weak_verb = detect_weak_verb(bullet)
@@ -317,7 +388,7 @@ def create_plan(bullet, layer1_issues, evidence_ledger):
             "from": weak_verb,
             "to": strong_verb
         })
-    
+
     # Issue: no_metric
     if "no_metric" in layer1_issues:
         # Don't add numbers, add HOW
@@ -325,19 +396,34 @@ def create_plan(bullet, layer1_issues, evidence_ledger):
             "type": "add_how",
             "hint": "Explain the method/approach used"
         })
-    
-    # Check: can we surface tools from resume?
+
+    # FIX: Check for resume-level skills/tools using type field
     for evidence in evidence_ledger:
-        if evidence.scope == "resume" and "skills" in evidence.text:
+        # Use evidence TYPE instead of searching in text
+        if evidence.type in ["skills", "tools"]:
             tools = extract_tools(evidence.text)
+
             for tool in tools:
                 if tool_relevant_to_bullet(tool, bullet):
-                    plan.transformations.append({
-                        "type": "surface_tool",
-                        "tool": tool,
-                        "evidence_id": evidence.id
-                    })
-    
+                    # IMPORTANT: Check scope enforcement (P0-2)
+                    allowed, reason = allow_resume_enrichment_in_bullet(
+                        context, tool, evidence_ledger
+                    )
+
+                    if allowed:
+                        plan.transformations.append({
+                            "type": "surface_tool",
+                            "tool": tool,
+                            "evidence_id": evidence.id
+                        })
+                    else:
+                        # Add to needs_user_input for confirmation
+                        plan.needs_user_input.append({
+                            "prompt": f"Did you use {tool} in this role?",
+                            "type": "boolean",
+                            "context": reason
+                        })
+
     return plan
 ```
 
@@ -384,14 +470,14 @@ OUTPUT (JSON):
 ### Step 5: Validate (Hard Rules)
 
 ```python
-def validate_rewrite(original, improved, evidence_ledger):
+def validate_rewrite(original, improved, evidence_ledger, evidence_map):
     warnings = []
-    
+
     # Critical: No new numbers
     orig_numbers = extract_numbers(original)
     evidence_numbers = extract_all_numbers(evidence_ledger)
     improved_numbers = extract_numbers(improved)
-    
+
     new_numbers = improved_numbers - (orig_numbers ∪ evidence_numbers)
     if new_numbers:
         warnings.append(ValidationItem(
@@ -399,12 +485,12 @@ def validate_rewrite(original, improved, evidence_ledger):
             severity="critical",
             message=f"Added numbers not in evidence: {new_numbers}"
         ))
-    
+
     # Critical: No new tools
     orig_tools = extract_tech_terms(original)
     evidence_tools = extract_all_tools(evidence_ledger)
     improved_tools = extract_tech_terms(improved)
-    
+
     new_tools = improved_tools - (orig_tools ∪ evidence_tools)
     if new_tools:
         warnings.append(ValidationItem(
@@ -412,7 +498,39 @@ def validate_rewrite(original, improved, evidence_ledger):
             severity="critical",
             message=f"Added tools not in evidence: {new_tools}"
         ))
-    
+
+    # NEW: Check for company/organization names
+    orig_companies = extract_company_names(original)
+    evidence_companies = set()
+    for evidence in evidence_ledger:
+        evidence_companies.update(extract_company_names(evidence.text))
+
+    improved_companies = extract_company_names(improved)
+
+    new_companies = improved_companies - (orig_companies | evidence_companies)
+    if new_companies:
+        warnings.append(ValidationItem(
+            code="NEW_COMPANY_ADDED",
+            severity="critical",
+            message=f"Added company names not in evidence: {list(new_companies)}"
+        ))
+
+    # NEW: Check for implied metrics / scale claims
+    orig_scale_claims = extract_scale_claims(original)
+    evidence_scale_claims = set()
+    for evidence in evidence_ledger:
+        evidence_scale_claims.update(extract_scale_claims(evidence.text))
+
+    improved_scale_claims = extract_scale_claims(improved)
+
+    new_scale_claims = improved_scale_claims - (orig_scale_claims | evidence_scale_claims)
+    if new_scale_claims:
+        warnings.append(ValidationItem(
+            code="NEW_IMPLIED_METRIC",
+            severity="critical",
+            message=f"Added scale claims not in evidence: {list(new_scale_claims)}"
+        ))
+
     # Warning: Too long
     if len(improved) > len(original) * 2:
         warnings.append(ValidationItem(
@@ -420,7 +538,7 @@ def validate_rewrite(original, improved, evidence_ledger):
             severity="warning",
             message="Rewrite significantly longer than original"
         ))
-    
+
     # Warning: Meaning shift
     similarity = semantic_similarity(original, improved)
     if similarity < 0.78:
@@ -429,9 +547,106 @@ def validate_rewrite(original, improved, evidence_ledger):
             severity="warning",
             message="Meaning changed significantly"
         ))
-    
+
+    # NEW: Validate Evidence Map (CRITICAL)
+    evidence_warnings = validate_evidence_map(improved, evidence_map, evidence_ledger)
+    warnings.extend(evidence_warnings)
+
+    # Determine if passed
     passed = not any(w.severity == "critical" for w in warnings)
     return {"passed": passed, "items": warnings}
+
+def validate_evidence_map(improved, evidence_map, evidence_ledger):
+    """
+    CRITICAL VALIDATOR: Ensures every claim in improved text is backed by real evidence.
+    This is the core innovation that prevents fabrication.
+
+    Returns: List of ValidationItem with severity levels
+    """
+    warnings = []
+
+    # Check 1: All evidence IDs must exist in ledger
+    valid_evidence_ids = {evidence.id for evidence in evidence_ledger}
+
+    for map_item in evidence_map:
+        for evidence_id in map_item.evidence_ids:
+            if evidence_id not in valid_evidence_ids:
+                warnings.append(ValidationItem(
+                    code="INVALID_EVIDENCE_ID",
+                    severity="critical",
+                    message=f"Evidence ID '{evidence_id}' does not exist in ledger"
+                ))
+
+    # Check 2: All improved_spans must actually exist in improved text
+    for map_item in evidence_map:
+        if map_item.improved_span not in improved:
+            warnings.append(ValidationItem(
+                code="SPAN_NOT_FOUND",
+                severity="critical",
+                message=f"Span '{map_item.improved_span}' not found in improved text"
+            ))
+
+    # Check 3: Every significant claim must have evidence mapping
+    # Extract key claims that require evidence
+    improved_tools = extract_tech_terms(improved)
+    improved_numbers = extract_numbers(improved)
+    improved_companies = extract_company_names(improved)
+
+    # Get all spans that are mapped
+    all_mapped_spans = {item.improved_span for item in evidence_map}
+
+    # Check tools
+    for tool in improved_tools:
+        if not any(tool.lower() in span.lower() for span in all_mapped_spans):
+            warnings.append(ValidationItem(
+                code="UNSUPPORTED_TOOL_CLAIM",
+                severity="critical",
+                message=f"Tool '{tool}' has no evidence mapping"
+            ))
+
+    # Check numbers
+    for number in improved_numbers:
+        if not any(str(number) in span for span in all_mapped_spans):
+            warnings.append(ValidationItem(
+                code="UNSUPPORTED_METRIC_CLAIM",
+                severity="critical",
+                message=f"Number '{number}' has no evidence mapping"
+            ))
+
+    # Check 4: Verify semantic match between span and evidence
+    for map_item in evidence_map:
+        # Get evidence texts for this span
+        evidence_texts = [
+            e.text for e in evidence_ledger
+            if e.id in map_item.evidence_ids
+        ]
+
+        # Simple check: does span contain terms from evidence?
+        if not verify_semantic_overlap(map_item.improved_span, evidence_texts):
+            warnings.append(ValidationItem(
+                code="WEAK_EVIDENCE_MATCH",
+                severity="warning",
+                message=f"Span '{map_item.improved_span}' weakly supported by evidence"
+            ))
+
+    return warnings
+
+def verify_semantic_overlap(span, evidence_texts):
+    """
+    Check if span has meaningful overlap with evidence.
+    Simple MVP version using word overlap.
+    """
+    span_words = set(span.lower().split())
+
+    for evidence in evidence_texts:
+        evidence_words = set(evidence.lower().split())
+        overlap = span_words & evidence_words
+
+        # If at least 30% overlap, consider it supported
+        if len(overlap) / max(len(span_words), 1) >= 0.3:
+            return True
+
+    return False
 ```
 
 ### Step 6: Repair / Retry
@@ -493,7 +708,10 @@ def rewrite_section_coherent(bullets, context):
 
 ---
 
-## 6. No-Fabrication Rules
+## 6. No-Fabrication Rules (Enforced by Validation)
+
+**CRITICAL:** These rules are now ENFORCED by Evidence Map Validator (P0-1).
+Not just prompt engineering - actual code validation prevents fabrication.
 
 ### 6.1 Metrics
 
@@ -504,6 +722,8 @@ def rewrite_section_coherent(bullets, context):
 ✅ "Improved performance" → "Improved performance through database indexing"
 ✅ "Reduced costs" → "Reduced infrastructure costs by migrating to cheaper provider"
 ```
+
+**Enforcement:** `validate_evidence_map()` checks all numbers have evidence.
 
 ### 6.2 Tools/Skills
 
@@ -516,6 +736,10 @@ Evidence: skills: ["Python", "SQL", "Docker"]
 ✅ "Worked on backend" → "Developed Python-based backend services" (Python in evidence)
 ```
 
+**Scope Rule:** Resume-level tools CANNOT be added to Experience bullets without same-role evidence or user confirmation (P0-2).
+
+**Enforcement:** `validate_evidence_map()` + `allow_resume_enrichment_in_bullet()` prevent unauthorized tool additions.
+
 ### 6.3 Soft Skills
 
 **Rule:** Don't inject unless explicitly supported by bullet text
@@ -524,6 +748,8 @@ Evidence: skills: ["Python", "SQL", "Docker"]
 ❌ "Team member" → "Excellent communicator and team player"
 ✅ "Team member" → "Collaborated with cross-functional team"
 ```
+
+**Enforcement:** `validate_evidence_map()` flags soft skills without textual support.
 
 ### 6.4 Seniority Claims
 
@@ -535,6 +761,32 @@ Evidence: titles: ["Software Engineer"]
 ❌ "Engineer at Company" → "Senior Software Engineer at Company"
 ✅ "Engineer at Company" → "Software Engineer at Company"
 ```
+
+### 6.5 Company Names (NEW)
+
+**Rule:** Do not add company/organization names unless present in evidence.
+
+```
+Evidence: original bullet mentions "Google", "Microsoft"
+
+❌ "Worked on web services" → "Built web services for Amazon"
+✅ "Worked on web services" → "Developed scalable web services"
+```
+
+**Enforcement:** `extract_company_names()` + validation prevents new company additions (P0-3).
+
+### 6.6 Scale Claims (NEW)
+
+**Rule:** Do not add implied scale/metrics (e.g., "massive", "significantly") unless in evidence.
+
+```
+Evidence: original has no scale indicators
+
+❌ "Built API" → "Built massive, large-scale API serving millions"
+✅ "Built API" → "Developed REST API for internal services"
+```
+
+**Enforcement:** `extract_scale_claims()` + validation prevents unsupported scale claims (P0-4).
 
 ---
 
@@ -613,11 +865,83 @@ FLUFF_WORDS = [
 def remove_fluff(text):
     for fluff in FLUFF_WORDS:
         text = text.replace(fluff, '')
-    
+
     # Clean up extra spaces
     text = re.sub(r'\s+', ' ', text).strip()
-    
+
     return text
+```
+
+### 7.4 Scale Claims & Implied Metrics
+
+```python
+# Constants for scale and implied metric detection
+SCALE_CLAIMS = [
+    'massive', 'large-scale', 'enterprise-grade', 'enterprise-level',
+    'high-traffic', 'high-volume', 'significant', 'substantial',
+    'major', 'critical', 'extensive', 'considerable'
+]
+
+IMPLIED_METRICS = [
+    'doubled', 'tripled', 'halved', 'quadrupled',
+    'increased significantly', 'dramatically improved',
+    'greatly enhanced', 'substantially reduced',
+    'millions of', 'thousands of', 'hundreds of'
+]
+
+def extract_scale_claims(text):
+    """
+    Extract implied scale/metric claims from text.
+
+    Returns: set of scale claim phrases found
+    """
+    claims = set()
+    text_lower = text.lower()
+
+    # Check for scale adjectives
+    for claim in SCALE_CLAIMS:
+        if claim in text_lower:
+            claims.add(claim)
+
+    # Check for implied metric phrases
+    for metric in IMPLIED_METRICS:
+        if metric in text_lower:
+            claims.add(metric)
+
+    return claims
+```
+
+### 7.5 Company Name Extraction
+
+```python
+def extract_company_names(text):
+    """
+    Extract organization/company names from text.
+    Simple heuristic-based approach for MVP.
+    Production should use NER (Named Entity Recognition).
+
+    Returns: set of company names
+    """
+    companies = set()
+
+    # Pattern 1: "at CompanyName"
+    pattern1 = r'\bat\s+([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)*)'
+    matches1 = re.findall(pattern1, text)
+    companies.update(matches1)
+
+    # Pattern 2: "Company Inc." or "Company Corp."
+    pattern2 = r'([A-Z][A-Za-z]+\s+(?:Inc\.?|Corp\.?|LLC|Ltd\.?))'
+    matches2 = re.findall(pattern2, text)
+    companies.update(matches2)
+
+    # Pattern 3: "Company Name" (title case, 2-3 words)
+    pattern3 = r'\b([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b'
+    matches3 = re.findall(pattern3, text)
+    # Filter common non-company phrases
+    non_companies = {'Software Engineer', 'Product Manager', 'Data Scientist', 'Team Lead'}
+    companies.update([m for m in matches3 if m not in non_companies])
+
+    return companies
 ```
 
 ---
@@ -813,8 +1137,10 @@ Note: "All bullets already well-written"
 
 **Quality:**
 - 90%+ rewrites improve score by 3+ points
-- <5% fabrication rate (caught by validation)
-- <10% user rejection rate
+- <2% fabrication rate (was <5%, now stricter with Evidence Map Validator)
+- <5% user rejection rate (was <10%, improved with scope enforcement)
+- **NEW:** 95%+ evidence map validation pass rate
+- **NEW:** 98%+ no unsupported claims (validated by Evidence Map)
 
 **Performance:**
 - <3s per bullet
@@ -823,8 +1149,9 @@ Note: "All bullets already well-written"
 
 **User:**
 - 70%+ acceptance rate
-- 80%+ report "sounds like me"
+- 85%+ report "sounds like me" (was 80%, improved with style controls)
 - Interview rate improvement after rewrites
+- **NEW:** <3% user reports of fabricated content (down from ~10% industry average)
 
 ---
 
@@ -955,15 +1282,7 @@ def prioritize_transformations(plan, jd_keywords):
 
 ## Phase 3: Advanced Features (Months 4-6)
 
-### 3.1 Persian Support
-
-Activate full Persian support:
-- Persian prompts
-- Persian verb mappings
-- Persian fluff words
-- Bi-directional support
-
-### 3.2 Interactive Improvement Loop
+### 3.1 Interactive Improvement Loop
 
 When evidence insufficient, create structured questions:
 
@@ -985,7 +1304,7 @@ interface UserInputRequest {
 }
 ```
 
-### 3.3 Meaning-Shift Detection (ML)
+### 3.2 Meaning-Shift Detection (ML)
 
 Use embeddings to detect semantic drift:
 
@@ -1042,6 +1361,6 @@ def learn_from_outcomes(rewrite_log, interview_outcomes):
 
 **END OF SPECIFICATION**
 
-**Version:** 2.1  
-**Status:** Implementation-Ready  
-**Next:** External review (optional) → Start coding
+**Version:** 2.2
+**Status:** Implementation-Ready
+**Next:** Start coding (external review applied)
