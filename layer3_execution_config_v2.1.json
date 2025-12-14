@@ -1,0 +1,129 @@
+{
+  "version": "2.1",
+  "defaults": {
+    "language": "en",
+    "evidence_scope": "section",
+    "allow_resume_enrichment": true,
+    "style_preset": "default",
+    "tense_preference": "auto"
+  },
+  "llm": {
+    "primary_model": "gpt-4o-mini",
+    "fallback_model": "gpt-3.5-turbo",
+    "temperature": 0.2,
+    "max_output_tokens": 250,
+    "max_retries": 2
+  },
+  "thresholds": {
+    "max_length_multiplier": 2.0,
+    "min_bullet_length": 20,
+    "max_bullet_length": 200,
+    "semantic_similarity_min": 0.78,
+    "max_edit_distance_ratio": 0.65,
+    "min_score_gain": 3
+  },
+  "features": {
+    "evidence_anchored_rewrite": true,
+    "section_coherence_pass": true,
+    "meaning_shift_check": true,
+    "soft_skill_injection_block": true,
+    "resume_level_enrichment": true,
+    "persian_support": false
+  },
+  "lists": {
+    "fluff_words_en": [
+      "various",
+      "numerous",
+      "multiple",
+      "several",
+      "etc.",
+      "and more",
+      "among others",
+      "responsible for",
+      "tasked with",
+      "duties included"
+    ],
+    "hype_words_en": [
+      "synergy",
+      "rockstar",
+      "world-class",
+      "guru",
+      "best-in-class",
+      "disruptive",
+      "game-changer",
+      "revolutionary"
+    ],
+    "soft_skills_en": [
+      "leadership",
+      "communication",
+      "teamwork",
+      "problem solving",
+      "collaboration",
+      "time management",
+      "critical thinking"
+    ],
+    "weak_verbs_en": [
+      "worked on",
+      "helped",
+      "responsible for",
+      "involved in",
+      "did",
+      "tasked with",
+      "contributed to"
+    ]
+  },
+  "verb_mappings": {
+    "worked on": {
+      "software": "developed",
+      "code": "developed",
+      "feature": "built",
+      "product": "built",
+      "system": "implemented",
+      "process": "created",
+      "default": "developed"
+    },
+    "helped": {
+      "team": "supported",
+      "person": "supported",
+      "project": "contributed to",
+      "initiative": "contributed to",
+      "process": "facilitated",
+      "default": "supported"
+    },
+    "responsible for": {
+      "team": "managed",
+      "project": "led",
+      "system": "owned",
+      "feature": "drove",
+      "default": "led"
+    },
+    "involved in": {
+      "project": "participated in",
+      "initiative": "collaborated on",
+      "development": "contributed to",
+      "default": "participated in"
+    }
+  },
+  "paths": {
+    "prompt_templates": {
+      "bullet_en": "prompts/layer3/bullet_en_v2.1.txt",
+      "summary_en": "prompts/layer3/summary_en_v2.1.txt",
+      "section_en": "prompts/layer3/section_en_v2.1.txt"
+    }
+  },
+  "performance": {
+    "latency_targets_p95": {
+      "bullet_seconds": 3,
+      "summary_seconds": 4,
+      "section_10_bullets_seconds": 10
+    },
+    "rate_limits": {
+      "per_user_per_minute": 10,
+      "queue_enabled": true
+    },
+    "caching": {
+      "enabled": true,
+      "ttl_hours": 24
+    }
+  }
+}
