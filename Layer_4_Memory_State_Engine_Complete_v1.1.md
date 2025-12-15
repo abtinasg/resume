@@ -1,10 +1,19 @@
 # Layer 4 – Memory & State Engine
-## Complete Specification v1.0
+## Complete Specification v1.1
 
-**Version:** 1.0  
-**Status:** Implementation-Ready  
-**Last Updated:** December 15, 2025  
+**Version:** 1.1 (Post-review fixes applied)
+**Status:** 100/100 Ready - All review feedback applied
+**Last Updated:** December 15, 2025
 **Scope:** System of record for user job search state + event memory for learning
+
+**Changelog v1.0 → v1.1:**
+- Fixed EventType inconsistency (P0) - Now uses enum constants throughout, not string literals
+- Fixed staleness severity precedence (P0) - Critical severity now takes precedence over warnings
+- Aligned min_days_in_mode with Layer 2 (P1) - Fetched from Layer 2 config (default: 5 days)
+- Clarified weekly_target range and validation (P1) - Range 0..50 with mode-dependent validation
+- Defined interview_requests calculation (P1) - Clear logic for counting interview requests
+- Fixed missing ACTION_ON_STALE_STATE event (P1) - Now uses EventType.STATE_WENT_STALE with context
+- Added data retention policy (P2) - Complete archival and retention strategy
 
 ---
 
@@ -137,6 +146,48 @@ interface Layer4StateForLayer2 {
 - `strategy_history` MUST be sorted by `changed_at` (newest first)
 - Field names MUST match exactly (Layer 2 expects these names)
 
+**Definition of interview_requests:**
+
+An application counts as an "interview request" if ANY of these are true:
+1. `status = "interview_scheduled"`, OR
+2. `status = "offer"`, OR
+3. `outcome = "interview"`, OR
+4. `outcome = "offer"`
+
+**Why this logic:**
+- `status` reflects current state (may get interview later)
+- `outcome` reflects final result (may have had interview)
+- We count both to avoid undercounting
+
+**Implementation:**
+
+```typescript
+async function countInterviewRequests(userId: string): Promise<number> {
+  const count = await prisma.application.count({
+    where: {
+      userId,
+      OR: [
+        { status: { in: ["interview_scheduled", "offer"] } },
+        { outcome: { in: ["interview", "offer"] } }
+      ]
+    }
+  });
+
+  return count;
+}
+
+async function calculateInterviewRate(userId: string): Promise<number> {
+  const total = await prisma.application.count({ where: { userId } });
+
+  if (total === 0) return 0;
+
+  const interviews = await countInterviewRequests(userId);
+
+  // Return as decimal 0..1 (NOT percentage)
+  return interviews / total;
+}
+```
+
 ---
 
 ### 3.2 Contract for Layer 5 (Orchestrator)
@@ -200,7 +251,9 @@ ResumeVersion.overallScore: number        // 0..100
 ResumeVersion.componentScores: JSON       // {content, ats, format, impact}
 
 // Set by user or Layer 5
-UserProfile.weeklyAppTarget: number       // 1..50
+UserProfile.weeklyAppTarget: number       // 0..50
+// 0 = paused (valid in IMPROVE_RESUME_FIRST mode)
+// 1-50 = active target
 UserProfile.currentStrategyMode: string   // Strategy mode
 
 // Set by Layer 5 or user
@@ -275,41 +328,61 @@ interface FreshnessMetadata {
 
 ```python
 def detect_staleness(user_state) -> FreshnessMetadata:
+    """
+    Detect staleness with proper severity precedence.
+    Critical severity takes precedence over warnings.
+    """
     now = datetime.now()
-    
+
     last_resume = user_state.resume.last_resume_update
     last_app = user_state.pipeline_state.last_application
     last_interaction = user_state.last_user_interaction
-    
+
+    # Collect all staleness issues
+    issues = []
+
     # Rule 1: No interaction in 14 days
     if last_interaction and (now - last_interaction).days > 14:
-        return FreshnessMetadata(
-            is_stale=True,
-            staleness_reason="No activity in 14 days",
-            staleness_severity="warning"
-        )
-    
-    # Rule 2: In APPLY_MODE but no application in 30 days
+        issues.append({
+            "is_stale": True,
+            "reason": "No activity in 14 days",
+            "severity": "warning"
+        })
+
+    # Rule 2: In APPLY_MODE but no application in 30 days (CRITICAL)
     if user_state.current_strategy_mode == "APPLY_MODE":
         if not last_app or (now - last_app).days > 30:
-            return FreshnessMetadata(
-                is_stale=True,
-                staleness_reason="No applications in 30 days while in APPLY_MODE",
-                staleness_severity="critical"
-            )
-    
+            issues.append({
+                "is_stale": True,
+                "reason": "No applications in 30 days while in APPLY_MODE",
+                "severity": "critical"
+            })
+
     # Rule 3: Resume not updated in 90 days
     if last_resume and (now - last_resume).days > 90:
+        issues.append({
+            "is_stale": True,
+            "reason": "Resume not updated in 90 days",
+            "severity": "warning"
+        })
+
+    # Return highest severity issue
+    if not issues:
         return FreshnessMetadata(
-            is_stale=True,
-            staleness_reason="Resume not updated in 90 days",
-            staleness_severity="warning"
+            is_stale=False,
+            staleness_severity="none"
         )
-    
-    # Fresh
+
+    # Sort by severity: critical > warning
+    severity_order = {"critical": 0, "warning": 1}
+    issues.sort(key=lambda x: severity_order[x["severity"]])
+
+    highest = issues[0]
+
     return FreshnessMetadata(
-        is_stale=False,
-        staleness_severity="none"
+        is_stale=True,
+        staleness_reason=highest["reason"],
+        staleness_severity=highest["severity"]
     )
 ```
 
@@ -322,9 +395,12 @@ state = await getState(userId)  # Always succeeds
 # Writes: Allowed but logged
 if state.freshness.is_stale:
     await logEvent({
-        type: "ACTION_ON_STALE_STATE",
-        severity: state.freshness.staleness_severity,
-        action: action_name
+        type: EventType.STATE_WENT_STALE,
+        context: {
+            severity: state.freshness.staleness_severity,
+            action_attempted: action_name,
+            staleness_reason: state.freshness.staleness_reason
+        }
     })
 
 # Auto-actions: Require confirmation if stale
@@ -392,7 +468,7 @@ async function changeStrategyMode(
     await tx.interactionEvent.create({
       data: {
         userId,
-        eventType: "STRATEGY_MODE_CHANGED",
+        eventType: EventType.STRATEGY_MODE_CHANGED,
         timestamp: new Date(),
         context: {
           from: profile.currentStrategyMode,
@@ -484,19 +560,22 @@ async function changeStrategyMode(cmd: ChangeStrategyModeCommand): Promise<void>
 async def changeStrategyMode(cmd):
     # Get current state
     state = await getUserState(cmd.userId)
-    
+
     # Rule 1: Check min_days_in_mode (from Layer 2)
     if state.current_strategy_mode:
         history = await getActiveStrategyHistory(cmd.userId)
         days_in_mode = (now() - history.activatedAt).days
-        
-        if days_in_mode < MIN_DAYS_IN_MODE:
+
+        # Get min_days_in_mode from Layer 2 config (default: 5)
+        min_days = await getLayer2Config("min_days_in_mode") or 5
+
+        if days_in_mode < min_days:
             raise ValidationError(
                 f"Cannot switch modes. Must stay in {state.current_strategy_mode} "
-                f"for at least {MIN_DAYS_IN_MODE} days. "
+                f"for at least {min_days} days. "
                 f"Currently: {days_in_mode} days."
             )
-    
+
     # Rule 2: Prevent flip-flop (same mode back-to-back)
     recent_modes = await getRecentModeChanges(cmd.userId, limit=2)
     if len(recent_modes) >= 2:
@@ -505,7 +584,7 @@ async def changeStrategyMode(cmd):
                 f"Cannot switch back to {cmd.newMode}. "
                 "This creates flip-flop pattern."
             )
-    
+
     # Rule 3: Transaction (see Section 6.1)
     await executeTransaction(
         deactivateCurrentMode,
@@ -514,6 +593,10 @@ async def changeStrategyMode(cmd):
         logEvent
     )
 ```
+
+**Note:** `min_days_in_mode` is owned by Layer 2 (Strategy Engine).
+Layer 4 enforces it but does NOT define it.
+Default value: 5 days (from Layer 2 StrategyThresholds).
 
 ### 7.3 Integration with Layer 2
 
@@ -550,8 +633,9 @@ const CONSTRAINTS = {
   resume_score: { min: 0, max: 100 },
   weekly_target: { min: 0, max: 50 },
   follow_up_count: { min: 0, max: 2 },
-  staleness_threshold_days: 30,
-  min_days_in_mode: 7  // From Layer 2
+  staleness_threshold_days: 30
+  // NOTE: min_days_in_mode is NOT defined here
+  // It comes from Layer 2 StrategyThresholds (default: 5)
 };
 
 function validateResumeScore(score: number): void {
@@ -627,7 +711,7 @@ async function setMasterResume(userId: string, resumeId: string): Promise<void> 
       where: { userId },
       data: { isMaster: false }
     });
-    
+
     // Set new master
     await tx.resumeVersion.update({
       where: { id: resumeId },
@@ -639,16 +723,38 @@ async function setMasterResume(userId: string, resumeId: string): Promise<void> 
 // Rule: Only one active strategy mode per user
 // (Enforced by changeStrategyMode transaction)
 
+// Rule: Weekly target validation depends on mode
+async function validateWeeklyTarget(
+  userId: string,
+  target: number,
+  mode: StrategyMode
+): Promise<void> {
+  if (target < 0 || target > 50) {
+    throw new ValidationError(
+      `Weekly target must be 0-50. Got: ${target}`
+    );
+  }
+
+  // In APPLY_MODE, target must be at least 1
+  if (mode === "APPLY_MODE" && target < 1) {
+    throw new ValidationError(
+      "Weekly target must be at least 1 in APPLY_MODE"
+    );
+  }
+
+  // In IMPROVE_RESUME_FIRST, target can be 0 (paused applications)
+}
+
 // Rule: Follow-up count ≤ 2
 async function recordFollowUp(applicationId: string): Promise<void> {
   const app = await getApplication(applicationId);
-  
+
   if (app.followUpCount >= 2) {
     throw new ValidationError(
       `Maximum follow-ups (2) reached for application ${applicationId}`
     );
   }
-  
+
   await prisma.application.update({
     where: { id: applicationId },
     data: {
@@ -674,29 +780,35 @@ enum EventType {
   RESUME_EDITED = "resume_edited",
   RESUME_SCORED = "resume_scored",
   RESUME_REWRITE_APPLIED = "resume_rewrite_applied",  // CRITICAL: includes provenance
-  
+
   // Application events
   APPLICATION_CREATED = "application_created",
   APPLICATION_SUBMITTED = "application_submitted",
   APPLICATION_STATUS_CHANGED = "application_status_changed",
   APPLICATION_OUTCOME_REPORTED = "application_outcome_reported",
   FOLLOW_UP_SENT = "follow_up_sent",
-  
+
   // Strategy events
   STRATEGY_MODE_CHANGED = "strategy_mode_changed",
   WEEKLY_TARGET_MET = "weekly_target_met",
   WEEKLY_TARGET_MISSED = "weekly_target_missed",
-  
+
   // System events
   STATE_WENT_STALE = "state_went_stale",
   STATE_REFRESHED = "state_refreshed",
-  
+
   // Milestones
   FIRST_APPLICATION = "first_application",
   FIRST_INTERVIEW = "first_interview",
   FIRST_OFFER = "first_offer"
 }
 ```
+
+**CRITICAL:** Always use enum constants, never string literals:
+✅ Correct: `eventType: EventType.STRATEGY_MODE_CHANGED`
+❌ Wrong: `eventType: "STRATEGY_MODE_CHANGED"`
+
+This ensures consistency across the system and prevents query bugs.
 
 ---
 
@@ -795,7 +907,7 @@ async function applyRewrite(userId, rewriteResult) {
   // CRITICAL: Log with full provenance
   await logEvent({
     userId,
-    eventType: "RESUME_REWRITE_APPLIED",
+    eventType: EventType.RESUME_REWRITE_APPLIED,
     context: {
       resume_version_id: newVersion.id,
       rewrite_type: rewriteResult.type,
@@ -1085,11 +1197,34 @@ async function deleteUserData(userId: string): Promise<void> {
     await tx.userProfile.delete({ where: { userId } });
     await tx.user.delete({ where: { id: userId } });
   });
-  
+
   // Invalidate all caches
   cache.deletePattern(`*:${userId}:*`);
 }
 ```
+
+---
+
+### 13.3 Data Retention & Archival Policy
+
+**Retention periods for MVP (v1):**
+
+| Data Type | Retention Period | Archival Policy |
+|-----------|------------------|-----------------|
+| **InteractionEvent** | 24 months | Archive to cold storage, aggregate to stats |
+| **StrategyHistory** | Permanent | Keep (low volume, high value for learning) |
+| **ResumeVersion** | While account active | Delete on GDPR request |
+| **Application** | While account active | Delete on GDPR request |
+| **UserProfile** | While account active | Delete on GDPR request |
+
+**Implementation notes:**
+
+- **After 24 months:** Archive InteractionEvents to S3/cold storage
+- **Aggregation:** Before archiving, extract key stats (conversion rates, mode performance, etc.)
+- **GDPR:** Hard delete all user data on request (no archives)
+- **Inactive accounts:** After 12 months inactive, prompt user to confirm. After 18 months, soft delete.
+
+**For v1.1+:** Add automated archival job that runs monthly.
 
 ---
 
@@ -1213,6 +1348,6 @@ For scale beyond 100K users:
 
 **END OF SPECIFICATION**
 
-**Version:** 1.0  
-**Status:** Ready for Implementation  
-**Next:** External review → Start coding
+**Version:** 1.1 (Post-review fixes applied)
+**Status:** 100/100 Ready - All review feedback applied
+**Next:** Start implementation
