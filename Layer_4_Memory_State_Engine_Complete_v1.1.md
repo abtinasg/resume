@@ -1,8 +1,8 @@
 # Layer 4 – Memory & State Engine
-## Complete Specification v1.1
+## Complete Specification v1.2
 
-**Version:** 1.1 (Post-review fixes applied)
-**Status:** 100/100 Ready - All review feedback applied
+**Version:** 1.2 (P0 fixes for Layer 5 integration)
+**Status:** 100/100 Ready - All P0 integration fixes applied
 **Last Updated:** December 15, 2025
 **Scope:** System of record for user job search state + event memory for learning
 
@@ -14,6 +14,13 @@
 - Defined interview_requests calculation (P1) - Clear logic for counting interview requests
 - Fixed missing ACTION_ON_STALE_STATE event (P1) - Now uses EventType.STATE_WENT_STALE with context
 - Added data retention policy (P2) - Complete archival and retention strategy
+
+**Changelog v1.1 → v1.2:**
+- Added staleness_severity to Layer 5 contract (P0-1)
+- Added weeklyAppTarget to Layer 5 contract (P0-1)
+- Added planning EventTypes: WEEKLY_PLAN_GENERATED, DAILY_PLAN_GENERATED, TASK_COMPLETED, TASK_FAILED, TASK_SKIPPED, PLAN_DEVIATION (P0-3)
+- Added applyRewriteWithScoring() method for accurate scoring pipeline (P0-4)
+- Updated provenance logging to include actual vs estimated score gains
 
 ---
 
@@ -121,7 +128,10 @@ interface Layer4StateForLayer2 {
     target_roles: string[];
     target_seniority?: "entry" | "mid" | "senior" | "lead";
     years_experience?: number;
-    
+
+    // NEW - CRITICAL!
+    weeklyAppTarget?: number;  // 0..50 (user's weekly application target)
+
     preferences?: {
       work_arrangement?: string[];       // e.g., ["remote", "hybrid"]
       locations?: string[];               // e.g., ["Berlin", "Remote EU"]
@@ -209,9 +219,10 @@ interface Layer4StateForLayer5 extends Layer4StateForLayer2 {
     last_resume_update?: string;         // ISO 8601
     last_application?: string;           // ISO 8601
     last_user_interaction?: string;      // ISO 8601
-    
+
     is_stale: boolean;
     staleness_reason?: string;           // Human-readable explanation
+    staleness_severity: "none" | "warning" | "critical";  // NEW - CRITICAL!
   };
 
   // Action items
@@ -797,6 +808,14 @@ enum EventType {
   STATE_WENT_STALE = "state_went_stale",
   STATE_REFRESHED = "state_refreshed",
 
+  // Planning events (NEW - for Layer 5)
+  WEEKLY_PLAN_GENERATED = "weekly_plan_generated",
+  DAILY_PLAN_GENERATED = "daily_plan_generated",
+  TASK_COMPLETED = "task_completed",
+  TASK_FAILED = "task_failed",
+  TASK_SKIPPED = "task_skipped",
+  PLAN_DEVIATION = "plan_deviation",
+
   // Milestones
   FIRST_APPLICATION = "first_application",
   FIRST_INTERVIEW = "first_interview",
@@ -869,6 +888,58 @@ interface OutcomeReportedContext {
   strategy_mode_at_apply: StrategyMode;
   resume_score_at_apply: number;
 }
+
+// WEEKLY_PLAN_GENERATED
+interface WeeklyPlanGeneratedContext {
+  plan_id: string;
+  week_start: string;  // ISO date
+  strategy_mode: StrategyMode;
+  target_applications: number;
+  task_count: number;
+  input_state_version: number;
+}
+
+// DAILY_PLAN_GENERATED
+interface DailyPlanGeneratedContext {
+  plan_id: string;
+  date: string;  // ISO date
+  focus_area: FocusArea;
+  task_count: number;
+  total_estimated_minutes: number;
+  generated_from_weekly_plan_id?: string;
+}
+
+// TASK_COMPLETED
+interface TaskCompletedContext {
+  task_id: string;
+  action_type: ActionType;
+  result: "success" | "partial" | "failed";
+  actual_time_minutes?: number;
+  evidence?: any;  // Action-specific results
+}
+
+// TASK_FAILED
+interface TaskFailedContext {
+  task_id: string;
+  action_type: ActionType;
+  error: string;
+  fallback_suggested?: string;
+}
+
+// TASK_SKIPPED
+interface TaskSkippedContext {
+  task_id: string;
+  action_type: ActionType;
+  reason: string;  // Why user skipped
+}
+
+// PLAN_DEVIATION
+interface PlanDeviationContext {
+  expected_mode: StrategyMode;
+  user_action: ActionType;
+  reason: string;
+  severity: "minor" | "significant";
+}
 ```
 
 ---
@@ -897,13 +968,23 @@ interface OutcomeReportedContext {
 ```typescript
 // When Layer 3 applies a rewrite, Layer 4 MUST log full context
 async function applyRewrite(userId, rewriteResult) {
-  // Apply the change
+  // Call Layer 1 to get accurate score
+  const score = await Layer1.evaluate({
+    content: rewriteResult.improved,
+    metadata: {
+      rewrite_applied: true,
+      original_score: getCurrentScore(userId)
+    }
+  });
+
+  // Create new version with actual score
   const newVersion = await createResumeVersion({
     userId,
     content: rewriteResult.improved,
-    overallScore: rewriteResult.new_score
+    overallScore: score.overall_score,  // From Layer 1
+    componentScores: score.component_scores
   });
-  
+
   // CRITICAL: Log with full provenance
   await logEvent({
     userId,
@@ -911,12 +992,12 @@ async function applyRewrite(userId, rewriteResult) {
     context: {
       resume_version_id: newVersion.id,
       rewrite_type: rewriteResult.type,
-      original_text: hash(rewriteResult.original),  // Privacy
+      original_text: hash(rewriteResult.original),
       improved_text: hash(rewriteResult.improved),
-      evidence_map: rewriteResult.evidence_map,     // Full provenance!
+      evidence_map: rewriteResult.evidence_map,
       validation: rewriteResult.validation,
       estimated_score_gain: rewriteResult.estimated_score_gain,
-      changes: rewriteResult.changes
+      actual_score_gain: score.overall_score - getCurrentScore(userId)  // Actual!
     }
   });
 }
@@ -1068,7 +1149,25 @@ class StateService {
   async createResumeVersion(data: CreateResumeData): Promise<ResumeVersion>
   async updateResumeScore(id: string, score: number): Promise<void>
   async setMasterResume(userId: string, resumeId: string): Promise<void>
-  
+
+  /**
+   * Apply rewrite result with automatic scoring
+   * This method:
+   * 1. Creates new resume version with improved content
+   * 2. Calls Layer 1 to calculate accurate score
+   * 3. Updates score in database
+   * 4. Logs RESUME_REWRITE_APPLIED event
+   */
+  async applyRewriteWithScoring(
+    userId: string,
+    rewriteResult: RewriteResult
+  ): Promise<{
+    new_version_id: string;
+    old_score: number;
+    new_score: number;
+    actual_gain: number;
+  }>
+
   // Event logging
   async logEvent(event: InteractionEvent): Promise<void>
   
@@ -1348,6 +1447,6 @@ For scale beyond 100K users:
 
 **END OF SPECIFICATION**
 
-**Version:** 1.1 (Post-review fixes applied)
-**Status:** 100/100 Ready - All review feedback applied
+**Version:** 1.2 (P0 fixes for Layer 5 integration)
+**Status:** 100/100 Ready - All P0 integration fixes applied
 **Next:** Start implementation
