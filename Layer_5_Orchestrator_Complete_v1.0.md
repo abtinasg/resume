@@ -1,10 +1,16 @@
 # Layer 5 – Orchestrator / Planner
-## Complete Specification v1.0
+## Complete Specification v1.1
 
-**Version:** 1.0  
-**Status:** Implementation-Ready  
-**Last Updated:** December 15, 2025  
+**Version:** 1.1 (P0 fixes applied)
+**Status:** Implementation-Ready
+**Last Updated:** December 15, 2025
 **Scope:** Decision-making brain - coordinates all layers, plans weekly/daily, executes actions
+
+**Changelog v1.0 → v1.1:**
+- Fixed contract mismatch: now uses staleness_severity and weeklyAppTarget from Layer 4 (P0-1)
+- Fixed stale handling bug: unreachable code removed, proper if/else logic (P0-2)
+- Updated to use new EventTypes from Layer 4 v1.2 (P0-3)
+- Updated score pipeline: applyRewriteWithScoring() ensures accurate scores (P0-4)
 
 ---
 
@@ -102,6 +108,7 @@ interface Layer4StateForLayer5 {
     target_roles: string[];
     target_seniority?: "entry" | "mid" | "senior" | "lead";
     years_experience?: number;
+    weeklyAppTarget?: number;  // 0..50 (user's weekly application target)
     preferences?: {
       work_arrangement?: string[];
       locations?: string[];
@@ -135,6 +142,7 @@ interface Layer4StateForLayer5 {
     last_user_interaction?: string;
     is_stale: boolean;
     staleness_reason?: string;
+    staleness_severity: "none" | "warning" | "critical";
   };
 
   // Action items
@@ -508,7 +516,12 @@ async def generate_weekly_plan(user_id: str) -> WeeklyPlan:
     
     # Step 2: Handle stale state
     if state.freshness.is_stale:
-        return generate_minimal_safe_plan(state, reason="stale_state")
+        if state.freshness.staleness_severity == "critical":
+            # Critical staleness: return minimal safe plan immediately
+            return generate_minimal_safe_plan(state, reason="stale_state_critical")
+
+        # Warning staleness: continue but add refresh task with high priority
+        # (This will be added in Step 4 below)
     
     # Step 3: Calculate weekly target
     target_applications = calculate_weekly_target(state, analysis)
@@ -531,9 +544,13 @@ async def generate_weekly_plan(user_id: str) -> WeeklyPlan:
             task = create_followup_task(followup)
             tasks.append(task)
     
-    # From stale state (if not critical)
-    if state.freshness.is_stale and state.freshness.staleness_severity == "warning":
-        task = create_refresh_task(state.freshness.staleness_reason)
+    # From stale state (warning level - critical already returned above)
+    if state.freshness.is_stale:
+        # At this point, we know severity is "warning" (critical returned earlier)
+        task = create_refresh_task(
+            reason=state.freshness.staleness_reason,
+            priority=90  # High priority but not blocking
+        )
         tasks.append(task)
     
     # Step 5: Prioritize tasks
@@ -1030,29 +1047,24 @@ async def execute_improve_resume(task: Task, user_id: str) -> ActionResult:
             error="Insufficient score gain",
             details={"gain": result.estimated_score_gain}
         )
-    
-    # Step 5: Apply rewrite (update Layer 4)
-    await Layer4.applyRewrite(user_id, result)
-    
-    # Step 6: Log event
-    await Layer4.logEvent({
-        userId: user_id,
-        eventType: EventType.RESUME_REWRITE_APPLIED,
-        context: {
-            task_id: task.task_id,
-            original: result.original,
-            improved: result.improved,
-            evidence_map: result.evidence_map,
-            validation: result.validation,
-            estimated_score_gain: result.estimated_score_gain
-        }
-    })
-    
-    # Step 7: Return result
+
+    # Step 5: Apply rewrite WITH SCORING (Layer 4 handles Layer 1 call internally)
+    try:
+        apply_result = await Layer4.applyRewriteWithScoring(user_id, result)
+    except Exception as e:
+        return ActionResult(
+            success=False,
+            error=f"Failed to apply rewrite: {str(e)}"
+        )
+
+    # Step 6: Return result with actual score gain
     return ActionResult(
         success=True,
         evidence_map=result.evidence_map,
-        score_gain=result.estimated_score_gain
+        estimated_score_gain=result.estimated_score_gain,
+        actual_score_gain=apply_result.actual_gain,  # NEW: Real gain from Layer 1
+        old_score=apply_result.old_score,
+        new_score=apply_result.new_score
     )
 ```
 
@@ -1647,6 +1659,6 @@ Detect user struggles and adapt plan in real-time.
 
 **END OF SPECIFICATION**
 
-**Version:** 1.0  
-**Status:** Ready for Implementation  
+**Version:** 1.1 (P0 fixes applied)
+**Status:** Ready for Implementation
 **Next:** External review → Start coding
