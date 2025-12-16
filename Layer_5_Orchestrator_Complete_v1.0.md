@@ -1,9 +1,9 @@
 # Layer 5 – Orchestrator / Planner
-## Complete Specification v1.1
+## Complete Specification v1.2
 
-**Version:** 1.1 (P0 fixes applied)
+**Version:** 1.2 (P0 fixes applied + simplified blueprint handling)
 **Status:** Implementation-Ready
-**Last Updated:** December 15, 2025
+**Last Updated:** December 16, 2025
 **Scope:** Decision-making brain - coordinates all layers, plans weekly/daily, executes actions
 
 **Changelog v1.0 → v1.1:**
@@ -12,14 +12,31 @@
 - Updated to use new EventTypes from Layer 4 v1.2 (P0-3)
 - Updated score pipeline: applyRewriteWithScoring() ensures accurate scores (P0-4)
 
+**Changelog v1.1 → v1.2:**
+- Removed fallback heuristic parsing for ActionBlueprints (Layer 2 v2.1+ always provides them)
+- Simplified weekly plan generation logic to assume action_blueprints always present
+- Updated to use shared types from Shared_Types_v1.0 (StrategyMode, EventType, ActionType, FocusArea, ApplicationStatus, SeniorityLevel)
+
 ---
 
 ## Document Purpose
 
 Single source of truth for Layer 5 Orchestrator development.
 
-**Part I:** Core Specification - ready to implement  
+**Part I:** Core Specification - ready to implement
 **Part II:** Advanced Features - future roadmap
+
+## Shared Types
+
+This layer uses shared type definitions from `Shared_Types_v1.0.md`:
+- `StrategyMode`
+- `EventType`
+- `ActionType`
+- `FocusArea`
+- `ApplicationStatus`
+- `SeniorityLevel`
+
+Import these from the shared types package in implementation.
 
 ---
 
@@ -255,7 +272,7 @@ const analysis = await Layer2.analyze({
 });
 ```
 
-**Critical Note:** If `action_blueprints` not available (older Layer 2 version), Orchestrator must parse `priority_actions` strings using heuristics.
+**Note:** Layer 2 v2.1+ always provides `action_blueprints`. Legacy handling not required for new implementations.
 
 ---
 
@@ -528,16 +545,18 @@ async def generate_weekly_plan(user_id: str) -> WeeklyPlan:
     
     # Step 4: Build task pool
     tasks = []
-    
-    # From Layer 2 action blueprints
-    if analysis.action_blueprints:
-        for blueprint in analysis.action_blueprints:
-            task = convert_blueprint_to_task(blueprint, state)
-            tasks.append(task)
-    else:
-        # Fallback: parse priority_actions strings
-        tasks = parse_priority_actions_to_tasks(analysis.priority_actions, state)
-    
+
+    # From Layer 2 action blueprints (always present in v2.1+)
+    for blueprint in analysis.action_blueprints:
+        task = convert_blueprint_to_task(blueprint, state)
+        tasks.append(task)
+
+    # Fallback only if empty (edge case)
+    if not tasks:
+        logger.warning("Layer 2 returned no action_blueprints")
+        # Generate minimal tasks from priority_actions as fallback
+        tasks = generate_minimal_tasks_from_actions(analysis.priority_actions, state)
+
     # From Layer 4 follow-ups
     for followup in state.followups.applications_needing_followup:
         if followup.suggested_action == "FOLLOW_UP":
@@ -1659,6 +1678,7 @@ Detect user struggles and adapt plan in real-time.
 
 **END OF SPECIFICATION**
 
-**Version:** 1.1 (P0 fixes applied)
+**Version:** 1.2 (P0 fixes applied + simplified blueprint handling)
 **Status:** Ready for Implementation
+**Last Updated:** December 16, 2025
 **Next:** External review → Start coding

@@ -1,9 +1,9 @@
 # Layer 4 – Memory & State Engine
-## Complete Specification v1.2
+## Complete Specification v1.3
 
-**Version:** 1.2 (P0 fixes for Layer 5 integration)
+**Version:** 1.3 (P0 fixes for Layer 5 integration + helper methods)
 **Status:** 100/100 Ready - All P0 integration fixes applied
-**Last Updated:** December 15, 2025
+**Last Updated:** December 16, 2025
 **Scope:** System of record for user job search state + event memory for learning
 
 **Changelog v1.0 → v1.1:**
@@ -22,14 +22,30 @@
 - Added applyRewriteWithScoring() method for accurate scoring pipeline (P0-4)
 - Updated provenance logging to include actual vs estimated score gains
 
+**Changelog v1.2 → v1.3:**
+- Added getCurrentScore() helper method for easy resume score retrieval (P1)
+- Standardized applyRewriteWithScoring() documentation and examples (P1)
+- Updated to use shared types from Shared_Types_v1.0 (EventType, StrategyMode, ApplicationStatus, RewriteType, SeniorityLevel)
+
 ---
 
 ## Document Purpose
 
 Single source of truth for Layer 4 Memory & State Engine development.
 
-**Part I:** Core Specification - ready to implement  
+**Part I:** Core Specification - ready to implement
 **Part II:** Advanced Features - future roadmap
+
+## Shared Types
+
+This layer uses shared type definitions from `Shared_Types_v1.0.md`:
+- `EventType`
+- `StrategyMode`
+- `ApplicationStatus`
+- `RewriteType`
+- `SeniorityLevel`
+
+Import these from the shared types package in implementation.
 
 ---
 
@@ -966,40 +982,23 @@ interface PlanDeviationContext {
 **Key Innovation:** Every AI-generated change includes full evidence trail.
 
 ```typescript
-// When Layer 3 applies a rewrite, Layer 4 MUST log full context
-async function applyRewrite(userId, rewriteResult) {
-  // Call Layer 1 to get accurate score
-  const score = await Layer1.evaluate({
-    content: rewriteResult.improved,
-    metadata: {
-      rewrite_applied: true,
-      original_score: getCurrentScore(userId)
-    }
-  });
+// When Layer 3 applies a rewrite, use the standardized method (defined in Section 11.2)
+async function applyRewrite(userId: string, rewriteResult: RewriteResult): Promise<void> {
+  // Use the standardized method that handles scoring and logging automatically
+  const result = await StateService.applyRewriteWithScoring(userId, rewriteResult);
 
-  // Create new version with actual score
-  const newVersion = await createResumeVersion({
-    userId,
-    content: rewriteResult.improved,
-    overallScore: score.overall_score,  // From Layer 1
-    componentScores: score.component_scores
-  });
+  // Result contains:
+  // - new_version_id
+  // - old_score
+  // - new_score
+  // - actual_gain (= new_score - old_score)
 
-  // CRITICAL: Log with full provenance
-  await logEvent({
-    userId,
-    eventType: EventType.RESUME_REWRITE_APPLIED,
-    context: {
-      resume_version_id: newVersion.id,
-      rewrite_type: rewriteResult.type,
-      original_text: hash(rewriteResult.original),
-      improved_text: hash(rewriteResult.improved),
-      evidence_map: rewriteResult.evidence_map,
-      validation: rewriteResult.validation,
-      estimated_score_gain: rewriteResult.estimated_score_gain,
-      actual_score_gain: score.overall_score - getCurrentScore(userId)  // Actual!
-    }
-  });
+  // Event is logged automatically within applyRewriteWithScoring() with full provenance:
+  // - resume_version_id
+  // - rewrite_type (from rewriteResult.type)
+  // - evidence_map (from rewriteResult)
+  // - validation results
+  // - estimated_score_gain vs actual_score_gain comparison
 }
 ```
 
@@ -1138,17 +1137,26 @@ class StateService {
 class StateService {
   // Strategy management
   async changeStrategyMode(cmd: ChangeStrategyModeCommand): Promise<void>
-  
+
   // Application lifecycle
   async createApplication(data: CreateApplicationData): Promise<Application>
   async updateApplicationStatus(id: string, status: ApplicationStatus): Promise<void>
   async recordApplicationOutcome(id: string, outcome: ApplicationOutcome): Promise<void>
   async recordFollowUp(id: string, message: string): Promise<void>
-  
+
   // Resume management
   async createResumeVersion(data: CreateResumeData): Promise<ResumeVersion>
   async updateResumeScore(id: string, score: number): Promise<void>
   async setMasterResume(userId: string, resumeId: string): Promise<void>
+
+  /**
+   * Get current resume score for a user
+   * Helper method used internally and by other layers
+   */
+  async getCurrentScore(userId: string): Promise<number> {
+    const resume = await this.getMasterResume(userId);
+    return resume?.overallScore || 0;
+  }
 
   /**
    * Apply rewrite result with automatic scoring
@@ -1170,7 +1178,7 @@ class StateService {
 
   // Event logging
   async logEvent(event: InteractionEvent): Promise<void>
-  
+
   // User preferences
   async updateUserProfile(userId: string, data: Partial<UserProfile>): Promise<void>
   async updateWeeklyTarget(userId: string, target: number): Promise<void>
@@ -1447,6 +1455,7 @@ For scale beyond 100K users:
 
 **END OF SPECIFICATION**
 
-**Version:** 1.2 (P0 fixes for Layer 5 integration)
+**Version:** 1.3 (P0 fixes for Layer 5 integration + helper methods)
 **Status:** 100/100 Ready - All P0 integration fixes applied
+**Last Updated:** December 16, 2025
 **Next:** Start implementation

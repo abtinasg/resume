@@ -1,9 +1,9 @@
 # Layer 3 – Execution Engine (Rewrite)
-## Complete Specification v2.2 (MVP + Roadmap)
+## Complete Specification v2.3 (MVP + Roadmap)
 
-**Version:** 2.2
+**Version:** 2.3
 **Status:** Implementation-Ready
-**Last Updated:** December 15, 2025
+**Last Updated:** December 16, 2025
 **Language:** English only (no Persian support in MVP)
 **Scope:** Resume rewriting (bullets, summary, section)
 
@@ -13,8 +13,15 @@
 
 Single source of truth for Layer 3 Execution Engine development.
 
-**Part I:** MVP Implementation (v2.1) - ready to code now  
+**Part I:** MVP Implementation (v2.3) - ready to code now
 **Part II:** Post-MVP Roadmap - what's coming next
+
+## Shared Types
+
+This layer uses shared type definitions from `Shared_Types_v1.0.md`:
+- `RewriteType`
+
+Import these from the shared types package in implementation.
 
 ---
 
@@ -232,6 +239,9 @@ def allow_resume_enrichment_in_bullet(bullet_context, tool, evidence_ledger):
 ## 4. Outputs
 
 ```ts
+// Base type for all rewrites
+type RewriteType = "bullet" | "summary" | "section";
+
 interface ValidationItem {
   code: string;                    // e.g., "NEW_NUMBER_ADDED"
   severity: "info" | "warning" | "critical";
@@ -247,43 +257,77 @@ interface RewriteQualitySignals {
 }
 
 interface BulletRewriteResult {
+  type: "bullet";  // NEW - CRITICAL for Layer 4
   original: string;
   improved: string;
-  
+
   reasoning: string;               // 1-2 sentences
   changes: RewriteQualitySignals;
-  
-  // NEW: Evidence tracking
+
+  // Evidence tracking
   evidence_map: EvidenceMapItem[]; // audit trail
-  
+
   validation: {
     passed: boolean;
     items: ValidationItem[];
   };
-  
+
   confidence: "low" | "medium" | "high";
-  
+
   needs_user_input?: Array<{
     prompt: string;                // "What metrics can you add?"
     example_answer?: string;
   }>;
-  
+
   estimated_score_gain?: number;   // 0-10
 }
 
-interface SectionRewriteResult {
-  original_bullets: string[];
-  improved_bullets: BulletRewriteResult[];
-  section_notes: string[];         // e.g., "Unified tense to past"
-  
+interface SummaryRewriteResult {
+  type: "summary";  // NEW - CRITICAL for Layer 4
+  original: string;
+  improved: string;
+
+  reasoning: string;
+  changes: RewriteQualitySignals;
+
+  evidence_map: EvidenceMapItem[];
+
   validation: {
     passed: boolean;
     items: ValidationItem[];
   };
-  
+
+  confidence: "low" | "medium" | "high";
+
+  estimated_score_gain?: number;
+}
+
+interface SectionRewriteResult {
+  type: "section";  // NEW - CRITICAL for Layer 4
+  original_bullets: string[];
+  improved_bullets: string[];
+
+  estimated_aggregate_gain: number;
+  validation_summary: {
+    passed: boolean;
+    items: ValidationItem[];
+  };
+
+  per_bullet_details: Array<{
+    index: number;
+    bullet_result: BulletRewriteResult;
+  }>;
+
+  section_notes: string[];         // e.g., "Unified tense to past"
+
   confidence: "low" | "medium" | "high";
 }
+
+// Union type for Layer 4 compatibility
+type RewriteResult = BulletRewriteResult | SummaryRewriteResult | SectionRewriteResult;
 ```
+
+**CRITICAL:** The `type` field is required by Layer 4 for event logging and must be set correctly in all return statements.
 
 ---
 
@@ -1001,6 +1045,7 @@ Request:
 
 Response:
 {
+  "type": "bullet",  // NEW - CRITICAL for Layer 4
   "original": "Worked on API integrations for product team",
   "improved": "Developed REST API integrations supporting product features",
   "changes": {
@@ -1042,17 +1087,29 @@ Request:
 
 Response:
 {
+  "type": "section",  // NEW - CRITICAL for Layer 4
   "original_bullets": [...],
-  "improved_bullets": [
-    {...},
-    {...},
-    {...}
-  ],
-  "section_notes": ["Unified tense to past", "Strengthened all verbs"],
-  "validation": {
+  "improved_bullets": [...],
+  "estimated_aggregate_gain": 15,
+  "validation_summary": {
     "passed": true,
     "items": []
   },
+  "per_bullet_details": [
+    {
+      "index": 0,
+      "bullet_result": { "type": "bullet", ... }
+    },
+    {
+      "index": 1,
+      "bullet_result": { "type": "bullet", ... }
+    },
+    {
+      "index": 2,
+      "bullet_result": { "type": "bullet", ... }
+    }
+  ],
+  "section_notes": ["Unified tense to past", "Strengthened all verbs"],
   "confidence": "high"
 }
 ```
@@ -1361,6 +1418,14 @@ def learn_from_outcomes(rewrite_log, interview_outcomes):
 
 **END OF SPECIFICATION**
 
-**Version:** 2.2
+**Version:** 2.3
 **Status:** Implementation-Ready
+**Last Updated:** December 16, 2025
 **Next:** Start coding (external review applied)
+
+**Changelog v2.2 → v2.3:**
+- Added `type` field to all RewriteResult interfaces (BulletRewriteResult, SummaryRewriteResult, SectionRewriteResult) (P0-5)
+- Created RewriteResult union type for Layer 4 compatibility
+- Updated all API endpoint examples to include type field
+- Added critical note about type field requirement for Layer 4 event logging
+- Updated to use shared types from Shared_Types_v1.0 (RewriteType)
