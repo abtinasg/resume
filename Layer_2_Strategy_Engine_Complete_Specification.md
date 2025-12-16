@@ -17,6 +17,15 @@ This is the **single source of truth** for Layer 2 Strategy Engine development. 
 
 **For developers:** Start with Part I for immediate implementation. Reference Part II when making architectural decisions to ensure code is extensible.
 
+## Shared Types
+
+This layer uses shared type definitions from `Shared_Types_v1.0.md`:
+- `StrategyMode`
+- `ActionType`
+- `SeniorityLevel`
+
+Import these from the shared types package in implementation.
+
 ---
 
 # PART I: MVP IMPLEMENTATION (v2.1)
@@ -408,6 +417,28 @@ supporting_factors may include:
 ```ts
 type StrategyMode = "IMPROVE_RESUME_FIRST" | "APPLY_MODE" | "RETHINK_TARGETS";
 
+// NEW: ActionBlueprint interface (for Layer 5 consumption)
+interface ActionBlueprint {
+  type: "improve_resume" | "apply_to_job" | "follow_up" | "update_targets" | "collect_missing_info";
+  objective: string;  // Human-readable explanation
+
+  entities?: {
+    bullet_index?: number;      // For improve_resume
+    section?: string;            // For improve_resume
+    application_id?: string;     // For follow_up
+    job_id?: string;             // For apply_to_job
+  };
+
+  constraints?: {
+    max_items?: number;          // For improve_resume (e.g., fix top 5 bullets)
+    min_score_gain?: number;     // For improve_resume (e.g., only if gain >= 3)
+  };
+
+  why: string;                   // From mode_reasoning + gaps
+  confidence: "low" | "medium" | "high";
+  priority: number;              // 1-10 (for ordering)
+}
+
 interface StrategyAnalysisResult {
   analysis_version: "2.1";
   generated_at: string;                      // ISO datetime
@@ -460,7 +491,12 @@ interface StrategyAnalysisResult {
     confidence: "low"|"medium"|"high";
   };
 
-  priority_actions: string[];                // 3-5 items
+  // High-level actions (for Coach/UI)
+  priority_actions: string[];                // 3-5 items (human-readable strings)
+
+  // NEW: Machine-actionable blueprints (for Orchestrator)
+  action_blueprints: ActionBlueprint[];      // 3-7 actionable tasks
+
   key_insights: string[];                    // 3-7 items
 
   // Debug/troubleshooting (optional, strip in prod)
@@ -480,6 +516,118 @@ interface StrategyAnalysisResult {
 - Fresh grad (<1 year): force user_level=entry; experience gap expected; relax fit penalties.
 - Career changer: if industry mismatch high but transferable skills high, recommend APPLY with targeted experiments, not hard RETHINK by default.
 - Skill spam (>60 items): cap match_percentage and add flag "POSSIBLE_SKILL_SPAM".
+
+---
+
+## 8.5 ActionBlueprint Generation
+
+**Purpose:** Convert high-level analysis into machine-actionable blueprints for Layer 5.
+
+**Algorithm:**
+
+```python
+def generate_action_blueprints(
+    analysis: StrategyAnalysisResult,
+    gaps: GapAnalysis,
+    state: Layer4StateForLayer2
+) -> List[ActionBlueprint]:
+    """
+    Generate actionable blueprints from analysis
+
+    Returns 3-7 blueprints ordered by priority
+    """
+    blueprints = []
+
+    # Rule 1: If resume score < 75, prioritize improve_resume
+    if state.pipeline_state.resume_score < 75:
+        # Find critical gaps
+        if gaps.skills.critical_missing:
+            blueprints.append(ActionBlueprint(
+                type="improve_resume",
+                objective=f"Add missing skills: {', '.join(gaps.skills.critical_missing[:3])}",
+                entities={"section": "skills"},
+                constraints={"max_items": 3},
+                why=f"Resume score {state.pipeline_state.resume_score} below threshold. Missing {len(gaps.skills.critical_missing)} critical skills.",
+                confidence="high",
+                priority=10
+            ))
+
+        # Check for weak bullets
+        if 'weak_verbs' in analysis.identified_gaps or 'no_metrics' in analysis.identified_gaps:
+            blueprints.append(ActionBlueprint(
+                type="improve_resume",
+                objective="Strengthen experience bullets with metrics and action verbs",
+                entities={"section": "experience"},
+                constraints={"max_items": 5, "min_score_gain": 3},
+                why="Multiple bullets lack metrics and strong action verbs",
+                confidence="high",
+                priority=9
+            ))
+
+    # Rule 2: If in APPLY_MODE and applications < target
+    if analysis.recommended_mode == "APPLY_MODE":
+        apps_this_week = state.pipeline_state.applications_last_7_days
+        target = state.user_profile.weekly_target or 8
+
+        if apps_this_week < target:
+            blueprints.append(ActionBlueprint(
+                type="apply_to_job",
+                objective=f"Apply to {target - apps_this_week} more jobs this week",
+                constraints={"max_items": target - apps_this_week},
+                why=f"Currently at {apps_this_week}/{target} applications this week",
+                confidence="high",
+                priority=8
+            ))
+
+    # Rule 3: Follow-ups
+    if state.followups and len(state.followups) > 0:
+        for followup in state.followups[:3]:  # Top 3
+            blueprints.append(ActionBlueprint(
+                type="follow_up",
+                objective=f"Follow up on {followup.job_title} at {followup.company}",
+                entities={"application_id": followup.application_id},
+                why=f"{followup.days_since_application} days since application, optimal window",
+                confidence="medium",
+                priority=7
+            ))
+
+    # Rule 4: Update targets if in RETHINK_TARGETS mode
+    if analysis.recommended_mode == "RETHINK_TARGETS":
+        blueprints.append(ActionBlueprint(
+            type="update_targets",
+            objective="Rethink target roles based on low interview rate",
+            why=f"Interview rate {state.pipeline_state.interview_rate:.1%} below threshold after {state.pipeline_state.total_applications} applications",
+            confidence="high",
+            priority=9
+        ))
+
+    # Sort by priority (descending) and return top 7
+    blueprints.sort(key=lambda b: b.priority, reverse=True)
+    return blueprints[:7]
+```
+
+**Integration:** Call this function at the end of `analyze()`:
+
+```python
+def analyze(inputs) -> StrategyAnalysisResult:
+    # ... existing analysis ...
+
+    # Generate priority_actions (existing)
+    priority_actions = generate_priority_actions(gaps, recommended_mode)
+
+    # NEW: Generate action_blueprints
+    action_blueprints = generate_action_blueprints(
+        analysis=partial_result,
+        gaps=gaps,
+        state=inputs.state_data
+    )
+
+    return StrategyAnalysisResult(
+        # ... existing fields ...
+        priority_actions=priority_actions,
+        action_blueprints=action_blueprints  # NEW
+    )
+```
 
 ---
 
@@ -1501,7 +1649,13 @@ confidence: {
 
 **END OF COMPLETE SPECIFICATION**
 
-**Version:** 2.1 + Roadmap  
-**Last Updated:** December 15, 2025  
-**Status:** Part I Ready for Implementation | Part II Planning  
+**Version:** 2.1 + Roadmap
+**Last Updated:** December 16, 2025
+**Status:** Part I Ready for Implementation | Part II Planning
 **Next Review:** After MVP launch (Week 5)
+
+**Changelog v2.0 → v2.1:**
+- Added ActionBlueprint generation for Layer 5 integration (P0-4)
+- Added action_blueprints to StrategyAnalysisResult output interface
+- Added Section 8.5: ActionBlueprint Generation Logic
+- Updated to use shared types from Shared_Types_v1.0 (StrategyMode, ActionType, SeniorityLevel)
