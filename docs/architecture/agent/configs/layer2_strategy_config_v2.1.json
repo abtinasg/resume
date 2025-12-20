@@ -1,0 +1,37 @@
+{
+  "analysis_version": "2.1",
+  "strategy_thresholds": {
+    "resume_score_min": 75,
+    "application_volume_test": 30,
+    "interview_rate_min": 0.02,
+    "mode_hysteresis": {
+      "resume_score_buffer": 3,
+      "min_days_in_mode": 5
+    }
+  },
+  "fit_weights": {
+    "skills": 0.35,
+    "tools": 0.2,
+    "experience": 0.2,
+    "industry": 0.15,
+    "seniority": 0.1
+  },
+  "seniority_years_mapping": [
+    {
+      "max_years_exclusive": 2,
+      "level": "entry"
+    },
+    {
+      "max_years_exclusive": 5,
+      "level": "mid"
+    },
+    {
+      "max_years_exclusive": 8,
+      "level": "senior"
+    },
+    {
+      "max_years_exclusive": 999,
+      "level": "lead"
+    }
+  ]
+}
