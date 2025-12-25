@@ -1,0 +1,393 @@
+{
+  "helped": {
+    "upgrades": ["facilitated", "enabled", "supported", "contributed to"],
+    "context_hints": {
+      "technical": "implemented",
+      "leadership": "led",
+      "collaboration": "partnered with",
+      "team": "supported",
+      "project": "contributed to",
+      "process": "facilitated"
+    }
+  },
+  "worked on": {
+    "upgrades": ["developed", "engineered", "built", "designed", "implemented"],
+    "context_hints": {
+      "software": "developed",
+      "code": "developed",
+      "feature": "built",
+      "product": "built",
+      "system": "engineered",
+      "api": "designed",
+      "database": "architected",
+      "infrastructure": "engineered"
+    }
+  },
+  "was responsible for": {
+    "upgrades": ["managed", "oversaw", "directed", "owned", "led"],
+    "context_hints": {
+      "team": "managed",
+      "project": "led",
+      "system": "owned",
+      "process": "directed",
+      "operations": "oversaw"
+    }
+  },
+  "responsible for": {
+    "upgrades": ["managed", "oversaw", "directed", "owned", "led"],
+    "context_hints": {
+      "team": "managed",
+      "project": "led",
+      "system": "owned"
+    }
+  },
+  "worked with": {
+    "upgrades": ["collaborated with", "partnered with", "coordinated with"],
+    "context_hints": {
+      "team": "collaborated with",
+      "stakeholder": "partnered with",
+      "client": "consulted with"
+    }
+  },
+  "did": {
+    "upgrades": ["performed", "executed", "completed", "accomplished"],
+    "context_hints": {
+      "task": "completed",
+      "analysis": "conducted",
+      "testing": "performed"
+    }
+  },
+  "made": {
+    "upgrades": ["created", "developed", "established", "produced"],
+    "context_hints": {
+      "decision": "established",
+      "improvement": "achieved",
+      "change": "implemented"
+    }
+  },
+  "used": {
+    "upgrades": ["leveraged", "utilized", "employed", "applied"],
+    "context_hints": {
+      "tool": "leveraged",
+      "technology": "utilized",
+      "methodology": "applied"
+    }
+  },
+  "got": {
+    "upgrades": ["obtained", "achieved", "secured", "acquired"],
+    "context_hints": {
+      "result": "achieved",
+      "approval": "secured",
+      "funding": "secured"
+    }
+  },
+  "handled": {
+    "upgrades": ["managed", "processed", "resolved", "addressed"],
+    "context_hints": {
+      "issue": "resolved",
+      "request": "processed",
+      "complaint": "addressed"
+    }
+  },
+  "involved in": {
+    "upgrades": ["contributed to", "participated in", "played a key role in"],
+    "context_hints": {
+      "project": "contributed to",
+      "initiative": "drove"
+    }
+  },
+  "participated in": {
+    "upgrades": ["contributed to", "engaged in", "played a role in"],
+    "context_hints": {
+      "project": "contributed to",
+      "meeting": "facilitated"
+    }
+  },
+  "assisted": {
+    "upgrades": ["supported", "aided", "helped"],
+    "context_hints": {
+      "team": "supported",
+      "customer": "served"
+    }
+  },
+  "assisted with": {
+    "upgrades": ["supported", "contributed to", "facilitated"],
+    "context_hints": {
+      "development": "contributed to",
+      "process": "facilitated"
+    }
+  },
+  "created": {
+    "upgrades": ["designed", "developed", "established", "built"],
+    "context_hints": {
+      "software": "developed",
+      "process": "established",
+      "system": "architected"
+    }
+  },
+  "managed": {
+    "upgrades": ["directed", "oversaw", "led", "orchestrated"],
+    "context_hints": {
+      "team": "led",
+      "project": "directed",
+      "budget": "controlled"
+    }
+  },
+  "worked": {
+    "upgrades": ["collaborated", "contributed", "operated"],
+    "context_hints": {
+      "team": "collaborated",
+      "independently": "operated"
+    }
+  },
+  "improved": {
+    "upgrades": ["enhanced", "optimized", "elevated", "strengthened"],
+    "context_hints": {
+      "performance": "optimized",
+      "process": "streamlined",
+      "quality": "elevated"
+    }
+  },
+  "increased": {
+    "upgrades": ["boosted", "elevated", "expanded", "amplified"],
+    "context_hints": {
+      "revenue": "grew",
+      "efficiency": "boosted",
+      "engagement": "amplified"
+    }
+  },
+  "decreased": {
+    "upgrades": ["reduced", "minimized", "cut", "lowered"],
+    "context_hints": {
+      "cost": "cut",
+      "time": "shortened",
+      "error": "minimized"
+    }
+  },
+  "reduced": {
+    "upgrades": ["minimized", "cut", "decreased", "lowered"],
+    "context_hints": {
+      "cost": "cut",
+      "time": "accelerated",
+      "waste": "eliminated"
+    }
+  },
+  "supported": {
+    "upgrades": ["enabled", "facilitated", "empowered"],
+    "context_hints": {
+      "team": "empowered",
+      "system": "maintained",
+      "customer": "served"
+    }
+  },
+  "fixed": {
+    "upgrades": ["resolved", "remediated", "corrected", "rectified"],
+    "context_hints": {
+      "bug": "resolved",
+      "issue": "remediated",
+      "problem": "corrected"
+    }
+  },
+  "ran": {
+    "upgrades": ["executed", "operated", "administered", "managed"],
+    "context_hints": {
+      "process": "executed",
+      "system": "operated",
+      "campaign": "orchestrated"
+    }
+  },
+  "set up": {
+    "upgrades": ["established", "configured", "implemented", "deployed"],
+    "context_hints": {
+      "system": "deployed",
+      "process": "established",
+      "infrastructure": "architected"
+    }
+  },
+  "looked at": {
+    "upgrades": ["analyzed", "evaluated", "assessed", "examined"],
+    "context_hints": {
+      "data": "analyzed",
+      "issue": "investigated",
+      "performance": "assessed"
+    }
+  },
+  "dealt with": {
+    "upgrades": ["managed", "handled", "addressed", "resolved"],
+    "context_hints": {
+      "issue": "resolved",
+      "customer": "served",
+      "conflict": "mediated"
+    }
+  },
+  "talked to": {
+    "upgrades": ["communicated with", "consulted with", "engaged with"],
+    "context_hints": {
+      "stakeholder": "consulted with",
+      "client": "engaged with"
+    }
+  },
+  "gave": {
+    "upgrades": ["provided", "delivered", "presented"],
+    "context_hints": {
+      "presentation": "delivered",
+      "feedback": "provided",
+      "training": "conducted"
+    }
+  },
+  "put together": {
+    "upgrades": ["assembled", "compiled", "developed", "created"],
+    "context_hints": {
+      "report": "compiled",
+      "team": "assembled",
+      "proposal": "developed"
+    }
+  },
+  "took care of": {
+    "upgrades": ["managed", "maintained", "administered", "oversaw"],
+    "context_hints": {
+      "system": "maintained",
+      "customer": "served"
+    }
+  },
+  "started": {
+    "upgrades": ["initiated", "launched", "pioneered", "spearheaded"],
+    "context_hints": {
+      "project": "initiated",
+      "program": "launched",
+      "initiative": "pioneered"
+    }
+  },
+  "finished": {
+    "upgrades": ["completed", "delivered", "finalized", "accomplished"],
+    "context_hints": {
+      "project": "delivered",
+      "task": "completed"
+    }
+  },
+  "wrote": {
+    "upgrades": ["authored", "composed", "drafted", "developed"],
+    "context_hints": {
+      "code": "developed",
+      "documentation": "authored",
+      "report": "compiled"
+    }
+  },
+  "built": {
+    "upgrades": ["developed", "engineered", "constructed", "created"],
+    "context_hints": {
+      "software": "developed",
+      "team": "assembled",
+      "relationship": "cultivated"
+    }
+  },
+  "came up with": {
+    "upgrades": ["developed", "devised", "conceived", "formulated"],
+    "context_hints": {
+      "solution": "devised",
+      "idea": "conceived",
+      "strategy": "formulated"
+    }
+  },
+  "found": {
+    "upgrades": ["discovered", "identified", "uncovered", "detected"],
+    "context_hints": {
+      "issue": "identified",
+      "opportunity": "uncovered",
+      "bug": "detected"
+    }
+  },
+  "checked": {
+    "upgrades": ["verified", "validated", "audited", "reviewed"],
+    "context_hints": {
+      "quality": "audited",
+      "code": "reviewed",
+      "data": "validated"
+    }
+  },
+  "showed": {
+    "upgrades": ["demonstrated", "presented", "illustrated", "exhibited"],
+    "context_hints": {
+      "result": "demonstrated",
+      "concept": "illustrated"
+    }
+  },
+  "kept": {
+    "upgrades": ["maintained", "preserved", "sustained", "retained"],
+    "context_hints": {
+      "record": "maintained",
+      "standard": "upheld"
+    }
+  },
+  "changed": {
+    "upgrades": ["transformed", "modified", "revamped", "restructured"],
+    "context_hints": {
+      "process": "transformed",
+      "system": "restructured"
+    }
+  },
+  "moved": {
+    "upgrades": ["transitioned", "migrated", "transferred", "relocated"],
+    "context_hints": {
+      "system": "migrated",
+      "data": "transferred"
+    }
+  },
+  "planned": {
+    "upgrades": ["strategized", "orchestrated", "coordinated", "designed"],
+    "context_hints": {
+      "project": "orchestrated",
+      "event": "coordinated"
+    }
+  },
+  "learned": {
+    "upgrades": ["mastered", "acquired", "developed proficiency in"],
+    "context_hints": {
+      "skill": "mastered",
+      "technology": "acquired expertise in"
+    }
+  },
+  "tried": {
+    "upgrades": ["attempted", "endeavored", "pursued", "explored"],
+    "context_hints": {
+      "approach": "explored",
+      "solution": "pursued"
+    }
+  },
+  "sent": {
+    "upgrades": ["delivered", "dispatched", "transmitted", "distributed"],
+    "context_hints": {
+      "communication": "distributed",
+      "report": "delivered"
+    }
+  },
+  "needed": {
+    "upgrades": ["required", "necessitated"],
+    "context_hints": {}
+  },
+  "went": {
+    "upgrades": ["proceeded", "transitioned", "progressed"],
+    "context_hints": {}
+  },
+  "saw": {
+    "upgrades": ["observed", "witnessed", "identified", "recognized"],
+    "context_hints": {
+      "opportunity": "identified",
+      "trend": "recognized"
+    }
+  },
+  "tasked with": {
+    "upgrades": ["charged with", "assigned to", "entrusted with"],
+    "context_hints": {
+      "project": "led",
+      "responsibility": "owned"
+    }
+  },
+  "in charge of": {
+    "upgrades": ["led", "managed", "directed", "oversaw"],
+    "context_hints": {
+      "team": "led",
+      "department": "directed"
+    }
+  }
+}
