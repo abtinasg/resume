@@ -235,6 +235,8 @@ export interface DocumentMetadata {
   format: 'pdf' | 'docx' | 'txt';
   /** Parse quality indicator */
   parse_quality: ParseQuality;
+  /** Raw text content extracted during parsing (cached to avoid re-parsing) */
+  raw_text?: string;
 }
 
 /**

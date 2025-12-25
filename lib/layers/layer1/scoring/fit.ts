@@ -158,7 +158,13 @@ function calculateFitDimensions(
 
 /**
  * Calculate overall fit score
- * Formula: Fit = Σ(dimension × weight)
+ * Formula: Fit = Σ(dimension × weight) × qualityFactor
+ * 
+ * Quality Factor: Applies a smooth penalty when resume_score < 60.
+ * Rationale: Poor presentation likely reduces hiring manager interest
+ * even with good skill match. Factor ranges from 0.85 (at score 0) to
+ * 1.0 (at score 60+), providing a gradual transition rather than a
+ * hard cutoff.
  */
 function calculateFitScore(
   fitDimensions: FitDimensions,
@@ -170,7 +176,10 @@ function calculateFitScore(
     fitDimensions.experience_match * FIT_WEIGHTS.experience +
     fitDimensions.signal_quality * FIT_WEIGHTS.signal;
 
-  // Apply resume quality factor (poor resume = lower fit)
+  // Apply resume quality factor: smooth transition from 0.85 to 1.0 based on resume score
+  // At score 60+: factor = 1.0 (no penalty)
+  // At score 0: factor = 0.85 (15% penalty)
+  // Between 0-60: linear interpolation
   const qualityFactor = resumeScore >= 60 ? 1.0 : 0.85 + (resumeScore / 60) * 0.15;
 
   return Math.round(rawFitScore * qualityFactor);

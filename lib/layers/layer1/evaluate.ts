@@ -73,10 +73,11 @@ export async function evaluate(
     // Step 3: Parse resume
     const parsed = await parseResume(validatedRequest.resume);
 
-    // Step 4: Convert content to raw text for analysis
-    const rawText = typeof validatedRequest.resume.content === 'string'
-      ? validatedRequest.resume.content
-      : await extractRawText(validatedRequest.resume);
+    // Step 4: Use cached raw text from parsing (avoids re-parsing)
+    const rawText = parsed.metadata.raw_text || 
+      (typeof validatedRequest.resume.content === 'string'
+        ? validatedRequest.resume.content
+        : await extractRawText(validatedRequest.resume));
 
     // Step 5: Perform evaluation
     const { result } = evaluateGeneric(parsed, rawText);
@@ -132,10 +133,11 @@ export async function evaluate_fit(
     // Step 2: Parse resume
     const parsed = await parseResume(validatedRequest.resume);
 
-    // Step 3: Convert content to raw text for analysis
-    const rawText = typeof validatedRequest.resume.content === 'string'
-      ? validatedRequest.resume.content
-      : await extractRawText(validatedRequest.resume);
+    // Step 3: Use cached raw text from parsing (avoids re-parsing)
+    const rawText = parsed.metadata.raw_text || 
+      (typeof validatedRequest.resume.content === 'string'
+        ? validatedRequest.resume.content
+        : await extractRawText(validatedRequest.resume));
 
     // Step 4: Parse job requirements
     const requirements = validatedRequest.job_description.parsed_requirements
