@@ -41,8 +41,10 @@ export function unifyBulletFormatting(bullet: string): string {
   cleaned = cleaned.replace(/\s+–\s+/g, ' – ');
   cleaned = cleaned.replace(/\s+—\s+/g, ' — ');
 
-  // 8. Remove any emojis or special characters (ATS safety)
-  cleaned = cleaned.replace(/[^\x00-\x7F]/g, (char) => {
+  // 8. Remove only problematic special characters (keep accented letters)
+  // eslint-disable-next-line no-control-regex
+  cleaned = cleaned.replace(/[\x00-\x1F\x7F-\x9F]/g, ''); // Remove control chars
+  cleaned = cleaned.replace(/[^\w\s\-.,;:!?'"()[\]{}@#$%&*+=/\\`~^<>éèêëàâäùûüôöîïçñ]/gi, (char) => {
     // Keep common unicode that ATS can handle
     if (char === '\u2013' || char === '\u2014') return '-';
     if (char === '\u2018' || char === '\u2019') return "'";

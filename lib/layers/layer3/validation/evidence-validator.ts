@@ -251,7 +251,7 @@ const TECH_TERMS = new Set([
   'scala',
   'php',
   'perl',
-  'r',
+  // Note: 'r' removed due to false positive risk - it's too short
   'matlab',
   
   // Frameworks

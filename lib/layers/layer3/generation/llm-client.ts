@@ -109,6 +109,8 @@ export async function generateImprovement(
         ],
         temperature,
         max_tokens: maxTokens,
+        // Note: json_object format requires OpenAI API with gpt-4-turbo or gpt-3.5-turbo-1106+
+        // The prompt must also ask for JSON output for this to work
         response_format: { type: 'json_object' },
       }),
       createTimeoutPromise(timeout),
