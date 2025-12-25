@@ -1,0 +1,238 @@
+{
+  "analysis_version": "2.1",
+
+  "strategy_thresholds": {
+    "resume_score_min": 75,
+    "application_volume_test": 30,
+    "interview_rate_min": 0.02,
+    "mode_hysteresis": {
+      "resume_score_buffer": 3,
+      "min_days_in_mode": 5
+    }
+  },
+
+  "fit_weights": {
+    "skills": 0.35,
+    "tools": 0.20,
+    "experience": 0.20,
+    "industry": 0.15,
+    "seniority": 0.10
+  },
+
+  "seniority_years_mapping": [
+    { "max_years_exclusive": 2, "level": "entry" },
+    { "max_years_exclusive": 5, "level": "mid" },
+    { "max_years_exclusive": 8, "level": "senior" },
+    { "max_years_exclusive": 999, "level": "lead" }
+  ],
+
+  "seniority_subscores": {
+    "aligned": 100,
+    "underqualified": 70,
+    "overqualified": 80
+  },
+
+  "penalty_config": {
+    "critical_missing_skills_penalty_per_item": 5,
+    "critical_missing_skills_max_penalty": 20,
+    "critical_missing_tools_penalty_per_item": 3,
+    "critical_missing_tools_max_penalty": 15
+  },
+
+  "action_priorities": {
+    "improve_resume_high": 10,
+    "improve_resume_medium": 9,
+    "update_targets": 9,
+    "apply_to_job": 8,
+    "follow_up": 7,
+    "collect_missing_info": 5
+  },
+
+  "experience_keywords": {
+    "leadership": [
+      "led",
+      "managed team",
+      "supervised",
+      "mentored",
+      "directed",
+      "headed",
+      "oversaw",
+      "managed",
+      "led team",
+      "team lead"
+    ],
+    "cross_functional": [
+      "collaborated",
+      "partnered with",
+      "worked with",
+      "cross-functional",
+      "cross functional",
+      "coordinated with",
+      "aligned with"
+    ],
+    "project_management": [
+      "roadmap",
+      "sprint",
+      "agile",
+      "stakeholder",
+      "project plan",
+      "milestone",
+      "deadline",
+      "timeline",
+      "deliverable"
+    ],
+    "stakeholder_management": [
+      "stakeholder",
+      "executive",
+      "leadership",
+      "c-level",
+      "board",
+      "presented to",
+      "reported to"
+    ],
+    "customer_facing": [
+      "customer",
+      "client",
+      "user",
+      "support",
+      "demo",
+      "presentation",
+      "sales"
+    ],
+    "data_driven": [
+      "data-driven",
+      "analytics",
+      "metrics",
+      "kpi",
+      "a/b test",
+      "experiment",
+      "measured",
+      "quantified"
+    ],
+    "architecture_system_design": [
+      "architected",
+      "designed system",
+      "system design",
+      "architecture",
+      "scalable",
+      "distributed",
+      "microservices"
+    ],
+    "shipping_ownership": [
+      "shipped",
+      "launched",
+      "deployed",
+      "released",
+      "delivered",
+      "owned",
+      "end-to-end"
+    ],
+    "mentorship": [
+      "mentored",
+      "coached",
+      "trained",
+      "onboarded",
+      "taught",
+      "guided"
+    ],
+    "process_improvement": [
+      "improved",
+      "optimized",
+      "streamlined",
+      "automated",
+      "reduced",
+      "increased efficiency",
+      "enhanced"
+    ]
+  },
+
+  "seniority_title_keywords": {
+    "lead": [
+      "cto",
+      "vp",
+      "vice president",
+      "director",
+      "head of",
+      "lead",
+      "principal",
+      "staff",
+      "architect",
+      "chief",
+      "fellow"
+    ],
+    "senior": [
+      "senior",
+      "sr",
+      "sr.",
+      "expert",
+      "specialist",
+      "ii",
+      "iii"
+    ],
+    "entry": [
+      "junior",
+      "jr",
+      "jr.",
+      "associate",
+      "intern",
+      "trainee",
+      "entry",
+      "graduate",
+      "i"
+    ]
+  },
+
+  "features": {
+    "semantic_matching": false,
+    "skill_strength_scoring": false,
+    "roadmap_generation": false,
+    "ml_mode_selection": false,
+    "confidence_intervals": false
+  },
+
+  "limits": {
+    "max_priority_actions": 5,
+    "max_action_blueprints": 7,
+    "max_key_insights": 7,
+    "min_priority_actions": 3,
+    "min_action_blueprints": 3,
+    "min_key_insights": 3,
+    "skill_spam_threshold": 60
+  },
+
+  "default_role_requirements": {
+    "software_engineer": {
+      "required_skills": [
+        "programming",
+        "problem solving",
+        "communication"
+      ],
+      "required_tools": [
+        "git",
+        "ide"
+      ]
+    },
+    "product_manager": {
+      "required_skills": [
+        "product management",
+        "communication",
+        "stakeholder management"
+      ],
+      "required_tools": [
+        "jira",
+        "analytics"
+      ]
+    },
+    "data_scientist": {
+      "required_skills": [
+        "machine learning",
+        "statistical analysis",
+        "python"
+      ],
+      "required_tools": [
+        "jupyter",
+        "pandas"
+      ]
+    }
+  }
+}
