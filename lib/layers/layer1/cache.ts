@@ -129,7 +129,8 @@ function findOldestEntry(): ContentHash | null {
   let oldest: ContentHash | null = null;
   let oldestTime = Infinity;
 
-  for (const [key, value] of cache.entries()) {
+  const entries = Array.from(cache.entries());
+  for (const [key, value] of entries) {
     if (value.timestamp < oldestTime) {
       oldestTime = value.timestamp;
       oldest = key;
@@ -146,7 +147,8 @@ export function pruneExpired(): number {
   const now = Date.now();
   let pruned = 0;
 
-  for (const [key, value] of cache.entries()) {
+  const entries = Array.from(cache.entries());
+  for (const [key, value] of entries) {
     if (now - value.timestamp > CACHE_CONFIG.ttl) {
       cache.delete(key);
       pruned++;

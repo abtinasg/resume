@@ -160,7 +160,7 @@ function calculateGlobalScore(dimensions: DimensionScores): number {
 
   // Apply signal quality modifier
   const signalScore = dimensions.signal_quality.score;
-  let modifier = SIGNAL_QUALITY_MODIFIERS.neutral.factor;
+  let modifier: number = SIGNAL_QUALITY_MODIFIERS.neutral.factor;
 
   if (signalScore < SIGNAL_QUALITY_MODIFIERS.poor.threshold) {
     modifier = SIGNAL_QUALITY_MODIFIERS.poor.factor;
@@ -283,7 +283,7 @@ function collectWeaknesses(
   if (gaps.generic_descriptions) weaknesses.push('generic_descriptions');
   if (gaps.poor_formatting) weaknesses.push('poor_formatting');
 
-  return [...new Set(weaknesses)];
+  return Array.from(new Set(weaknesses));
 }
 
 // ==================== Flag Generation ====================

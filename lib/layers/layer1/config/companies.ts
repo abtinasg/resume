@@ -102,7 +102,7 @@ export const COMPANY_INDUSTRY_MAP: Record<string, string> = {
   Auth0: 'cybersecurity',
   Okta: 'cybersecurity',
   CrowdStrike: 'cybersecurity',
-  Palo Alto Networks: 'cybersecurity',
+  'Palo Alto Networks': 'cybersecurity',
   Zscaler: 'cybersecurity',
   SentinelOne: 'cybersecurity',
   Tanium: 'cybersecurity',
@@ -300,7 +300,6 @@ export const COMPANY_INDUSTRY_MAP: Record<string, string> = {
   // EdTech
   Coursera: 'edtech',
   Udemy: 'edtech',
-  LinkedIn: 'hr_tech',
   'LinkedIn Learning': 'edtech',
   Duolingo: 'edtech',
   'Khan Academy': 'edtech',

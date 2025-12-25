@@ -144,7 +144,7 @@ function extractSkillsFromSection(sectionText: string): Set<string> {
   ];
 
   for (const pattern of skillPatterns) {
-    const matches = sectionText.matchAll(pattern);
+    const matches = Array.from(sectionText.matchAll(pattern));
     for (const match of matches) {
       if (match[1]) {
         const skill = normalizeSkill(match[1].trim());
@@ -171,7 +171,7 @@ function extractSeniority(text: string): SeniorityLevel {
     /\b(lead|principal|staff|architect|head|director|vp|chief)\b/.test(textLower) &&
     !/\b(junior|entry)\b/.test(textLower)
   ) {
-    return 'lead';
+    return SeniorityLevel.LEAD;
   }
 
   // Senior patterns
@@ -179,28 +179,28 @@ function extractSeniority(text: string): SeniorityLevel {
     /\b(senior|sr\.?|iii|level\s*3)\b/.test(textLower) &&
     !/\b(junior|entry)\b/.test(textLower)
   ) {
-    return 'senior';
+    return SeniorityLevel.SENIOR;
   }
 
   // Entry patterns
   if (
     /\b(junior|jr\.?|entry|intern|associate|graduate|trainee)\b/.test(textLower)
   ) {
-    return 'entry';
+    return SeniorityLevel.ENTRY;
   }
 
   // Check years of experience as fallback
   const yearsMatch = text.match(/(\d+)\+?\s*(?:years?|yrs?)(?:\s+of)?\s+(?:experience|exp)/i);
   if (yearsMatch) {
     const years = parseInt(yearsMatch[1]);
-    if (years >= 8) return 'lead';
-    if (years >= 5) return 'senior';
-    if (years >= 2) return 'mid';
-    return 'entry';
+    if (years >= 8) return SeniorityLevel.LEAD;
+    if (years >= 5) return SeniorityLevel.SENIOR;
+    if (years >= 2) return SeniorityLevel.MID;
+    return SeniorityLevel.ENTRY;
   }
 
   // Default to mid
-  return 'mid';
+  return SeniorityLevel.MID;
 }
 
 // ==================== Domain Keywords ====================
@@ -232,7 +232,7 @@ function extractDomainKeywords(text: string): string[] {
   ];
 
   for (const pattern of domainPatterns) {
-    const matches = text.matchAll(pattern);
+    const matches = Array.from(text.matchAll(pattern));
     for (const match of matches) {
       if (match[1] && match[1].length > 3) {
         keywords.add(match[1].toLowerCase().trim());

@@ -269,14 +269,14 @@ export function detectSeniorityGap(
   const userLevel = estimateUserSeniority(parsed);
 
   // Default role expectation if not provided
-  const expectedLevel = roleExpected || 'mid';
+  const expectedLevel = roleExpected || SeniorityLevel.MID;
 
   // Determine alignment
-  const hierarchy: Record<string, number> = {
-    entry: 1,
-    mid: 2,
-    senior: 3,
-    lead: 4,
+  const hierarchy: Record<SeniorityLevel, number> = {
+    [SeniorityLevel.ENTRY]: 1,
+    [SeniorityLevel.MID]: 2,
+    [SeniorityLevel.SENIOR]: 3,
+    [SeniorityLevel.LEAD]: 4,
   };
 
   const userRank = hierarchy[userLevel];
@@ -316,7 +316,7 @@ export function detectSeniorityGap(
  */
 function estimateUserSeniority(
   parsed: ParsedResume
-): 'entry' | 'mid' | 'senior' | 'lead' {
+): SeniorityLevel {
   // Check most recent job title
   if (parsed.experiences.length > 0) {
     const recentTitle = parsed.experiences[0].title;
@@ -326,18 +326,18 @@ function estimateUserSeniority(
     const totalYears = estimateTotalYearsExperience(parsed);
     
     // Combine title-based and years-based estimation
-    if (titleSeniority === 'lead' || totalYears >= 10) {
-      return 'lead';
+    if (titleSeniority === SeniorityLevel.LEAD || totalYears >= 10) {
+      return SeniorityLevel.LEAD;
     }
-    if (titleSeniority === 'senior' || totalYears >= 5) {
-      return 'senior';
+    if (titleSeniority === SeniorityLevel.SENIOR || totalYears >= 5) {
+      return SeniorityLevel.SENIOR;
     }
     if (totalYears >= 2) {
-      return 'mid';
+      return SeniorityLevel.MID;
     }
   }
 
-  return 'entry';
+  return SeniorityLevel.ENTRY;
 }
 
 /**

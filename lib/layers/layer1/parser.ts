@@ -587,7 +587,7 @@ function extractSkills(text: string, sections: DetectedSections): string[] {
   ];
 
   for (const pattern of techPatterns) {
-    const matches = text.matchAll(pattern);
+    const matches = Array.from(text.matchAll(pattern));
     for (const match of matches) {
       if (match[1]) {
         const techs = match[1].split(/\s*,\s*/);
@@ -670,7 +670,7 @@ function extractCertifications(text: string, sections: DetectedSections): Certif
   ];
 
   for (const pattern of certPatterns) {
-    const matches = searchText.matchAll(pattern);
+    const matches = Array.from(searchText.matchAll(pattern));
     for (const match of matches) {
       const certName = match[0].trim();
       // Avoid duplicates
@@ -721,7 +721,7 @@ function extractCourses(text: string, sections: DetectedSections): CourseEntry[]
   ];
 
   for (const pattern of coursePatterns) {
-    const matches = text.matchAll(pattern);
+    const matches = Array.from(text.matchAll(pattern));
     for (const match of matches) {
       const courseName = match[1]?.trim();
       if (courseName && courseName.length > 5) {

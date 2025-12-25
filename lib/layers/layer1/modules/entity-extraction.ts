@@ -11,6 +11,7 @@
  */
 
 import type { ParsedResume, ExtractedEntities } from '../types';
+import { SeniorityLevel } from '../../shared/types';
 import { normalizeSkill, normalizeSkills, SKILL_NORMALIZATION } from '../config/skills';
 import { detectToolsInText, normalizeTool, normalizeTools } from '../config/tools';
 import { detectIndustries, INDUSTRY_KEYWORDS } from '../config/industries';
@@ -275,7 +276,7 @@ export function normalizeTitle(rawTitle: string): string {
 /**
  * Infer seniority level from job title
  */
-export function inferSeniorityFromTitle(title: string): 'entry' | 'mid' | 'senior' | 'lead' {
+export function inferSeniorityFromTitle(title: string): SeniorityLevel {
   const titleLower = title.toLowerCase();
 
   // Lead/Principal level
@@ -290,7 +291,7 @@ export function inferSeniorityFromTitle(title: string): 'entry' | 'mid' | 'senio
     titleLower.includes('vp') ||
     titleLower.includes('vice president')
   ) {
-    return 'lead';
+    return SeniorityLevel.LEAD;
   }
 
   // Senior level
@@ -301,7 +302,7 @@ export function inferSeniorityFromTitle(title: string): 'entry' | 'mid' | 'senio
     titleLower.includes('iii') ||
     titleLower.includes('level 3')
   ) {
-    return 'senior';
+    return SeniorityLevel.SENIOR;
   }
 
   // Entry level
@@ -315,11 +316,11 @@ export function inferSeniorityFromTitle(title: string): 'entry' | 'mid' | 'senio
     titleLower.includes('graduate') ||
     titleLower.includes('trainee')
   ) {
-    return 'entry';
+    return SeniorityLevel.ENTRY;
   }
 
   // Default to mid level
-  return 'mid';
+  return SeniorityLevel.MID;
 }
 
 // ==================== Company Extraction ====================
