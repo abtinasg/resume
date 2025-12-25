@@ -1,0 +1,81 @@
+{
+  "improve_bullet": {
+    "title": "Improve bullet: {bullet_preview}",
+    "description": "Enhance your resume bullet to be more impactful with stronger action verbs and metrics.",
+    "estimated_minutes": 5,
+    "execution": "auto",
+    "category": "resume_improvement"
+  },
+  
+  "improve_summary": {
+    "title": "Improve your professional summary",
+    "description": "Enhance your professional summary to better highlight your key strengths and career goals.",
+    "estimated_minutes": 10,
+    "execution": "user_confirmed",
+    "category": "resume_improvement"
+  },
+  
+  "improve_section": {
+    "title": "Improve {section} section",
+    "description": "Enhance an entire section of your resume for better impact and coherence.",
+    "estimated_minutes": 15,
+    "execution": "user_confirmed",
+    "category": "resume_improvement"
+  },
+  
+  "apply_to_job": {
+    "title": "Apply to {job_title} at {company}",
+    "description": "Submit your application for this position via {platform}.",
+    "estimated_minutes": 15,
+    "execution": "user_confirmed",
+    "category": "application"
+  },
+  
+  "followup_application": {
+    "title": "Follow up on {company} application",
+    "description": "Check on your application status and send a professional follow-up message if needed.",
+    "estimated_minutes": 10,
+    "execution": "user_only",
+    "category": "followup"
+  },
+  
+  "review_strategy": {
+    "title": "Review your job search strategy",
+    "description": "Analyze your recent application results and adjust your approach if needed.",
+    "estimated_minutes": 20,
+    "execution": "user_only",
+    "category": "strategy"
+  },
+  
+  "update_targets": {
+    "title": "Update your target roles",
+    "description": "Review and refine your target roles based on your recent job search experience.",
+    "estimated_minutes": 15,
+    "execution": "user_only",
+    "category": "strategy"
+  },
+  
+  "collect_missing_info": {
+    "title": "Complete your profile: {missing_field}",
+    "description": "Add missing information to help us provide better recommendations.",
+    "estimated_minutes": 5,
+    "execution": "user_only",
+    "category": "strategy"
+  },
+  
+  "refresh_state": {
+    "title": "Update your information",
+    "description": "Your data is outdated. Please update your resume and application status.",
+    "estimated_minutes": 15,
+    "execution": "user_only",
+    "category": "strategy"
+  },
+  
+  "prepare_interview": {
+    "title": "Prepare for {company} interview",
+    "description": "Review the job requirements and prepare answers to common interview questions.",
+    "estimated_minutes": 30,
+    "execution": "user_only",
+    "category": "interview"
+  }
+}
