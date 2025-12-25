@@ -168,7 +168,10 @@ function calculateGlobalScore(dimensions: DimensionScores): number {
     modifier = SIGNAL_QUALITY_MODIFIERS.excellent.factor;
   }
 
-  return Math.round(weightedSum * modifier);
+  const finalScore = Math.round(weightedSum * modifier);
+  
+  // Clamp to 0-100 range
+  return Math.max(0, Math.min(100, finalScore));
 }
 
 // ==================== Constraint Application ====================

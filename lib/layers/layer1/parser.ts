@@ -36,8 +36,10 @@ const PHONE_PATTERN = /(?:\+?1[-.\s]?)?(?:\(?[0-9]{3}\)?[-.\s]?)?[0-9]{3}[-.\s]?
 const LINKEDIN_PATTERN = /(?:linkedin\.com\/in\/|linkedin:?\s*)([a-zA-Z0-9-]+)/i;
 const GITHUB_PATTERN = /(?:github\.com\/|github:?\s*)([a-zA-Z0-9-]+)/i;
 
-// Date patterns
-const DATE_PATTERN = /(?:(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s*,?\s*)?(?:19|20)\d{2}|\d{1,2}\/(?:19|20)?\d{2}|Present|Current|Now/gi;
+// Date patterns - Note: Using 'i' flag only to avoid stateful lastIndex bug with 'g' flag
+const DATE_PATTERN = /(?:(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s*,?\s*)?(?:19|20)\d{2}|\d{1,2}\/(?:19|20)?\d{2}|Present|Current|Now/i;
+// Global version for matchAll and replace operations
+const DATE_PATTERN_GLOBAL = /(?:(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s*,?\s*)?(?:19|20)\d{2}|\d{1,2}\/(?:19|20)?\d{2}|Present|Current|Now/gi;
 
 // ==================== Main Parser Function ====================
 
@@ -71,7 +73,7 @@ export async function parseResume(input: ResumeInput): Promise<ParsedResume> {
   const certifications = extractCertifications(text, sections);
   const courses = extractCourses(text, sections);
 
-  // Calculate metadata
+  // Calculate metadata (including raw_text for caching)
   const metadata = calculateMetadata(text, input);
 
   return {
@@ -82,7 +84,10 @@ export async function parseResume(input: ResumeInput): Promise<ParsedResume> {
     projects: projects.length > 0 ? projects : undefined,
     certifications: certifications.length > 0 ? certifications : undefined,
     courses: courses.length > 0 ? courses : undefined,
-    metadata,
+    metadata: {
+      ...metadata,
+      raw_text: text, // Cache the raw text to avoid re-parsing
+    },
   };
 }
 
@@ -386,7 +391,7 @@ function parseJobLine(line: string): {
   dates: { start_date: string; end_date: string; duration_months: number; is_current: boolean };
 } {
   // Extract dates
-  const dateMatches = line.match(DATE_PATTERN);
+  const dateMatches = line.match(DATE_PATTERN_GLOBAL);
   const dates = {
     start_date: dateMatches?.[0] || '',
     end_date: dateMatches?.[1] || dateMatches?.[0] || 'Present',
@@ -400,7 +405,7 @@ function parseJobLine(line: string): {
   }
 
   // Remove dates from line to parse title/company
-  let cleanLine = line.replace(DATE_PATTERN, '').trim();
+  let cleanLine = line.replace(DATE_PATTERN_GLOBAL, '').trim();
   cleanLine = cleanLine.replace(/[|–—\-]+/g, '|').trim();
   
   // Try common formats: "Title at Company" or "Title | Company" or "Company - Title"

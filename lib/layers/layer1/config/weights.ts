@@ -84,15 +84,15 @@ export const SIGNAL_QUALITY_MODIFIERS = {
  */
 export const SCORE_CONSTRAINTS = {
   // If skill capital very low, cap score
-  low_skill_capital: { threshold: 25, max_score: 50 },
+  low_skill_capital: { threshold: 25, max_score: 45 },
   // If execution impact very low, cap score
-  low_execution_impact: { threshold: 20, max_score: 55 },
+  low_execution_impact: { threshold: 20, max_score: 50 },
   // If learning stagnant, cap high scores
-  stagnant_learning: { threshold: 15, max_score: 70, applies_above: 70 },
+  stagnant_learning: { threshold: 30, max_score: 60, applies_above: 60 },
   // If parsing failed, cap score
   parsing_failed: { max_score: 40 },
   // If possible spam, cap score
-  possible_spam: { max_score: 30 },
+  possible_spam: { max_score: 25 },
 } as const;
 
 // ==================== Recommendation Thresholds ====================

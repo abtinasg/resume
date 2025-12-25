@@ -143,6 +143,17 @@ Evaluates presentation quality:
 | 35-54 | Growing | Significant room for improvement |
 | 0-34 | Early | Major gaps to address |
 
+## Fit Score Quality Factor
+
+When calculating fit scores, a quality factor is applied based on the resume's overall score:
+
+- **Resume Score ≥ 60**: No penalty (factor = 1.0)
+- **Resume Score < 60**: Gradual penalty down to 0.85 at score 0
+
+**Rationale**: Poor presentation likely reduces hiring manager interest even with good skill match. A well-presented resume with mediocre fit may perform better than a poorly-presented resume with excellent fit.
+
+The factor uses linear interpolation: `factor = 0.85 + (resumeScore / 60) * 0.15`
+
 ## Recommendation Logic
 
 ### APPLY
