@@ -19,6 +19,13 @@ import type {
 import { StrategyMode } from '../types';
 import { getStrategyThresholds } from '../config';
 import { checkHysteresis, getDaysInCurrentMode } from './hysteresis';
+import {
+  WeaknessCodes,
+  SupportingFactorCodes,
+  PrimaryReasonCodes,
+  ConfidenceLevels,
+  ConfidenceThresholds,
+} from '../constants';
 
 // ==================== Types ====================
 
@@ -219,20 +226,20 @@ function evaluateRules(
     supportingFactors.push('seniority_mismatch');
   }
   if (gaps.industry.match_percentage < 30) {
-    supportingFactors.push('industry_mismatch');
+    supportingFactors.push(SupportingFactorCodes.INDUSTRY_MISMATCH);
   }
-  if (weaknesses.includes('weak_verbs') || weaknesses.includes('no_metrics')) {
-    supportingFactors.push('weak_bullets_high');
+  if (weaknesses.includes(WeaknessCodes.WEAK_VERBS) || weaknesses.includes(WeaknessCodes.NO_METRICS)) {
+    supportingFactors.push(SupportingFactorCodes.WEAK_BULLETS_HIGH);
   }
-  if (weaknesses.includes('generic_descriptions')) {
-    supportingFactors.push('vague_experience_flag');
+  if (weaknesses.includes(WeaknessCodes.GENERIC_DESCRIPTIONS)) {
+    supportingFactors.push(SupportingFactorCodes.VAGUE_EXPERIENCE_FLAG);
   }
 
   // Rule 1: Check if resume score is below threshold
   if (resumeScore < thresholds.resume_score_min) {
     return {
       proposedMode: StrategyMode.IMPROVE_RESUME_FIRST,
-      primaryReason: 'resume_below_threshold',
+      primaryReason: PrimaryReasonCodes.RESUME_BELOW_THRESHOLD,
       supportingFactors,
       confidence: determineConfidence(resumeScore, applicationsLast30Days, gaps),
     };
@@ -245,7 +252,7 @@ function evaluateRules(
   ) {
     return {
       proposedMode: StrategyMode.RETHINK_TARGETS,
-      primaryReason: 'low_interview_rate_after_volume',
+      primaryReason: PrimaryReasonCodes.LOW_INTERVIEW_RATE_AFTER_VOLUME,
       supportingFactors,
       confidence: determineConfidence(resumeScore, applicationsLast30Days, gaps),
     };
@@ -254,7 +261,7 @@ function evaluateRules(
   // Rule 3: Default to APPLY mode
   return {
     proposedMode: StrategyMode.APPLY_MODE,
-    primaryReason: 'healthy_state_default',
+    primaryReason: PrimaryReasonCodes.HEALTHY_STATE_DEFAULT,
     supportingFactors,
     confidence: determineConfidence(resumeScore, applicationsLast30Days, gaps),
   };
@@ -269,17 +276,17 @@ function determineConfidence(
   gaps: GapAnalysis
 ): ConfidenceLevel {
   // High confidence: have clear signals
-  if (resumeScore > 0 && applications >= 10) {
-    return 'high';
+  if (resumeScore > 0 && applications >= ConfidenceThresholds.MIN_APPLICATIONS_FOR_CONFIDENCE) {
+    return ConfidenceLevels.HIGH;
   }
 
   // Medium confidence: some data available
   if (resumeScore > 0 || applications > 0) {
-    return 'medium';
+    return ConfidenceLevels.MEDIUM;
   }
 
   // Low confidence: minimal data
-  return 'low';
+  return ConfidenceLevels.LOW;
 }
 
 // ==================== Utilities ====================

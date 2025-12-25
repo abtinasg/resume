@@ -9,6 +9,7 @@
  */
 
 import { getSynonyms } from '../config';
+import { shouldPreserveSpecialChars } from '../constants';
 
 // ==================== Cached Data ====================
 
@@ -38,14 +39,9 @@ function collapseWhitespace(text: string): string {
  * like C#, C++, etc.
  */
 function removeSurroundingPunctuation(text: string): string {
-  // Special cases to preserve
-  const preservePatterns = ['c#', 'c++', 'f#', '.net'];
-  
-  const lower = text.toLowerCase();
-  for (const pattern of preservePatterns) {
-    if (lower === pattern) {
-      return text;
-    }
+  // Check if the term should preserve special characters
+  if (shouldPreserveSpecialChars(text)) {
+    return text;
   }
 
   // Remove common punctuation from start and end

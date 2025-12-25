@@ -12,6 +12,7 @@ import type {
 } from '../types';
 import { StrategyMode } from '../types';
 import { getStrategyThresholds } from '../config';
+import { isApplyRethinkTransition } from '../constants';
 
 // ==================== Types ====================
 
@@ -200,12 +201,7 @@ function checkMinDaysHysteresis(
     // In production, you might require lower interview_rate thresholds
     
     // Only block changes between APPLY and RETHINK within min_days
-    if (
-      (currentMode === StrategyMode.APPLY_MODE &&
-        proposedMode === StrategyMode.RETHINK_TARGETS) ||
-      (currentMode === StrategyMode.RETHINK_TARGETS &&
-        proposedMode === StrategyMode.APPLY_MODE)
-    ) {
+    if (isApplyRethinkTransition(currentMode, proposedMode)) {
       return {
         shouldChange: false,
         finalMode: currentMode,

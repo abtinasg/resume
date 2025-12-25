@@ -634,6 +634,11 @@ export interface CapabilityTaxonomy {
 // ==================== Zod Validation Schemas ====================
 
 /**
+ * Shared confidence level schema - used across multiple schemas
+ */
+export const ConfidenceLevelSchema = z.enum(['low', 'medium', 'high']);
+
+/**
  * Layer 1 extracted data validation
  */
 export const Layer1ExtractedSchema = z.object({
@@ -658,7 +663,7 @@ export const Layer1IdentifiedGapsSchema = z.object({
  */
 export const Layer1AISummarySchema = z.object({
   seniority_level: z.nativeEnum(SeniorityLevel).optional(),
-  seniority_confidence: z.enum(['low', 'medium', 'high']).optional(),
+  seniority_confidence: ConfidenceLevelSchema.optional(),
 }).optional();
 
 /**
