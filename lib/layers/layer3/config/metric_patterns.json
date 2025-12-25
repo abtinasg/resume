@@ -1,0 +1,106 @@
+{
+  "percentage": {
+    "pattern": "\\d+(\\.\\d+)?\\s*%",
+    "description": "Percentage values like 40%, 3.5%",
+    "examples": ["40%", "3.5%", "100%"]
+  },
+  "dollar_amount": {
+    "pattern": "\\$[\\d,]+(\\.\\d{1,2})?\\s*[KMBkmb]?",
+    "description": "Dollar amounts like $5K, $2M, $1.5B",
+    "examples": ["$5K", "$2M", "$1.5B", "$500,000"]
+  },
+  "number_with_users": {
+    "pattern": "\\d+[\\+]?\\s*(users|customers|clients|subscribers|members|visitors|viewers)",
+    "description": "User/customer counts",
+    "examples": ["10K users", "1M+ customers", "500 members"]
+  },
+  "number_with_people": {
+    "pattern": "\\d+[\\+]?\\s*(engineers|developers|designers|analysts|employees|team members|people|staff)",
+    "description": "Team/people counts",
+    "examples": ["5 engineers", "10+ developers", "20 team members"]
+  },
+  "multiplier": {
+    "pattern": "\\d+(\\.\\d+)?\\s*[xX]",
+    "description": "Multiplier values like 10x, 2.5x",
+    "examples": ["10x", "2.5x", "3X"]
+  },
+  "time_saved": {
+    "pattern": "\\d+[\\+]?\\s*(hours?|days?|weeks?|months?|years?)\\s*(saved|reduced|faster|improvement)",
+    "description": "Time savings",
+    "examples": ["2 hours saved", "3 weeks faster", "6 months reduced"]
+  },
+  "time_duration": {
+    "pattern": "\\d+[\\+]?\\s*(hours?|days?|weeks?|months?|years?)",
+    "description": "Time durations",
+    "examples": ["6 months", "2 years", "40 hours"]
+  },
+  "quantity_with_unit": {
+    "pattern": "\\d+[\\+]?\\s*(requests?|transactions?|orders?|calls?|queries?|records?|items?|tickets?|issues?|bugs?|features?|products?|services?|projects?|deployments?|releases?|commits?|pull requests?|PRs?|APIs?|endpoints?|microservices?|modules?|components?|pages?|screens?|views?)\\s*(per|a|each)?\\s*(second|minute|hour|day|week|month|year)?",
+    "description": "Quantities with units",
+    "examples": ["1000 requests per second", "50 deployments per month", "100+ features"]
+  },
+  "scale_numbers": {
+    "pattern": "\\d+[\\+]?\\s*[KMBTkmbt]\\b",
+    "description": "Large scale numbers with suffixes",
+    "examples": ["10K", "1M", "5B", "100k"]
+  },
+  "range": {
+    "pattern": "\\d+\\s*[-–—to]\\s*\\d+",
+    "description": "Number ranges",
+    "examples": ["5-10", "100 to 500", "3–5"]
+  },
+  "ratio": {
+    "pattern": "\\d+:\\d+",
+    "description": "Ratios",
+    "examples": ["10:1", "3:1", "1:100"]
+  },
+  "performance_improvement": {
+    "pattern": "(improved?|increased?|reduced?|decreased?|boosted?|enhanced?)\\s*(by)?\\s*\\d+(\\.\\d+)?\\s*%?",
+    "description": "Performance improvements with numbers",
+    "examples": ["improved by 40%", "reduced 50%", "increased 3x"]
+  },
+  "revenue_profit": {
+    "pattern": "(revenue|profit|sales|income|savings?)\\s*(of)?\\s*\\$?[\\d,]+(\\.\\d{1,2})?\\s*[KMBkmb]?",
+    "description": "Revenue/profit metrics",
+    "examples": ["revenue of $5M", "profit $2.5M", "savings $100K"]
+  },
+  "implied_metrics": {
+    "patterns": [
+      "doubled",
+      "tripled",
+      "halved",
+      "quadrupled",
+      "millions of",
+      "thousands of",
+      "hundreds of",
+      "significantly",
+      "dramatically",
+      "substantially",
+      "greatly",
+      "considerably"
+    ],
+    "description": "Words implying metrics without specific numbers"
+  },
+  "scale_claims": {
+    "patterns": [
+      "massive",
+      "large-scale",
+      "enterprise-grade",
+      "enterprise-level",
+      "high-traffic",
+      "high-volume",
+      "significant",
+      "substantial",
+      "major",
+      "critical",
+      "extensive",
+      "considerable",
+      "global",
+      "nationwide",
+      "company-wide",
+      "org-wide",
+      "organization-wide"
+    ],
+    "description": "Scale claims that need evidence"
+  }
+}
