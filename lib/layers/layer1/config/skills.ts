@@ -715,3 +715,57 @@ export function findSkillCategory(skill: string): string | null {
   }
   return null;
 }
+
+// ==================== Skill Recency Classification ====================
+
+/**
+ * Modern/recent technology skills (indicate learning and staying current)
+ */
+export const RECENT_TECH_SKILLS = [
+  'TypeScript',
+  'Rust',
+  'Go',
+  'Kubernetes',
+  'React',
+  'Next.js',
+  'GraphQL',
+  'Terraform',
+  'AWS',
+  'Docker',
+  'GitHub Actions',
+  'Tailwind CSS',
+  'Svelte',
+  'Deno',
+  'Bun',
+  'Astro',
+  'Remix',
+  'Prisma',
+  'tRPC',
+  'OpenAI',
+  'LangChain',
+  'Vector Databases',
+  'Vercel',
+  'Cloudflare Workers',
+  'Edge Computing',
+  'WebAssembly',
+] as const;
+
+/**
+ * Legacy technology skills (when used alone, may indicate need to update)
+ */
+export const LEGACY_TECH_ONLY = [
+  'jQuery',
+  'Backbone.js',
+  'CoffeeScript',
+  'COBOL',
+  'Fortran',
+  'Visual Basic',
+  'Perl',
+  'CVS',
+  'SVN',
+  'Subversion',
+  'FTP',
+  'Flash',
+  'ActionScript',
+  'Cold Fusion',
+] as const;

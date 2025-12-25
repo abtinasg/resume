@@ -434,3 +434,82 @@ export const PERFORMANCE_TARGETS = {
   total_generic: 2000, // ms
   total_fit: 3000, // ms
 } as const;
+
+// ==================== Skill Capital Configuration ====================
+
+/**
+ * Important skill categories for scoring
+ */
+export const IMPORTANT_SKILL_CATEGORIES = [
+  'programming_languages',
+  'backend_frameworks',
+  'frontend_frameworks',
+  'cloud_platforms',
+  'databases',
+  'devops_tools',
+] as const;
+
+// ==================== Signal Quality Configuration ====================
+
+/**
+ * Buzzwords to detect in resumes (overused/generic terms)
+ */
+export const BUZZWORDS = [
+  'team player',
+  'hard worker',
+  'self-starter',
+  'detail-oriented',
+  'results-driven',
+  'go-getter',
+  'synergy',
+  'think outside the box',
+  'passionate',
+  'dynamic',
+  'proactive',
+  'leverage',
+] as const;
+
+// ==================== Generic Phrase Patterns ====================
+
+/**
+ * Generic phrases to detect in bullet points
+ */
+export const GENERIC_PHRASES = [
+  'responsible for',
+  'duties included',
+  'worked on',
+  'helped with',
+  'assisted with',
+  'participated in',
+  'involved in',
+  'tasked with',
+  'in charge of',
+] as const;
+
+// ==================== Job Title Keywords ====================
+
+/**
+ * Keywords for detecting job titles in resume text
+ */
+export const JOB_TITLE_KEYWORDS = [
+  'engineer',
+  'developer',
+  'manager',
+  'director',
+  'analyst',
+  'designer',
+  'lead',
+  'senior',
+  'junior',
+  'architect',
+  'consultant',
+  'specialist',
+  'coordinator',
+  'associate',
+  'intern',
+  'head',
+  'chief',
+  'officer',
+  'president',
+  'founder',
+] as const;

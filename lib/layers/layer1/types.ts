@@ -671,7 +671,7 @@ export const EvaluationMetadataSchema = z
   .object({
     user_id: z.string().optional(),
     target_role: z.string().optional(),
-    target_seniority: z.enum(['entry', 'mid', 'senior', 'lead']).optional(),
+    target_seniority: z.nativeEnum(SeniorityLevel).optional(),
     years_experience: z.number().min(0).max(50).optional(),
   })
   .optional();
@@ -692,7 +692,7 @@ export const ParsedJobRequirementsSchema = z.object({
   preferred_skills: z.array(z.string()).optional(),
   required_tools: z.array(z.string()),
   preferred_tools: z.array(z.string()).optional(),
-  seniority_expected: z.enum(['entry', 'mid', 'senior', 'lead']).optional(),
+  seniority_expected: z.nativeEnum(SeniorityLevel).optional(),
   domain_keywords: z.array(z.string()).optional(),
   years_experience_min: z.number().min(0).optional(),
   years_experience_max: z.number().min(0).optional(),

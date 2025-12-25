@@ -23,7 +23,7 @@ import {
   EvaluationErrorCode,
 } from './errors';
 import { extractTextFromBuffer } from '@/lib/pdfParser';
-import { SECTION_PATTERNS } from './config/weights';
+import { SECTION_PATTERNS, JOB_TITLE_KEYWORDS } from './config/weights';
 
 // ==================== Constants ====================
 
@@ -376,31 +376,8 @@ function extractExperiencesFromText(text: string): ExperienceEntry[] {
 }
 
 function isLikelyJobTitle(line: string): boolean {
-  const jobTitleKeywords = [
-    'engineer',
-    'developer',
-    'manager',
-    'director',
-    'analyst',
-    'designer',
-    'lead',
-    'senior',
-    'junior',
-    'architect',
-    'consultant',
-    'specialist',
-    'coordinator',
-    'associate',
-    'intern',
-    'head',
-    'chief',
-    'officer',
-    'president',
-    'founder',
-  ];
-  
   const lineLower = line.toLowerCase();
-  return jobTitleKeywords.some(kw => lineLower.includes(kw));
+  return JOB_TITLE_KEYWORDS.some(kw => lineLower.includes(kw));
 }
 
 function parseJobLine(line: string): {

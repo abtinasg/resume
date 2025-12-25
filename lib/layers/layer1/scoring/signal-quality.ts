@@ -10,7 +10,7 @@
  */
 
 import type { ParsedResume, DimensionScore } from '../types';
-import { SECTION_PATTERNS, CONTENT_THRESHOLDS } from '../config/weights';
+import { SECTION_PATTERNS, CONTENT_THRESHOLDS, BUZZWORDS } from '../config/weights';
 
 // ==================== Constants ====================
 
@@ -345,21 +345,9 @@ function analyzeClarity(bullets: string[], issues: string[]): number {
   }
 
   // Jargon/buzzword overload
-  const buzzwords = [
-    'synergy',
-    'leverage',
-    'paradigm',
-    'streamline',
-    'best-in-class',
-    'cutting-edge',
-    'innovative',
-    'world-class',
-    'holistic',
-  ];
-
   let buzzwordCount = 0;
   for (const bullet of bullets) {
-    for (const buzzword of buzzwords) {
+    for (const buzzword of BUZZWORDS) {
       if (bullet.toLowerCase().includes(buzzword)) {
         buzzwordCount++;
       }

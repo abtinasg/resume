@@ -10,7 +10,7 @@
 
 import type { ParsedResume, DimensionScore, ExtractedEntities } from '../types';
 import { findSkillCategory, SKILL_CATEGORIES } from '../config/skills';
-import { CONTENT_THRESHOLDS } from '../config/weights';
+import { CONTENT_THRESHOLDS, IMPORTANT_SKILL_CATEGORIES } from '../config/weights';
 
 // ==================== Main Scoring Function ====================
 
@@ -144,15 +144,7 @@ function calculateSkillDiversity(
   }
 
   // Check for important category representation
-  const importantCategories = [
-    'programming_languages',
-    'frontend_frameworks',
-    'backend_frameworks',
-    'databases',
-    'cloud_platforms',
-  ];
-
-  const importantCategoriesPresent = importantCategories.filter(
+  const importantCategoriesPresent = IMPORTANT_SKILL_CATEGORIES.filter(
     cat => categoryCounts[cat] && categoryCounts[cat] > 0
   ).length;
 

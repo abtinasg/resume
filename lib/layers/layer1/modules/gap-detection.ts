@@ -27,7 +27,7 @@ import { normalizeSkills } from '../config/skills';
 import { normalizeTools } from '../config/tools';
 import { findTransferableSkills } from './entity-extraction';
 import { inferSeniorityFromTitle } from './entity-extraction';
-import { EXPERIENCE_TYPE_PATTERNS, estimateYearsGap } from '../config/weights';
+import { EXPERIENCE_TYPE_PATTERNS, estimateYearsGap, WEAK_ACTION_VERBS, GENERIC_PHRASES } from '../config/weights';
 
 // ==================== Main Gap Detection ====================
 
@@ -493,24 +493,14 @@ export function detectGenericGaps(
   const missingMetrics = bulletsWithMetrics.length < allBullets.length * 0.3;
 
   // Check for weak action verbs
-  const weakVerbs = ['worked', 'helped', 'assisted', 'responsible', 'involved'];
   const bulletsWithWeakVerbs = allBullets.filter(b => 
-    weakVerbs.some(v => b.toLowerCase().startsWith(v))
+    WEAK_ACTION_VERBS.some(v => b.toLowerCase().startsWith(v))
   );
   const weakActionVerbs = bulletsWithWeakVerbs.length > allBullets.length * 0.5;
 
   // Check for generic descriptions
-  const genericPhrases = [
-    'responsible for',
-    'helped with',
-    'worked on',
-    'participated in',
-    'involved in',
-    'various projects',
-    'day-to-day',
-  ];
   const genericBullets = allBullets.filter(b =>
-    genericPhrases.some(p => b.toLowerCase().includes(p))
+    GENERIC_PHRASES.some(p => b.toLowerCase().includes(p))
   );
   const genericDescriptions = genericBullets.length > allBullets.length * 0.4;
 

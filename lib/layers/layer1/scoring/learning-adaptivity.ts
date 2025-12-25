@@ -11,40 +11,7 @@
 
 import type { ParsedResume, DimensionScore, ExtractedEntities } from '../types';
 import { LEARNING_SIGNAL_PATTERNS } from '../config/weights';
-
-// ==================== Constants ====================
-
-/**
- * Skills that indicate recent technology adoption
- */
-const RECENT_TECH_SKILLS = [
-  // Modern frameworks
-  'React', 'Vue.js', 'Next.js', 'Svelte', 'Nuxt.js',
-  // Cloud-native
-  'Kubernetes', 'Docker', 'Terraform', 'AWS', 'Google Cloud', 'Azure',
-  // Modern languages
-  'TypeScript', 'Rust', 'Go', 'Kotlin', 'Swift',
-  // AI/ML
-  'TensorFlow', 'PyTorch', 'Machine Learning', 'Deep Learning', 'AI',
-  // Modern tools
-  'GitHub Actions', 'GitLab CI', 'GraphQL', 'gRPC', 'Microservices',
-  // Recent trends
-  'Serverless', 'Edge Computing', 'Web3', 'Blockchain',
-];
-
-/**
- * Legacy technologies that might indicate stagnation
- */
-const LEGACY_TECH_ONLY = [
-  'jQuery only',
-  'PHP 5',
-  'Flash',
-  'Silverlight',
-  'Classic ASP',
-  'COBOL',
-  'Visual Basic 6',
-  'Perl',
-];
+import { RECENT_TECH_SKILLS, LEGACY_TECH_ONLY } from '../config/skills';
 
 // ==================== Main Scoring Function ====================
 
