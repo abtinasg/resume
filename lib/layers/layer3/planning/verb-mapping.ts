@@ -161,8 +161,12 @@ export function hasWeakStartPattern(text: string): {
  */
 const PASSIVE_PATTERNS = [
   /\b(was|were)\s+\w+ed\b/i,
+  /\b(was|were)\s+\w+en\b/i, // given, taken, etc.
   /\b(has|have|had)\s+been\s+\w+ed\b/i,
+  /\b(has|have|had)\s+been\s+\w+en\b/i,
   /\b(is|are)\s+being\s+\w+ed\b/i,
+  /\bwas\s+responsible\s+for\b/i, // Common passive pattern
+  /\bwere\s+responsible\s+for\b/i,
 ];
 
 /**

@@ -16,29 +16,32 @@ export function unifyBulletFormatting(bullet: string): string {
   // 1. Trim whitespace
   cleaned = cleaned.trim();
 
-  // 2. Remove extra spaces
+  // 2. Remove bullet points at start (if any) - must be before capitalization
+  cleaned = cleaned.replace(/^[•\-*]\s*/, '');
+
+  // 3. Remove extra spaces
   cleaned = cleaned.replace(/\s+/g, ' ');
 
-  // 3. Ensure starts with capital letter
+  // 4. Ensure starts with capital letter
   if (cleaned.length > 0) {
     cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
   }
 
-  // 4. Remove trailing period (resume bullets typically don't have periods)
+  // 5. Remove trailing period (resume bullets typically don't have periods)
   cleaned = cleaned.replace(/\.\s*$/, '');
 
-  // 5. Fix common punctuation issues
+  // 6. Fix common punctuation issues
   cleaned = cleaned.replace(/\s+,/g, ',');
   cleaned = cleaned.replace(/,\s+/g, ', ');
   cleaned = cleaned.replace(/\s+;/g, ';');
   cleaned = cleaned.replace(/;\s+/g, '; ');
 
-  // 6. Fix dash usage
+  // 7. Fix dash usage
   cleaned = cleaned.replace(/\s+-\s+/g, ' - ');
   cleaned = cleaned.replace(/\s+–\s+/g, ' – ');
   cleaned = cleaned.replace(/\s+—\s+/g, ' — ');
 
-  // 7. Remove any emojis or special characters (ATS safety)
+  // 8. Remove any emojis or special characters (ATS safety)
   cleaned = cleaned.replace(/[^\x00-\x7F]/g, (char) => {
     // Keep common unicode that ATS can handle
     if (char === '\u2013' || char === '\u2014') return '-';
@@ -47,12 +50,9 @@ export function unifyBulletFormatting(bullet: string): string {
     return '';
   });
 
-  // 8. Fix multiple punctuation
+  // 9. Fix multiple punctuation
   cleaned = cleaned.replace(/\.{2,}/g, '.');
   cleaned = cleaned.replace(/,{2,}/g, ',');
-
-  // 9. Remove bullet points at start (if any)
-  cleaned = cleaned.replace(/^[•\-*]\s*/, '');
 
   return cleaned;
 }
@@ -252,6 +252,8 @@ export function applyFullFormatting(bullet: string): string {
   let result = bullet;
 
   result = normalizeWhitespace(result);
+  // Remove bullet points at start
+  result = result.replace(/^[•\-*]\s*/, '');
   result = makeATSSafe(result);
   result = capitalizeFirst(result);
   result = standardizeNumbers(result);

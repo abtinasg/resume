@@ -150,7 +150,7 @@ export function detectDominantTense(bullets: string[]): TenseDetectionResult {
  * Common verb conversions
  */
 const VERB_CONVERSIONS: Record<string, { past: string; present: string }> = {
-  // Irregular verbs
+  // Irregular verbs (base form keys)
   lead: { past: 'Led', present: 'Lead' },
   build: { past: 'Built', present: 'Build' },
   write: { past: 'Wrote', present: 'Write' },
@@ -165,6 +165,21 @@ const VERB_CONVERSIONS: Record<string, { past: string; present: string }> = {
   bring: { past: 'Brought', present: 'Bring' },
   think: { past: 'Thought', present: 'Think' },
   teach: { past: 'Taught', present: 'Teach' },
+  // Irregular verbs (past form keys for reverse lookup)
+  led: { past: 'Led', present: 'Lead' },
+  built: { past: 'Built', present: 'Build' },
+  wrote: { past: 'Wrote', present: 'Write' },
+  made: { past: 'Made', present: 'Make' },
+  grew: { past: 'Grew', present: 'Grow' },
+  drove: { past: 'Drove', present: 'Drive' },
+  ran: { past: 'Ran', present: 'Run' },
+  won: { past: 'Won', present: 'Win' },
+  gave: { past: 'Gave', present: 'Give' },
+  took: { past: 'Took', present: 'Take' },
+  began: { past: 'Began', present: 'Begin' },
+  brought: { past: 'Brought', present: 'Bring' },
+  thought: { past: 'Thought', present: 'Think' },
+  taught: { past: 'Taught', present: 'Teach' },
   
   // Regular verbs (auto-converted)
   develop: { past: 'Developed', present: 'Develop' },
