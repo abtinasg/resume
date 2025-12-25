@@ -494,8 +494,8 @@ export async function queryEvents(
   return events.map(e => ({
     id: e.id,
     userId: e.userId,
-    // Map back to our event type
-    eventType: (e.eventType.toLowerCase().replace(/_/g, '_')) as LayerEventType,
+    // Map Prisma EventType (UPPERCASE_SNAKE) to our LayerEventType (lowercase_snake)
+    eventType: e.eventType.toLowerCase() as LayerEventType,
     context: typeof e.context === 'object' && e.context !== null
       ? e.context as Record<string, unknown>
       : {},
