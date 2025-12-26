@@ -1,0 +1,11 @@
+{
+  "version": "1.0",
+  "metrics": {
+    "defaultLookbackDays": 30,
+    "aggregationBuckets": ["daily", "weekly", "monthly"]
+  },
+  "exports": {
+    "maxEventsPerExport": 10000,
+    "defaultFormat": "json"
+  }
+}
