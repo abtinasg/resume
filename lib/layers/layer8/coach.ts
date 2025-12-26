@@ -443,6 +443,7 @@ function extractUsedVariables(context: CoachContext): string[] {
 
 /**
  * Get score level from numeric score
+ * Note: These thresholds are consistent with Layer 1's ResumeLevel definitions
  */
 function getScoreLevel(score: number): string {
   if (score >= 90) return 'Exceptional';

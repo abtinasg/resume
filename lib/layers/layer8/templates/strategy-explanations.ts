@@ -9,7 +9,7 @@
 import type { StrategyExplanationContext, Tone } from '../types';
 import { StrategyMode } from '../../shared/types';
 import { bold, joinParagraphs, formatBulletList, section } from '../formatters';
-import { getEmoji } from '../config';
+import { getEmoji, getThresholds } from '../config';
 
 // ==================== Strategy Mode Explanations ====================
 
@@ -157,13 +157,14 @@ export function explainStrategyDecision(context: StrategyExplanationContext): st
  */
 function explainDefaultStrategy(context: StrategyExplanationContext): string {
   const emoji = getEmoji('info');
+  const thresholds = getThresholds();
   
   let explanation = `${emoji} ${bold('Your Current Strategy')}`;
   
   if (context.resumeScore !== undefined) {
     explanation += `\n\nYour resume score is ${context.resumeScore}/100.`;
     
-    if (context.resumeScore < 75) {
+    if (context.resumeScore < thresholds.apply_mode_score) {
       explanation += ' I recommend focusing on improving your resume to increase your chances of getting interviews.';
     } else {
       explanation += ' Your resume is competitive — let\'s focus on finding the right opportunities.';
