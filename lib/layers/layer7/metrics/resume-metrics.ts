@@ -8,35 +8,10 @@
 
 import prisma from '@/lib/prisma';
 import { AnalyticsError, AnalyticsErrorCode } from '../errors';
-import { getDefaultLookbackDays } from '../config';
+import { validateUserId, getDateRangeFromOptions } from '../utils';
 import type { ResumeMetrics, DateRange, PeriodOptions, ScoreHistoryEntry } from '../types';
 
 // ==================== Helper Functions ====================
-
-/**
- * Get date range from period options
- */
-function getDateRange(options: PeriodOptions): DateRange {
-  if (options.dateRange) {
-    return options.dateRange;
-  }
-
-  const days = options.lookbackDays ?? getDefaultLookbackDays();
-  const end = new Date();
-  const start = new Date();
-  start.setDate(start.getDate() - days);
-
-  return { start, end };
-}
-
-/**
- * Validate user ID
- */
-function validateUserId(userId: string): void {
-  if (!userId || typeof userId !== 'string' || userId.trim() === '') {
-    throw new AnalyticsError(AnalyticsErrorCode.INVALID_USER_ID);
-  }
-}
 
 /**
  * Calculate improvement percentage
@@ -74,7 +49,7 @@ export async function calculateResumeMetrics(
 ): Promise<ResumeMetrics> {
   validateUserId(userId);
 
-  const period = getDateRange(options);
+  const period = getDateRangeFromOptions(options);
 
   try {
     // Get all resume versions in the period, ordered by creation date

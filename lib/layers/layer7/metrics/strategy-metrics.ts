@@ -9,7 +9,7 @@
 import prisma from '@/lib/prisma';
 import { StrategyMode, isValidStrategyMode } from '../../shared/types';
 import { AnalyticsError, AnalyticsErrorCode } from '../errors';
-import { getDefaultLookbackDays } from '../config';
+import { validateUserId, getDateRangeFromOptions, daysBetween } from '../utils';
 import type {
   StrategyMetrics,
   DateRange,
@@ -19,39 +19,6 @@ import type {
 } from '../types';
 
 // ==================== Helper Functions ====================
-
-/**
- * Get date range from period options
- */
-function getDateRange(options: PeriodOptions): DateRange {
-  if (options.dateRange) {
-    return options.dateRange;
-  }
-
-  const days = options.lookbackDays ?? getDefaultLookbackDays();
-  const end = new Date();
-  const start = new Date();
-  start.setDate(start.getDate() - days);
-
-  return { start, end };
-}
-
-/**
- * Validate user ID
- */
-function validateUserId(userId: string): void {
-  if (!userId || typeof userId !== 'string' || userId.trim() === '') {
-    throw new AnalyticsError(AnalyticsErrorCode.INVALID_USER_ID);
-  }
-}
-
-/**
- * Calculate days between two dates
- */
-function daysBetween(date1: Date, date2: Date): number {
-  const diffMs = Math.abs(date2.getTime() - date1.getTime());
-  return Math.floor(diffMs / (1000 * 60 * 60 * 24));
-}
 
 /**
  * Calculate a simple effectiveness score (0-100) based on interview rate
@@ -87,7 +54,7 @@ export async function calculateStrategyMetrics(
 ): Promise<StrategyMetrics> {
   validateUserId(userId);
 
-  const period = getDateRange(options);
+  const period = getDateRangeFromOptions(options);
 
   try {
     // Get strategy history entries
@@ -301,7 +268,7 @@ export async function getModeTransitionCount(
 ): Promise<number> {
   validateUserId(userId);
 
-  const range = dateRange ?? getDateRange({});
+  const range = dateRange ?? getDateRangeFromOptions({});
 
   try {
     // Count strategy history entries (minus 1 for transitions)

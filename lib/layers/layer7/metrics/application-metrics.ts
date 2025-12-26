@@ -8,7 +8,7 @@
 
 import prisma from '@/lib/prisma';
 import { AnalyticsError, AnalyticsErrorCode } from '../errors';
-import { getDefaultLookbackDays } from '../config';
+import { validateUserId, getDateRangeFromOptions, daysBetween, calculateAverage } from '../utils';
 import type { ApplicationMetrics, DateRange, PeriodOptions } from '../types';
 
 // ==================== Constants ====================
@@ -17,50 +17,6 @@ import type { ApplicationMetrics, DateRange, PeriodOptions } from '../types';
  * Days after which an application with no response is considered ghosted
  */
 const GHOSTED_THRESHOLD_DAYS = 30;
-
-// ==================== Helper Functions ====================
-
-/**
- * Get date range from period options
- */
-function getDateRange(options: PeriodOptions): DateRange {
-  if (options.dateRange) {
-    return options.dateRange;
-  }
-
-  const days = options.lookbackDays ?? getDefaultLookbackDays();
-  const end = new Date();
-  const start = new Date();
-  start.setDate(start.getDate() - days);
-
-  return { start, end };
-}
-
-/**
- * Validate user ID
- */
-function validateUserId(userId: string): void {
-  if (!userId || typeof userId !== 'string' || userId.trim() === '') {
-    throw new AnalyticsError(AnalyticsErrorCode.INVALID_USER_ID);
-  }
-}
-
-/**
- * Calculate average from array, returns null if empty
- */
-function calculateAverage(values: number[]): number | null {
-  if (values.length === 0) return null;
-  const sum = values.reduce((acc, val) => acc + val, 0);
-  return sum / values.length;
-}
-
-/**
- * Calculate days between two dates
- */
-function daysBetween(date1: Date, date2: Date): number {
-  const diffMs = Math.abs(date2.getTime() - date1.getTime());
-  return Math.floor(diffMs / (1000 * 60 * 60 * 24));
-}
 
 // ==================== Main Metrics Function ====================
 
@@ -85,7 +41,7 @@ export async function calculateApplicationMetrics(
 ): Promise<ApplicationMetrics> {
   validateUserId(userId);
 
-  const period = getDateRange(options);
+  const period = getDateRangeFromOptions(options);
 
   try {
     // Get all applications in the period
@@ -200,7 +156,7 @@ export async function getApplicationCountByStatus(
 ): Promise<number> {
   validateUserId(userId);
 
-  const range = dateRange ?? getDateRange({});
+  const range = dateRange ?? getDateRangeFromOptions({});
 
   try {
     const count = await prisma.application.count({

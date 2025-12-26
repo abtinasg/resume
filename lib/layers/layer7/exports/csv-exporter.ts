@@ -7,9 +7,10 @@
  */
 
 import { AnalyticsError, AnalyticsErrorCode } from '../errors';
-import { getMaxEventsPerExport, getDefaultLookbackDays } from '../config';
+import { getMaxEventsPerExport } from '../config';
 import { getEventsByUser } from '../queries';
 import { calculateApplicationMetrics, calculateResumeMetrics, calculateStrategyMetrics } from '../metrics';
+import { validateUserId, getDateRangeFromOptions, formatDateISO } from '../utils';
 import type { ExportResult, ExportOptions, DateRange } from '../types';
 
 // ==================== CSV Utilities ====================
@@ -56,40 +57,6 @@ function arrayToCSV(data: Record<string, unknown>[], columns?: string[]): string
   return [header, ...rows].join('\n');
 }
 
-// ==================== Helper Functions ====================
-
-/**
- * Get date range from export options
- */
-function getDateRange(options: ExportOptions): DateRange {
-  if (options.dateRange) {
-    return options.dateRange;
-  }
-
-  const days = options.lookbackDays ?? getDefaultLookbackDays();
-  const end = new Date();
-  const start = new Date();
-  start.setDate(start.getDate() - days);
-
-  return { start, end };
-}
-
-/**
- * Validate user ID
- */
-function validateUserId(userId: string): void {
-  if (!userId || typeof userId !== 'string' || userId.trim() === '') {
-    throw new AnalyticsError(AnalyticsErrorCode.INVALID_USER_ID);
-  }
-}
-
-/**
- * Format date for CSV
- */
-function formatDate(date: Date): string {
-  return date.toISOString();
-}
-
 // ==================== Export Functions ====================
 
 /**
@@ -114,7 +81,7 @@ export async function exportApplicationsCSV(
 ): Promise<ExportResult> {
   validateUserId(userId);
 
-  const dateRange = getDateRange({ format: 'csv', ...options });
+  const dateRange = getDateRangeFromOptions({ format: 'csv', ...options });
 
   try {
     // Get application events
@@ -137,7 +104,7 @@ export async function exportApplicationsCSV(
       return {
         event_id: event.id,
         event_type: event.eventType,
-        timestamp: formatDate(event.timestamp),
+        timestamp: formatDateISO(event.timestamp),
         job_id: context.jobId || '',
         application_id: context.applicationId || '',
         status: context.status || '',
@@ -187,7 +154,7 @@ export async function exportMetricsCSV(
 ): Promise<ExportResult> {
   validateUserId(userId);
 
-  const dateRange = getDateRange({ format: 'csv', ...options });
+  const dateRange = getDateRangeFromOptions({ format: 'csv', ...options });
 
   try {
     // Calculate all metrics
@@ -314,7 +281,7 @@ export async function exportEventsCSV(
 ): Promise<ExportResult> {
   validateUserId(userId);
 
-  const dateRange = getDateRange({ format: 'csv', ...options });
+  const dateRange = getDateRangeFromOptions({ format: 'csv', ...options });
   const maxEvents = getMaxEventsPerExport();
 
   try {
@@ -334,7 +301,7 @@ export async function exportEventsCSV(
     const rows = events.map(event => ({
       event_id: event.id,
       event_type: event.eventType,
-      timestamp: formatDate(event.timestamp),
+      timestamp: formatDateISO(event.timestamp),
       context_summary: JSON.stringify(event.context).slice(0, 200), // Truncate for CSV
     }));
 
@@ -369,13 +336,13 @@ export async function exportScoreHistoryCSV(
 ): Promise<ExportResult> {
   validateUserId(userId);
 
-  const dateRange = getDateRange({ format: 'csv', ...options });
+  const dateRange = getDateRangeFromOptions({ format: 'csv', ...options });
 
   try {
     const resumeMetrics = await calculateResumeMetrics(userId, { dateRange });
 
     const rows = resumeMetrics.scoreHistory.map(entry => ({
-      date: formatDate(entry.date),
+      date: formatDateISO(entry.date),
       score: entry.score,
       version_id: entry.eventId || '',
     }));

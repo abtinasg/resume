@@ -9,7 +9,7 @@
 import prisma from '@/lib/prisma';
 import { StrategyMode, isValidStrategyMode } from '../../shared/types';
 import { AnalyticsError, AnalyticsErrorCode } from '../errors';
-import { getDefaultLookbackDays } from '../config';
+import { validateUserId, calculateDateRange } from '../utils';
 import type {
   DateRange,
   MetricsPeriod,
@@ -19,26 +19,6 @@ import type {
 } from '../types';
 
 // ==================== Helper Functions ====================
-
-/**
- * Calculate date range from lookback days
- */
-function calculateDateRange(lookbackDays?: number): DateRange {
-  const days = lookbackDays ?? getDefaultLookbackDays();
-  const end = new Date();
-  const start = new Date();
-  start.setDate(start.getDate() - days);
-  return { start, end };
-}
-
-/**
- * Validate user ID
- */
-function validateUserId(userId: string): void {
-  if (!userId || typeof userId !== 'string' || userId.trim() === '') {
-    throw new AnalyticsError(AnalyticsErrorCode.INVALID_USER_ID);
-  }
-}
 
 /**
  * Get the start of a time bucket for a given date

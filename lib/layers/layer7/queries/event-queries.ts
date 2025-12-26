@@ -10,7 +10,7 @@ import prisma from '@/lib/prisma';
 import type { InteractionEvent, EventType as PrismaEventType } from '@prisma/client';
 import { LayerEventType } from '../../shared/types';
 import { AnalyticsError, AnalyticsErrorCode } from '../errors';
-import { getDefaultLookbackDays } from '../config';
+import { validateUserId, validateDateRange, calculateDateRange } from '../utils';
 import type { EventQueryOptions, DateRange } from '../types';
 
 // ==================== Constants ====================
@@ -24,19 +24,6 @@ const MAX_QUERY_LIMIT = 10000;
  * Default query limit
  */
 const DEFAULT_QUERY_LIMIT = 100;
-
-// ==================== Helper Functions ====================
-
-/**
- * Calculate date range from lookback days
- */
-function calculateDateRange(lookbackDays?: number): DateRange {
-  const days = lookbackDays ?? getDefaultLookbackDays();
-  const end = new Date();
-  const start = new Date();
-  start.setDate(start.getDate() - days);
-  return { start, end };
-}
 
 /**
  * Map LayerEventType to Prisma EventType
@@ -76,27 +63,6 @@ function mapEventTypeToPrisma(eventType: LayerEventType): string {
  */
 function mapPrismaToLayerEventType(prismaType: string): string {
   return prismaType.toLowerCase();
-}
-
-/**
- * Validate user ID
- */
-function validateUserId(userId: string): void {
-  if (!userId || typeof userId !== 'string' || userId.trim() === '') {
-    throw new AnalyticsError(AnalyticsErrorCode.INVALID_USER_ID);
-  }
-}
-
-/**
- * Validate date range
- */
-function validateDateRange(dateRange?: DateRange): void {
-  if (dateRange && dateRange.end < dateRange.start) {
-    throw new AnalyticsError(AnalyticsErrorCode.INVALID_DATE_RANGE, {
-      start: dateRange.start,
-      end: dateRange.end,
-    });
-  }
 }
 
 // ==================== Event Type ====================

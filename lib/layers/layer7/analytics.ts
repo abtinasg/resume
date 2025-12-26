@@ -19,7 +19,7 @@ import { getEventsByUser, getTotalEventCount, getEventCountsRecord } from './que
 import { exportUserActivity, exportMetrics, exportAll } from './exports/json-exporter';
 import { exportMetricsCSV, exportEventsCSV } from './exports/csv-exporter';
 import { generateWeeklySummary, generateMonthlySummary, generateTextSummary } from './exports/report-generator';
-import { getDefaultLookbackDays } from './config';
+import { validateUserId, getDateRangeFromOptions } from './utils';
 import type {
   AggregatedMetrics,
   UserActivitySummary,
@@ -30,33 +30,6 @@ import type {
   WeeklySummaryReport,
   MonthlySummaryReport,
 } from './types';
-
-// ==================== Helper Functions ====================
-
-/**
- * Validate user ID
- */
-function validateUserId(userId: string): void {
-  if (!userId || typeof userId !== 'string' || userId.trim() === '') {
-    throw new AnalyticsError(AnalyticsErrorCode.INVALID_USER_ID);
-  }
-}
-
-/**
- * Get date range from options
- */
-function getDateRange(options: { lookbackDays?: number; dateRange?: DateRange } = {}): DateRange {
-  if (options.dateRange) {
-    return options.dateRange;
-  }
-
-  const days = options.lookbackDays ?? getDefaultLookbackDays();
-  const end = new Date();
-  const start = new Date();
-  start.setDate(start.getDate() - days);
-
-  return { start, end };
-}
 
 // ==================== Main API Functions ====================
 
@@ -86,7 +59,7 @@ export async function getMetrics(
 ): Promise<AggregatedMetrics> {
   validateUserId(userId);
 
-  const dateRange = getDateRange(options);
+  const dateRange = getDateRangeFromOptions(options);
 
   try {
     const [applicationMetrics, resumeMetrics, strategyMetrics] = await Promise.all([

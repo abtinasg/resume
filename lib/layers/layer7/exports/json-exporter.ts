@@ -6,37 +6,11 @@
  */
 
 import { AnalyticsError, AnalyticsErrorCode } from '../errors';
-import { getMaxEventsPerExport, getDefaultLookbackDays } from '../config';
+import { getMaxEventsPerExport } from '../config';
 import { getEventsByUser } from '../queries';
 import { calculateApplicationMetrics, calculateResumeMetrics, calculateStrategyMetrics } from '../metrics';
+import { validateUserId, getDateRangeFromOptions } from '../utils';
 import type { ExportResult, ExportOptions, DateRange, AggregatedMetrics } from '../types';
-
-// ==================== Helper Functions ====================
-
-/**
- * Get date range from export options
- */
-function getDateRange(options: ExportOptions): DateRange {
-  if (options.dateRange) {
-    return options.dateRange;
-  }
-
-  const days = options.lookbackDays ?? getDefaultLookbackDays();
-  const end = new Date();
-  const start = new Date();
-  start.setDate(start.getDate() - days);
-
-  return { start, end };
-}
-
-/**
- * Validate user ID
- */
-function validateUserId(userId: string): void {
-  if (!userId || typeof userId !== 'string' || userId.trim() === '') {
-    throw new AnalyticsError(AnalyticsErrorCode.INVALID_USER_ID);
-  }
-}
 
 // ==================== Export Functions ====================
 
@@ -63,7 +37,7 @@ export async function exportUserActivity(
 ): Promise<ExportResult> {
   validateUserId(userId);
 
-  const dateRange = getDateRange({ format: 'json', ...options });
+  const dateRange = getDateRangeFromOptions({ format: 'json', ...options });
   const maxEvents = getMaxEventsPerExport();
 
   try {
@@ -139,7 +113,7 @@ export async function exportMetrics(
 ): Promise<ExportResult> {
   validateUserId(userId);
 
-  const dateRange = getDateRange({ format: 'json', ...options });
+  const dateRange = getDateRangeFromOptions({ format: 'json', ...options });
 
   try {
     // Calculate all metrics
@@ -230,7 +204,7 @@ export async function exportAll(
 ): Promise<ExportResult> {
   validateUserId(userId);
 
-  const dateRange = getDateRange({ format: 'json', ...options });
+  const dateRange = getDateRangeFromOptions({ format: 'json', ...options });
   const maxEvents = getMaxEventsPerExport();
 
   try {

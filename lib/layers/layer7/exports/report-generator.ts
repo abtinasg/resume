@@ -9,37 +9,10 @@
 import { AnalyticsError, AnalyticsErrorCode } from '../errors';
 import { calculateApplicationMetrics, calculateResumeMetrics, calculateStrategyMetrics, getCurrentResumeScore } from '../metrics';
 import { getTotalEventCount } from '../queries';
+import { validateUserId, formatDate, formatPercent } from '../utils';
 import type { WeeklySummaryReport, MonthlySummaryReport, DateRange } from '../types';
 
 // ==================== Helper Functions ====================
-
-/**
- * Validate user ID
- */
-function validateUserId(userId: string): void {
-  if (!userId || typeof userId !== 'string' || userId.trim() === '') {
-    throw new AnalyticsError(AnalyticsErrorCode.INVALID_USER_ID);
-  }
-}
-
-/**
- * Format a date for display
- */
-function formatDate(date: Date): string {
-  return date.toLocaleDateString('en-US', {
-    weekday: 'short',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
-
-/**
- * Format percentage for display
- */
-function formatPercent(value: number): string {
-  return `${(value * 100).toFixed(1)}%`;
-}
 
 /**
  * Get week boundaries
