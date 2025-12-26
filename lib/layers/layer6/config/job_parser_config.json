@@ -1,0 +1,330 @@
+{
+  "parsing": {
+    "min_length": 50,
+    "max_length": 50000,
+    "quality_thresholds": {
+      "high": {
+        "min_words": 200,
+        "has_requirements": true,
+        "has_responsibilities": true
+      },
+      "medium": {
+        "min_words": 100,
+        "has_requirements": true
+      },
+      "low": {
+        "min_words": 20
+      }
+    }
+  },
+  "requirements_extraction": {
+    "required_keywords": [
+      "required",
+      "must have",
+      "must-have",
+      "essential",
+      "mandatory",
+      "minimum"
+    ],
+    "preferred_keywords": [
+      "preferred",
+      "nice to have",
+      "nice-to-have",
+      "bonus",
+      "plus",
+      "desired",
+      "ideal"
+    ],
+    "skill_section_keywords": [
+      "requirements",
+      "qualifications",
+      "skills",
+      "what you'll need",
+      "what you need",
+      "who you are"
+    ],
+    "responsibility_section_keywords": [
+      "responsibilities",
+      "what you'll do",
+      "about the role",
+      "job description",
+      "duties",
+      "your role"
+    ]
+  },
+  "seniority_mappings": {
+    "entry": {
+      "keywords": [
+        "entry level",
+        "entry-level",
+        "junior",
+        "associate",
+        "graduate",
+        "intern",
+        "new grad",
+        "0-2 years",
+        "1-2 years"
+      ],
+      "max_years": 2
+    },
+    "mid": {
+      "keywords": [
+        "mid level",
+        "mid-level",
+        "intermediate",
+        "3-5 years",
+        "3+ years",
+        "2-4 years"
+      ],
+      "min_years": 2,
+      "max_years": 5
+    },
+    "senior": {
+      "keywords": [
+        "senior",
+        "sr.",
+        "sr ",
+        "experienced",
+        "5-7 years",
+        "5+ years",
+        "6-8 years"
+      ],
+      "min_years": 5,
+      "max_years": 8
+    },
+    "lead": {
+      "keywords": [
+        "lead",
+        "principal",
+        "staff",
+        "architect",
+        "manager",
+        "director",
+        "head of",
+        "vp",
+        "8+ years",
+        "10+ years"
+      ],
+      "min_years": 8
+    }
+  },
+  "ranking": {
+    "weights": {
+      "fit_score": 0.40,
+      "preference_match": 0.15,
+      "freshness": 0.10,
+      "category_bonus": 0.25,
+      "urgency": 0.10
+    },
+    "category_bonuses": {
+      "reach": 20,
+      "target": 25,
+      "safety": 15,
+      "avoid": 0
+    },
+    "priority_bonuses": {
+      "dream_job": 15,
+      "new": 5
+    },
+    "priority_penalties": {
+      "scam_risk": -30
+    }
+  },
+  "categorization": {
+    "thresholds": {
+      "safety": {
+        "min_fit": 55,
+        "max_fit": 100,
+        "alignment": ["aligned", "overqualified"],
+        "max_critical_missing": 0
+      },
+      "target": {
+        "min_fit": 60,
+        "max_fit": 90,
+        "alignment": ["aligned", "underqualified"],
+        "max_critical_missing": 3,
+        "max_gap_years": 1
+      },
+      "reach": {
+        "min_fit": 70,
+        "max_fit": 85,
+        "alignment": ["underqualified"],
+        "max_critical_missing": 2,
+        "max_gap_years": 2
+      },
+      "avoid": {
+        "max_fit": 50,
+        "max_critical_missing": 5
+      }
+    }
+  },
+  "career_capital": {
+    "weights": {
+      "brand": 0.30,
+      "skill_growth": 0.30,
+      "network": 0.20,
+      "compensation": 0.20
+    },
+    "company_tiers": {
+      "tier1": [
+        "google",
+        "apple",
+        "amazon",
+        "meta",
+        "microsoft",
+        "netflix",
+        "openai",
+        "anthropic",
+        "stripe",
+        "databricks"
+      ],
+      "tier2": [
+        "uber",
+        "airbnb",
+        "spotify",
+        "shopify",
+        "atlassian",
+        "salesforce",
+        "oracle",
+        "adobe",
+        "nvidia",
+        "linkedin",
+        "twitter",
+        "snap",
+        "pinterest",
+        "dropbox",
+        "slack"
+      ],
+      "tier3": [
+        "series_b",
+        "series_c",
+        "public_company"
+      ]
+    },
+    "tier_scores": {
+      "tier1": 95,
+      "tier2": 80,
+      "tier3": 60,
+      "unknown": 40
+    },
+    "cutting_edge_tech": [
+      "kubernetes",
+      "terraform",
+      "ml",
+      "ai",
+      "machine learning",
+      "deep learning",
+      "blockchain",
+      "rust",
+      "go",
+      "kafka",
+      "spark",
+      "llm",
+      "generative ai",
+      "aws",
+      "gcp",
+      "azure"
+    ],
+    "tech_hub_locations": [
+      "san francisco",
+      "new york",
+      "seattle",
+      "austin",
+      "boston",
+      "london",
+      "berlin",
+      "singapore",
+      "bangalore",
+      "toronto",
+      "los angeles"
+    ],
+    "salary_benchmarks": {
+      "0": 80000,
+      "3": 120000,
+      "5": 150000,
+      "8": 200000,
+      "10": 250000
+    },
+    "location_multipliers": {
+      "san francisco": 1.3,
+      "new york": 1.3,
+      "seattle": 1.2,
+      "boston": 1.15,
+      "los angeles": 1.15,
+      "austin": 1.0,
+      "default": 1.0
+    }
+  },
+  "scam_detection": {
+    "red_flags": {
+      "suspicious_keywords": [
+        "work from home",
+        "easy money",
+        "no experience needed",
+        "no experience required",
+        "guaranteed income",
+        "investment opportunity",
+        "financial freedom",
+        "unlimited earning",
+        "be your own boss",
+        "mlm",
+        "multi-level marketing",
+        "pyramid",
+        "get rich quick",
+        "passive income",
+        "mystery shopper"
+      ],
+      "unrealistic_salary_threshold": 500000,
+      "min_jd_length": 200,
+      "no_company_weight": 1,
+      "short_jd_weight": 2,
+      "unrealistic_salary_weight": 1,
+      "suspicious_keywords_weight": 2,
+      "no_requirements_weight": 1,
+      "scam_threshold": 3
+    }
+  },
+  "urgency": {
+    "deadline_scores": {
+      "expired": 0,
+      "within_3_days": 100,
+      "within_7_days": 80,
+      "within_14_days": 60,
+      "within_30_days": 40,
+      "beyond_30_days": 20,
+      "no_deadline": 50
+    },
+    "recency_scores": {
+      "within_3_days": 100,
+      "within_7_days": 80,
+      "within_14_days": 60,
+      "within_30_days": 40,
+      "beyond_30_days": 20,
+      "within_1_day_saved": 60,
+      "within_7_days_saved": 40,
+      "beyond_7_days_saved": 20
+    },
+    "weights": {
+      "deadline": 0.6,
+      "recency": 0.4
+    }
+  },
+  "apply_decision": {
+    "min_fit_any": 50,
+    "min_fit_reach": 65,
+    "min_fit_target": 60,
+    "min_fit_safety": 55
+  },
+  "priority_thresholds": {
+    "high": 75,
+    "medium": 50
+  },
+  "freshness": {
+    "new_job_days": 7
+  },
+  "performance_targets": {
+    "parse_single_job_ms": 1000,
+    "rank_10_jobs_ms": 2000,
+    "compare_5_jobs_ms": 500
+  }
+}
