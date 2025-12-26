@@ -311,15 +311,20 @@ describe('Layer 3 Coherence', () => {
   });
 
   test('should make text ATS-safe', () => {
-    // Use actual Unicode smart quotes and special characters
-    const textWithSpecialChars = 'Built \u201Csmart\u201D API \u2014 reduced latency\u2122';
+    // Smart quotes (curly), em dash, and trademark symbol - all ATS-unfriendly
+    const leftSmartQuote = '\u201C';   // "
+    const rightSmartQuote = '\u201D';  // "
+    const emDash = '\u2014';           // —
+    const trademark = '\u2122';        // ™
+    
+    const textWithSpecialChars = `Built ${leftSmartQuote}smart${rightSmartQuote} API ${emDash} reduced latency${trademark}`;
 
     const atsSafe = Layer3.makeATSSafe(textWithSpecialChars);
 
-    expect(atsSafe).not.toContain('\u201C'); // left smart quote
-    expect(atsSafe).not.toContain('\u201D'); // right smart quote
-    expect(atsSafe).not.toContain('\u2014'); // em dash
-    expect(atsSafe).not.toContain('\u2122'); // trademark
+    expect(atsSafe).not.toContain(leftSmartQuote);
+    expect(atsSafe).not.toContain(rightSmartQuote);
+    expect(atsSafe).not.toContain(emDash);
+    expect(atsSafe).not.toContain(trademark);
     expect(atsSafe).toContain('"'); // should be converted to regular quotes
     expect(atsSafe).toContain('-'); // should be converted to regular dash
   });

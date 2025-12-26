@@ -25,12 +25,8 @@ import {
 // ==================== Setup ====================
 
 beforeEach(() => {
-  try {
-    Layer2.clearConfigCache();
-    Layer5.clearConfigCache();
-  } catch {
-    // Ignore if config cache functions don't exist
-  }
+  Layer2.clearConfigCache?.();
+  Layer5.clearConfigCache?.();
 });
 
 // ==================== Test: Stale State Handling ====================
