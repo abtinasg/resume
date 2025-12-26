@@ -1,0 +1,88 @@
+{
+  "version": "1.0",
+  "tones": {
+    "professional": {
+      "formality": "high",
+      "emoji_usage": "minimal",
+      "sentence_style": "complete",
+      "acknowledgment_phrases": [],
+      "positive_reinforcement": false
+    },
+    "empathetic": {
+      "formality": "medium",
+      "emoji_usage": "minimal",
+      "sentence_style": "complete",
+      "acknowledgment_phrases": [
+        "I understand",
+        "That makes sense",
+        "I hear you",
+        "It's completely normal to feel that way"
+      ],
+      "positive_reinforcement": true
+    },
+    "encouraging": {
+      "formality": "medium",
+      "emoji_usage": "moderate",
+      "sentence_style": "complete",
+      "acknowledgment_phrases": [
+        "Great job",
+        "You're making progress",
+        "Keep it up"
+      ],
+      "positive_reinforcement": true
+    },
+    "direct": {
+      "formality": "medium",
+      "emoji_usage": "none",
+      "sentence_style": "concise",
+      "acknowledgment_phrases": [],
+      "positive_reinforcement": false
+    }
+  },
+  "default_tone": "professional",
+  "thresholds": {
+    "apply_mode_score": 75,
+    "low_interview_rate": 0.05,
+    "application_volume_test": 20
+  },
+  "messages": {
+    "max_length": 2000,
+    "include_emojis": true
+  },
+  "emoji_map": {
+    "success": "✅",
+    "warning": "⚠️",
+    "error": "❌",
+    "info": "ℹ️",
+    "celebration": "🎉",
+    "rocket": "🚀",
+    "star": "⭐",
+    "target": "🎯",
+    "chart": "📈",
+    "lightbulb": "💡",
+    "clock": "⏰",
+    "check": "✓",
+    "thumbsup": "👍",
+    "thinking": "🤔",
+    "muscle": "💪"
+  },
+  "acknowledgment_phrases": {
+    "understanding": [
+      "I understand",
+      "That makes sense",
+      "I hear you",
+      "I can see where you're coming from"
+    ],
+    "validation": [
+      "That's a valid concern",
+      "Your feelings are understandable",
+      "It's completely normal to feel that way"
+    ],
+    "encouragement": [
+      "You've got this",
+      "Keep going",
+      "You're making great progress",
+      "Every step counts"
+    ]
+  }
+}
