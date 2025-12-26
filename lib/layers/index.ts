@@ -11,7 +11,7 @@
  * - Layer 3: Execution Engine (Rewrite Engine) ✅ IMPLEMENTED
  * - Layer 4: State & Pipeline (Memory) ✅ IMPLEMENTED
  * - Layer 5: Orchestrator (Planning) ✅ IMPLEMENTED
- * - Layer 6: Job Discovery & Matching
+ * - Layer 6: Job Discovery & Matching ✅ IMPLEMENTED
  * - Layer 7: Learning & Optimization
  * - Layer 8: AI Coach Interface
  *
@@ -22,6 +22,7 @@
  * - Layer 3 (Execution): ✅ Implemented
  * - Layer 4 (State): ✅ Implemented (uses existing Prisma models)
  * - Layer 5 (Orchestrator): ✅ Implemented (THE BRAIN!)
+ * - Layer 6 (Job Discovery): ✅ Implemented
  * - Other layers: 🔲 Pending
  */
 
@@ -43,7 +44,9 @@ export * as Layer4 from './layer4';
 // Layer 5 - Orchestrator (implemented - THE BRAIN!)
 export * as Layer5 from './layer5';
 
+// Layer 6 - Job Discovery & Matching (implemented)
+export * as Layer6 from './layer6';
+
 // Future layer exports (uncomment as implemented)
-// export * as Layer6 from './layer6';
 // export * as Layer7 from './layer7';
 // export * as Layer8 from './layer8';
