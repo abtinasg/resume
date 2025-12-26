@@ -1,0 +1,49 @@
+{
+  "version": "1.2",
+  
+  "weekly_planning": {
+    "default_app_target": 10,
+    "min_app_target": 3,
+    "max_app_target": 30,
+    "task_pool_max": 50,
+    "focus_areas": ["resume", "applications", "followups", "strategy"]
+  },
+  
+  "daily_planning": {
+    "max_tasks_per_day": 5,
+    "time_budget_minutes": 120,
+    "require_one_high_priority": true
+  },
+  
+  "priority_scoring": {
+    "impact_weight": 0.40,
+    "urgency_weight": 0.35,
+    "alignment_weight": 0.25,
+    
+    "impact_factors": {
+      "resume_improvement": 0.8,
+      "application_submit": 0.9,
+      "interview_prep": 1.0,
+      "followup": 0.6,
+      "strategy_review": 0.7
+    },
+    
+    "urgency_thresholds": {
+      "overdue_days": 3,
+      "due_soon_days": 7,
+      "weekly_deadline": 7
+    }
+  },
+  
+  "action_execution": {
+    "max_retries": 2,
+    "retry_delay_seconds": 5,
+    "timeout_seconds": 30
+  },
+  
+  "state_freshness": {
+    "max_stale_days": 7,
+    "require_resume_for_apply": true,
+    "min_resume_score_for_apply": 60
+  }
+}
