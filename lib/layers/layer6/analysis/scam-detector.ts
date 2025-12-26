@@ -231,34 +231,35 @@ export function detectScamRisk(parsedJob: ParsedJob): ScamDetectionResult {
   const titleCheck = checkVagueTitle(parsedJob.job_title);
   if (titleCheck.flag) {
     redFlags.push(titleCheck.reason);
-    totalWeight += 1;
+    totalWeight += redFlagConfig.vague_title_weight;
   }
   
   // Check 7: Excessive punctuation
   const punctuationCheck = checkExcessivePunctuation(parsedJob.raw_text);
   if (punctuationCheck.flag) {
     redFlags.push(punctuationCheck.reason);
-    totalWeight += 1;
+    totalWeight += redFlagConfig.excessive_punctuation_weight;
   }
   
   // Check 8: Urgency pressure
   const urgencyCheck = checkUrgencyPressure(parsedJob.raw_text);
   if (urgencyCheck.flag) {
     redFlags.push(urgencyCheck.reason);
-    totalWeight += 1;
+    totalWeight += redFlagConfig.urgency_pressure_weight;
   }
   
   // Check 9: Personal info request
   const personalInfoCheck = checkPersonalInfoRequest(parsedJob.raw_text);
   if (personalInfoCheck.flag) {
     redFlags.push(personalInfoCheck.reason);
-    totalWeight += 3; // High weight - major red flag
+    totalWeight += redFlagConfig.personal_info_request_weight;
   }
   
-  // Determine risk level
+  // Determine risk level using config thresholds
   let risk_level: ScamRiskLevel;
+  const highRiskThreshold = redFlagConfig.scam_threshold + redFlagConfig.high_risk_threshold_offset;
   
-  if (totalWeight >= redFlagConfig.scam_threshold + 2) {
+  if (totalWeight >= highRiskThreshold) {
     risk_level = 'high';
   } else if (totalWeight >= redFlagConfig.scam_threshold) {
     risk_level = 'medium';

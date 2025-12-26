@@ -192,20 +192,22 @@ export function extractSkillsFromText(
 }
 
 /**
+ * Common non-skill words to filter out (module-level constant for performance)
+ */
+const NON_SKILLS = new Set([
+  'the', 'a', 'an', 'and', 'or', 'but', 'with', 'for', 'to', 'of', 'in', 'on',
+  'is', 'are', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did',
+  'will', 'would', 'could', 'should', 'may', 'might', 'must', 'shall',
+  'you', 'your', 'we', 'our', 'they', 'their', 'this', 'that', 'these', 'those',
+  'ability', 'experience', 'knowledge', 'understanding', 'familiarity',
+  'minimum', 'preferred', 'required', 'strong', 'excellent', 'good',
+]);
+
+/**
  * Check if text looks like a skill
  */
 function looksLikeSkill(text: string): boolean {
-  // Filter out common non-skill words
-  const nonSkills = new Set([
-    'the', 'a', 'an', 'and', 'or', 'but', 'with', 'for', 'to', 'of', 'in', 'on',
-    'is', 'are', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did',
-    'will', 'would', 'could', 'should', 'may', 'might', 'must', 'shall',
-    'you', 'your', 'we', 'our', 'they', 'their', 'this', 'that', 'these', 'those',
-    'ability', 'experience', 'knowledge', 'understanding', 'familiarity',
-    'minimum', 'preferred', 'required', 'strong', 'excellent', 'good',
-  ]);
-  
-  if (nonSkills.has(text)) {
+  if (NON_SKILLS.has(text)) {
     return false;
   }
   

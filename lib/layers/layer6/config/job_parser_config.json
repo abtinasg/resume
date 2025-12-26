@@ -281,7 +281,12 @@
       "unrealistic_salary_weight": 1,
       "suspicious_keywords_weight": 2,
       "no_requirements_weight": 1,
-      "scam_threshold": 3
+      "vague_title_weight": 1,
+      "excessive_punctuation_weight": 1,
+      "urgency_pressure_weight": 1,
+      "personal_info_request_weight": 3,
+      "scam_threshold": 3,
+      "high_risk_threshold_offset": 2
     }
   },
   "urgency": {

@@ -5,7 +5,6 @@
  * Parses job descriptions into structured format for analysis.
  */
 
-import { v4 as uuidv4 } from 'crypto';
 import type { 
   ParsedJob, 
   JobPasteRequest, 
@@ -25,13 +24,36 @@ import { JobDiscoveryError, JobDiscoveryErrorCode } from '../errors';
 
 /**
  * Generate a UUID v4
+ * Uses crypto.randomUUID() if available, otherwise a secure fallback
  */
 function generateUUID(): string {
-  // Use crypto.randomUUID if available, otherwise fallback
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+  // Use native crypto.randomUUID() if available
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
   }
-  // Simple fallback UUID generator
+  
+  // Secure fallback using crypto.getRandomValues if available
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    
+    // Set version (4) and variant (10) bits
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    
+    const hex: string[] = [];
+    bytes.forEach(b => hex.push(b.toString(16).padStart(2, '0')));
+    
+    return [
+      hex.slice(0, 4).join(''),
+      hex.slice(4, 6).join(''),
+      hex.slice(6, 8).join(''),
+      hex.slice(8, 10).join(''),
+      hex.slice(10, 16).join(''),
+    ].join('-');
+  }
+  
+  // Last resort fallback (not cryptographically secure, but works)
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
     const r = Math.random() * 16 | 0;
     const v = c === 'x' ? r : (r & 0x3 | 0x8);

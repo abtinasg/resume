@@ -135,11 +135,18 @@ export function calculateNetworkPotential(
   }
   
   // Company size matters for networking
+  // Use more precise patterns to avoid false positives
   if (companySize) {
-    if (companySize.includes('1000') || companySize.includes('large')) {
+    const sizeLower = companySize.toLowerCase();
+    // Large company patterns
+    if (/\b(1000\+?|10000\+?|large|enterprise|10k\+|50k\+)\b/i.test(sizeLower)) {
       score += 20;
-    } else if (companySize.includes('100') || companySize.includes('medium')) {
+    // Medium company patterns
+    } else if (/\b(100\+?|500\+?|medium|mid-?size)\b/i.test(sizeLower)) {
       score += 10;
+    // Small company patterns
+    } else if (/\b(1-50|small|startup|early[\s-]?stage)\b/i.test(sizeLower)) {
+      score += 5;
     }
   } else {
     // Default bonus if company is known (tier 1 or 2 likely large)

@@ -520,14 +520,15 @@ export const SalaryRangeSchema = z.object({
 
 /**
  * Job metadata input schema
+ * Note: Empty strings are transformed to undefined for cleaner data handling
  */
 export const JobMetadataInputSchema = z.object({
   job_title: z.string().optional(),
   company: z.string().optional(),
-  job_url: z.string().url().optional().or(z.literal('')),
+  job_url: z.string().url().optional().or(z.literal('')).transform(v => v || undefined),
   location: z.string().optional(),
-  posted_date: z.string().datetime().optional().or(z.literal('')),
-  application_deadline: z.string().datetime().optional().or(z.literal('')),
+  posted_date: z.string().datetime().optional().or(z.literal('')).transform(v => v || undefined),
+  application_deadline: z.string().datetime().optional().or(z.literal('')).transform(v => v || undefined),
   source: z.enum(['manual_paste', 'email_forward', 'api']).optional(),
 }).optional();
 

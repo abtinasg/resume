@@ -139,7 +139,12 @@ const ScamDetectionConfigSchema = z.object({
     unrealistic_salary_weight: z.number(),
     suspicious_keywords_weight: z.number(),
     no_requirements_weight: z.number(),
+    vague_title_weight: z.number(),
+    excessive_punctuation_weight: z.number(),
+    urgency_pressure_weight: z.number(),
+    personal_info_request_weight: z.number(),
     scam_threshold: z.number(),
+    high_risk_threshold_offset: z.number(),
   }),
 });
 
