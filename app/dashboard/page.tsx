@@ -11,6 +11,7 @@ import { FileText, TrendingUp, Award, Upload } from "lucide-react";
 import ComparisonView from "@/components/ComparisonView";
 import FeatureGate from "@/components/FeatureGate";
 import { FEATURES } from "@/lib/featureGating";
+import { WeeklyPlanSection } from "@/components/WeeklyPlanSection";
 
 interface Resume {
   id: number;
@@ -30,7 +31,7 @@ export default function DashboardPage() {
   const router = useRouter();
 
   // Get auth state from store
-  const { isAuthenticated, isLoading: authLoading } = useAuthStore();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuthStore();
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -485,6 +486,14 @@ export default function DashboardPage() {
                 </Card>
               );
             })}
+          </div>
+        )}
+
+        {/* Weekly Plan Section */}
+        {user && (
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold mb-4">Your Career Plan</h2>
+            <WeeklyPlanSection userId={user.id} />
           </div>
         )}
       </div>
