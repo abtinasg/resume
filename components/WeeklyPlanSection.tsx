@@ -27,6 +27,7 @@ interface Task {
 export function WeeklyPlanSection({ userId }: { userId: string }) {
   const [plan, setPlan] = useState<WeeklyPlan | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
     async function loadPlan() {
@@ -36,10 +37,14 @@ export function WeeklyPlanSection({ userId }: { userId: string }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId }),
         });
+        if (!res.ok) {
+          throw new Error('Failed to load plan');
+        }
         const data = await res.json();
         setPlan(data.plan);
       } catch (error) {
         console.error('Failed to load plan:', error);
+        setError(error instanceof Error ? error.message : 'Failed to load plan');
       } finally {
         setLoading(false);
       }
@@ -48,6 +53,7 @@ export function WeeklyPlanSection({ userId }: { userId: string }) {
   }, [userId]);
   
   if (loading) return <div>Loading plan...</div>;
+  if (error) return <div className="text-red-600">Error: {error}</div>;
   if (!plan) return null;
   
   return (
