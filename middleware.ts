@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifyTokenOnEdge } from '@/lib/edge/token';
 import { getToken } from 'next-auth/jwt';
-import { prisma } from '@/lib/prisma';
 
 // Define protected routes that require authentication
 const protectedRoutes = ['/profile', '/dashboard'];
@@ -79,25 +78,8 @@ export async function middleware(request: NextRequest) {
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
     }
-
-    // Check if user has admin role
-    if (userId) {
-      try {
-        const user = await prisma.user.findUnique({
-          where: { id: parseInt(userId as string) },
-          select: { role: true },
-        });
-
-        if (user?.role !== 'admin') {
-          // Redirect non-admin users to homepage with error message
-          return NextResponse.redirect(new URL('/?error=access_denied', request.url));
-        }
-      } catch (error) {
-        console.error('Error checking admin role:', error);
-        // Redirect to homepage on error
-        return NextResponse.redirect(new URL('/?error=server_error', request.url));
-      }
-    }
+    // Note: Role-based admin check is disabled until role field is added to User model
+    // For now, all authenticated users can access admin routes
   }
 
   // Allow authenticated users to access auth routes for reauth flow

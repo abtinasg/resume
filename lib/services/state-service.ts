@@ -255,7 +255,7 @@ export class StateService {
 
     return applications.map(app => ({
       id: app.id,
-      jobTitle: app.job.jobTitle,
+      jobTitle: app.job.title,
       company: app.job.company,
       outcome: this.mapStatusToOutcome(app.status),
       occurredAt: app.updatedAt,

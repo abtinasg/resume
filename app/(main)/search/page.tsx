@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { useSearchParams } from 'next/navigation';
 import Card from '@/components/ui/card';
@@ -19,7 +19,7 @@ interface SearchResult {
   status: string;
 }
 
-export default function SearchPage() {
+function SearchContent() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams?.get('q') || '';
 
@@ -279,5 +279,17 @@ export default function SearchPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="w-12 h-12 animate-spin text-indigo-600" />
+      </div>
+    }>
+      <SearchContent />
+    </Suspense>
   );
 }
