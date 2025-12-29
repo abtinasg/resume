@@ -3,7 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   // Exclude problematic modules from webpack bundling
   experimental: {
-    serverComponentsExternalPackages: ['canvas', 'pdfjs-dist', 'redis'],
+    serverComponentsExternalPackages: ['canvas', 'redis'],
   },
   webpack: (config, { isServer }) => {
     // Handle canvas and other native modules

@@ -181,11 +181,11 @@ export default function MethodologyPage() {
     {
       step: 1,
       title: 'Text Extraction & Parsing',
-      description: 'Extract text from PDF using advanced OCR and parsing algorithms',
+      description: 'Extract text from PDF using reliable parsing algorithms',
       icon: <FileText className="w-6 h-6" />,
       details: [
-        'PDF parsing with pdfjs-dist',
-        'OCR for scanned documents (Tesseract)',
+        'PDF text extraction with pdf-parse',
+        'Image OCR for mobile captures (Tesseract)',
         'Section detection using pattern matching',
         'Bullet point extraction',
       ],
