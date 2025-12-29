@@ -64,12 +64,12 @@ export default function TestimonialsSection() {
     },
     {
       value: '4.9/5',
-      label: 'Average rating',
+      label: 'Average rating (2024)',
       icon: Star,
     },
     {
       value: '+38%',
-      label: 'Avg. callback increase',
+      label: 'More interviews on average',
       icon: TrendingUp,
     },
   ];
@@ -96,7 +96,7 @@ export default function TestimonialsSection() {
             <span className="text-sm font-semibold text-brand-indigo">Trusted by Professionals</span>
           </div>
           <h2 className="font-grotesk text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 tracking-tight mb-6">
-            Real results from real people
+            Helping 12,000+ professionals double their interview callbacks
           </h2>
           <p className="text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
             Join thousands of professionals who&apos;ve transformed their careers with data-driven resume insights

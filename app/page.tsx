@@ -11,6 +11,7 @@ import ContactSection from '@/components/ContactSection';
 import ChatBotPanel from '@/components/ChatBotPanel';
 import TrustBadges from '@/components/TrustBadges';
 import MobileCTA from '@/components/MobileCTA';
+import StickyHeader from '@/components/StickyHeader';
 import TestimonialsSection from '@/components/TestimonialsSection';
 import RegistrationModal from '@/components/RegistrationModal';
 import { useAuthStore } from '@/lib/store/authStore';
@@ -132,7 +133,7 @@ export default function Home() {
                   transition={{ duration: 0.8, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
                   className="font-grotesk text-4xl sm:text-5xl lg:text-[58px] leading-[1.05] tracking-tight text-slate-900"
                 >
-                  Bring soul to your resume with an intelligence layer built for modern hiring teams.
+                  Land your dream job with AI that understands what hiring managers actually want.
                 </motion.h1>
                 <motion.p
                   initial={{ opacity: 0, y: 20 }}
@@ -140,7 +141,7 @@ export default function Home() {
                   transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
                   className="text-lg sm:text-xl leading-relaxed text-slate-600 max-w-xl"
                 >
-                  ResumeIQ blends qualitative researcher insight with adaptive AI scoring so every iteration feels deliberate, personal, and unmistakably professional.
+                  Stop guessing. Get instant, expert feedback on your resume and beat the applicant tracking systems in seconds.
                 </motion.p>
               </div>
 
@@ -155,7 +156,7 @@ export default function Home() {
                     onClick={scrollToUpload}
                     className="group relative inline-flex items-center justify-center gap-3 rounded-2xl bg-slate-900 px-9 py-4 text-base font-semibold text-white shadow-[0_24px_45px_-18px_rgba(15,23,42,0.65)] transition duration-300 hover:-translate-y-1"
                   >
-                    Start your free analysis
+                    Scan My Resume Now
                     <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={2.4} />
                     <span className="absolute inset-0 rounded-2xl border border-white/20" />
                   </button>
@@ -216,7 +217,7 @@ export default function Home() {
                 <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-brand-indigo/10 via-white to-brand-teal/10 p-5 shadow-sm backdrop-blur">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Time to clarity</p>
                   <p className="mt-3 text-3xl font-bold text-slate-900">6m 21s</p>
-                  <p className="mt-2 text-sm text-slate-500">Average time to surface the top three improvements for a new role.</p>
+                  <p className="mt-2 text-sm text-slate-500">Average time to get your full analysis and top 3 improvements.</p>
                 </div>
               </motion.div>
             </div>
@@ -443,19 +444,19 @@ export default function Home() {
             >
               <div className="space-y-6">
                 <h2 className="font-grotesk text-4xl sm:text-5xl lg:text-6xl font-bold text-white tracking-tight leading-tight">
-                  Because your career deserves{' '}
+                  Ready to transform{' '}
                   <span className="block mt-2 bg-gradient-to-r from-brand-teal via-cyan-300 to-blue-300 bg-clip-text text-transparent">
-                    better tools
+                    your job search?
                   </span>
                 </h2>
 
                 <p className="text-xl text-indigo-100/80 max-w-2xl mx-auto leading-relaxed">
-                  Join thousands of professionals who&apos;ve transformed their careers with intelligent resume insights
+                  Get your free resume analysis in 6 minutes
                 </p>
               </div>
 
               {/* CTA Button - Glowing white */}
-              <div className="pt-6 space-y-4">
+              <div className="pt-6 space-y-6">
                 <motion.button
                   onClick={() => {
                     const uploadSection = document.getElementById('upload-section');
@@ -466,13 +467,34 @@ export default function Home() {
                   className="group relative inline-flex items-center gap-3 px-10 py-5 bg-white text-gray-900 font-semibold rounded-2xl overflow-hidden transition-all duration-500 shadow-[0_0_60px_rgba(255,255,255,0.2)] hover:shadow-[0_0_80px_rgba(255,255,255,0.3)]"
                 >
                   <Zap className="w-5 h-5 text-brand-indigo" strokeWidth={2.5} fill="currentColor" />
-                  <span className="relative z-10">Try ResumeIQ Free</span>
+                  <span className="relative z-10">Get Started Free</span>
                   <ArrowRight className="relative z-10 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={2.5} />
 
                   {/* Subtle gradient on hover */}
                   <div className="absolute inset-0 bg-gradient-to-r from-brand-teal/10 to-brand-indigo/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 </motion.button>
-                <TrustBadges variant="dark" />
+                
+                {/* Trust signals */}
+                <div className="flex flex-wrap justify-center gap-6 text-sm text-indigo-100/70">
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    No credit card required
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    Results in 6 minutes
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    12,000+ professionals
+                  </span>
+                </div>
               </div>
             </motion.div>
           </div>
@@ -574,6 +596,9 @@ export default function Home() {
         }
         autoOpen={isAnalyzed}
       />
+
+      {/* Sticky Desktop Header CTA */}
+      <StickyHeader />
 
       {/* Sticky Mobile CTA */}
       <MobileCTA />

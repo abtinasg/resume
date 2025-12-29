@@ -594,46 +594,11 @@ JavaScript, TypeScript, React, Node.js, Python, AWS, Docker`;
             </motion.div>
           ) : (
             <>
-              {/* Mobile camera capture option */}
+              {/* Dropzone Area - PRIMARY OPTION - Apple-inspired with glass morphism */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15, duration: 0.5 }}
-              >
-                <div className="relative overflow-hidden rounded-2xl border border-brand-indigo/15 bg-white/70 backdrop-blur-sm p-5 md:p-6">
-                  <div className="flex flex-col md:flex-row md:items-center gap-4">
-                    <div className="flex-1 text-left space-y-1.5">
-                      <p className="text-sm font-semibold text-gray-900">
-                        Capture with your phone
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Snap a clear photo of your printed resume. Works best in bright, even lighting on a flat surface.
-                      </p>
-                    </div>
-                    <Button
-                      onClick={() => cameraInputRef.current?.click()}
-                      disabled={isAnalyzing}
-                      className="min-w-[180px]"
-                    >
-                      Use mobile camera
-                    </Button>
-                  </div>
-                  <input
-                    ref={cameraInputRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    className="hidden"
-                    onChange={handleCameraCapture}
-                  />
-                </div>
-              </motion.div>
-
-              {/* Dropzone Area - Apple-inspired with glass morphism */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2, duration: 0.5 }}
             className="relative"
           >
             {/* Subtle glow on interaction */}
@@ -717,7 +682,7 @@ JavaScript, TypeScript, React, Node.js, Python, AWS, Docker`;
                     )}
                   </div>
                   <p className="text-sm text-gray-500 font-medium">
-                    PDF only • Max 5MB (use mobile capture above for photos)
+                    PDF only • Max 5MB
                   </p>
                 </div>
 
@@ -742,6 +707,41 @@ JavaScript, TypeScript, React, Node.js, Python, AWS, Docker`;
               </div>
             </div>
           </motion.div>
+
+              {/* Mobile camera capture option - SECONDARY (de-emphasized) */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+              >
+                <div className="relative overflow-hidden rounded-xl border border-gray-200/80 bg-gray-50/50 backdrop-blur-sm p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div className="flex-1 text-left">
+                      <p className="text-sm text-gray-600">
+                        📱 On mobile? <button
+                          onClick={() => cameraInputRef.current?.click()}
+                          disabled={isAnalyzing}
+                          className="text-brand-indigo font-medium hover:underline"
+                        >
+                          Capture with camera
+                        </button>
+                        <span className="text-gray-500 text-xs ml-1">(best with good lighting)</span>
+                      </p>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      💡 Tip: For best results, upload a PDF from desktop
+                    </p>
+                  </div>
+                  <input
+                    ref={cameraInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={handleCameraCapture}
+                  />
+                </div>
+              </motion.div>
 
           {/* Separator - refined Apple style */}
           <motion.div
@@ -830,7 +830,7 @@ JavaScript, TypeScript, React, Node.js, Python, AWS, Docker`;
                     </>
                   ) : (
                     <>
-                      <span>Analyze Resume</span>
+                      <span>Get My Free Score</span>
                       <motion.svg
                         className="w-4 h-4"
                         fill="none"

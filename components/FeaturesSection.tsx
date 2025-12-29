@@ -89,7 +89,7 @@ export default function FeaturesSection() {
                       <div className="relative inline-block">
                         <div className="absolute inset-0 bg-gradient-to-br from-brand-indigo to-brand-teal blur-lg opacity-30 rounded-2xl" />
                         <div className="relative w-14 h-14 bg-gradient-to-br from-brand-indigo to-brand-teal rounded-2xl flex items-center justify-center transform transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3">
-                          <Icon className="w-7 h-7 text-white" strokeWidth={2} />
+                          <Icon className="w-7 h-7 text-white" strokeWidth={2.5} />
                         </div>
                       </div>
                     </div>
