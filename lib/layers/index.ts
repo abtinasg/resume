@@ -12,8 +12,8 @@
  * - Layer 4: State & Pipeline (Memory) ✅ IMPLEMENTED
  * - Layer 5: Orchestrator (Planning) ✅ IMPLEMENTED
  * - Layer 6: Job Discovery & Matching ✅ IMPLEMENTED
- * - Layer 7: Learning & Optimization
- * - Layer 8: AI Coach Interface
+ * - Layer 7: Learning & Optimization ✅ IMPLEMENTED
+ * - Layer 8: AI Coach Interface ✅ IMPLEMENTED
  *
  * Migration Status:
  * - Shared types: ✅ Implemented
@@ -23,7 +23,8 @@
  * - Layer 4 (State): ✅ Implemented (uses existing Prisma models)
  * - Layer 5 (Orchestrator): ✅ Implemented (THE BRAIN!)
  * - Layer 6 (Job Discovery): ✅ Implemented
- * - Other layers: 🔲 Pending
+ * - Layer 7 (Learning): ✅ Implemented (Foundation)
+ * - Layer 8 (AI Coach): ✅ Implemented (Template-based)
  */
 
 // Shared types and utilities
@@ -47,6 +48,8 @@ export * as Layer5 from './layer5';
 // Layer 6 - Job Discovery & Matching (implemented)
 export * as Layer6 from './layer6';
 
-// Future layer exports (uncomment as implemented)
-// export * as Layer7 from './layer7';
-// export * as Layer8 from './layer8';
+// Layer 7 - Learning & Optimization (implemented)
+export * as Layer7 from './layer7';
+
+// Layer 8 - AI Coach Interface (implemented)
+export * as Layer8 from './layer8';
