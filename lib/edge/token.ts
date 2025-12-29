@@ -8,13 +8,16 @@ if (!JWT_SECRET) {
   );
 }
 
+// TypeScript needs help narrowing this at module level
+const SECRET: string = JWT_SECRET;
+
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
 let cachedKey: CryptoKey | null = null;
 let cachedSecretValue: string | null = null;
 
-function base64UrlToUint8Array(input: string): Uint8Array {
+function base64UrlToUint8Array(input: string): Uint8Array<ArrayBuffer> {
   const paddingLength = (4 - (input.length % 4 || 4)) % 4;
   const paddedInput = `${input}${'='.repeat(paddingLength)}`
     .replace(/-/g, '+')
@@ -75,7 +78,7 @@ export async function verifyTokenOnEdge(
       return null;
     }
 
-    const key = await importSecretKey(JWT_SECRET);
+    const key = await importSecretKey(SECRET);
     const signature = base64UrlToUint8Array(encodedSignature);
     const data = encoder.encode(`${encodedHeader}.${encodedPayload}`);
 
