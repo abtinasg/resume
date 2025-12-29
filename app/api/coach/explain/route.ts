@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Layer8 } from '@/lib/layers';
 import type { ExplanationType, Tone, CoachContext } from '@/lib/layers/layer8/types';
 
+// Validation constants - these should match the ExplanationType and Tone types
+const VALID_EXPLANATION_TYPES: ExplanationType[] = ['strategy', 'action', 'job_ranking', 'score', 'gap', 'plan', 'progress'];
+const VALID_TONES: Tone[] = ['professional', 'empathetic', 'encouraging', 'direct'];
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -22,22 +26,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate explanation type
-    const validTypes: ExplanationType[] = ['strategy', 'action', 'job_ranking', 'score', 'gap', 'plan', 'progress'];
-    if (!validTypes.includes(explanation_type)) {
+    if (!VALID_EXPLANATION_TYPES.includes(explanation_type)) {
       return NextResponse.json(
         { 
-          error: `Invalid explanation_type. Must be one of: ${validTypes.join(', ')}` 
+          error: `Invalid explanation_type. Must be one of: ${VALID_EXPLANATION_TYPES.join(', ')}` 
         },
         { status: 400 }
       );
     }
 
     // Validate tone if provided
-    const validTones: Tone[] = ['professional', 'empathetic', 'encouraging', 'direct'];
-    if (tone && !validTones.includes(tone)) {
+    if (tone && !VALID_TONES.includes(tone)) {
       return NextResponse.json(
         { 
-          error: `Invalid tone. Must be one of: ${validTones.join(', ')}` 
+          error: `Invalid tone. Must be one of: ${VALID_TONES.join(', ')}` 
         },
         { status: 400 }
       );

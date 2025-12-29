@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Layer6 } from '@/lib/layers';
 import type { JobFilters, ParsedJob } from '@/lib/layers/layer6/types';
 
+// Validation constants
+const VALID_CATEGORIES = ['reach', 'target', 'safety', 'avoid'] as const;
+const VALID_STATUSES = ['discovered', 'saved', 'applied', 'archived'] as const;
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -25,9 +29,9 @@ export async function GET(request: NextRequest) {
     const offset = searchParams.get('offset');
 
     // Validate category if provided
-    if (category && !['reach', 'target', 'safety', 'avoid'].includes(category)) {
+    if (category && !VALID_CATEGORIES.includes(category as typeof VALID_CATEGORIES[number])) {
       return NextResponse.json(
-        { error: 'Invalid category. Must be one of: reach, target, safety, avoid' },
+        { error: `Invalid category. Must be one of: ${VALID_CATEGORIES.join(', ')}` },
         { status: 400 }
       );
     }
@@ -48,9 +52,9 @@ export async function GET(request: NextRequest) {
     if (location) filters.location = location;
     if (only_should_apply === 'true') filters.only_should_apply = true;
     if (status) {
-      if (!['discovered', 'saved', 'applied', 'archived'].includes(status)) {
+      if (!VALID_STATUSES.includes(status as typeof VALID_STATUSES[number])) {
         return NextResponse.json(
-          { error: 'Invalid status. Must be one of: discovered, saved, applied, archived' },
+          { error: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}` },
           { status: 400 }
         );
       }

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Layer7 } from '@/lib/layers';
 
+// Validation constants
+const VALID_PERIODS = ['weekly', 'monthly', 'all_time'] as const;
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -15,11 +18,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Validate period if provided
-    const validPeriods = ['weekly', 'monthly', 'all_time'];
-    if (period && !validPeriods.includes(period)) {
+    if (period && !VALID_PERIODS.includes(period as typeof VALID_PERIODS[number])) {
       return NextResponse.json(
         { 
-          error: `Invalid period. Must be one of: ${validPeriods.join(', ')}` 
+          error: `Invalid period. Must be one of: ${VALID_PERIODS.join(', ')}` 
         },
         { status: 400 }
       );
