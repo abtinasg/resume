@@ -39,6 +39,7 @@ export default function NotificationSettings() {
     },
   ]);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const toggleSetting = (id: string) => {
     setSettings((prev) =>
@@ -53,6 +54,9 @@ export default function NotificationSettings() {
     // Mock API call - will be replaced with actual API integration
     await new Promise((resolve) => setTimeout(resolve, 1000));
     setSaving(false);
+    setSaved(true);
+    // Reset saved state after 2 seconds
+    setTimeout(() => setSaved(false), 2000);
   };
 
   return (
@@ -100,7 +104,7 @@ export default function NotificationSettings() {
         ))}
       </div>
 
-      <div className="p-6 border-t border-gray-200 bg-gray-50">
+      <div className="p-6 border-t border-gray-200 bg-gray-50 flex items-center gap-3">
         <Button
           onClick={handleSave}
           disabled={saving}
@@ -108,6 +112,11 @@ export default function NotificationSettings() {
         >
           {saving ? 'Saving...' : 'Save Changes'}
         </Button>
+        {saved && (
+          <span className="text-sm text-green-600 font-medium">
+            ✓ Changes saved successfully
+          </span>
+        )}
       </div>
     </Card>
   );
