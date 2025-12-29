@@ -17,6 +17,7 @@ import {
   ConfidenceLevel,
   BulletRewriteRequest,
   SummaryRewriteRequest,
+  RewriteType,
 } from '../types';
 import { getLLMConfig } from '../config';
 import {
@@ -167,6 +168,7 @@ async function executeWithRetry(
 ): Promise<RetryResult> {
   let currentPrompt = prompt;
   let attempts = 0;
+  const rewriteType = type === 'bullet' ? RewriteType.BULLET : RewriteType.SUMMARY;
 
   while (attempts <= maxRetries) {
     context.attempt = attempts;
@@ -174,7 +176,7 @@ async function executeWithRetry(
     try {
       // Generate improvement
       const llmResult = await generateImprovement(currentPrompt, {
-        type,
+        type: rewriteType,
         attempt: attempts,
       });
 

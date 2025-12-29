@@ -5,6 +5,7 @@
  * Integration wrapper for Layer 1 fit analysis.
  */
 
+import { SeniorityLevel } from '../../shared/types';
 import type { FitScore, ParsedJobRequirements } from '../../layer1/types';
 import type { ParsedJob, RankedJob, UserPreferences } from '../types';
 
@@ -120,7 +121,7 @@ export function createMockFitAnalysis(
         coverage_score: 70,
       },
       seniority: {
-        user_level: 'mid',
+        user_level: SeniorityLevel.MID,
         role_expected: parsedJob.requirements.seniority_expected,
         alignment: 'aligned',
       },

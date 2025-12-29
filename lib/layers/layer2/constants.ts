@@ -160,6 +160,6 @@ export function isApplyRethinkTransition(
   currentMode: string,
   proposedMode: string
 ): boolean {
-  const applyRethinkModes = new Set(ModeTransitions.APPLY_RETHINK);
+  const applyRethinkModes = new Set<string>(ModeTransitions.APPLY_RETHINK);
   return applyRethinkModes.has(currentMode) && applyRethinkModes.has(proposedMode);
 }

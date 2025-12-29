@@ -51,13 +51,13 @@ export function detectMetrics(text: string): DetectedMetric[] {
   for (const pattern of patterns) {
     // Reset regex state
     pattern.lastIndex = 0;
-    let match;
+    let match: RegExpExecArray | null;
 
     while ((match = pattern.exec(text)) !== null) {
       // Avoid duplicate detections at same position
       const alreadyDetected = metrics.some(
-        (m) => m.position === match.index || 
-               (m.position <= match.index && m.position + m.length > match.index)
+        (m) => m.position === match!.index || 
+               (m.position <= match!.index && m.position + m.length > match!.index)
       );
 
       if (!alreadyDetected) {

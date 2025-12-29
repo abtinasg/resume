@@ -8,7 +8,7 @@
  * - Subscription lifecycle operations
  */
 
-import { prisma } from './prisma';
+// Note: prisma import removed - Subscription and UsageLimit models not in current schema
 import { FEATURES, type Feature, canAccessFeature } from './featureGating';
 
 // Subscription tier types
@@ -49,66 +49,43 @@ export const SUBSCRIPTION_PERIOD_DAYS = 30;
 
 /**
  * Get or create subscription for a user
+ * Note: Subscription model not in current schema - returns mock data
  */
 export async function getOrCreateSubscription(userId: number) {
-  let subscription = await prisma.subscription.findUnique({
-    where: { userId },
-    include: {
-      user: {
-        select: {
-          id: true,
-          email: true,
-          name: true,
-        },
-      },
+  // Subscription model not in current schema - returning mock data
+  console.log('[Premium] getOrCreateSubscription skipped - Subscription model not available');
+  return {
+    id: userId,
+    userId,
+    tier: 'free' as SubscriptionTier,
+    status: 'active' as SubscriptionStatus,
+    currentPeriodStart: new Date(),
+    currentPeriodEnd: new Date(Date.now() + SUBSCRIPTION_PERIOD_DAYS * 24 * 60 * 60 * 1000),
+    user: {
+      id: userId,
+      email: '',
+      name: null,
     },
-  });
-
-  if (!subscription) {
-    // Create default free subscription
-    subscription = await prisma.subscription.create({
-      data: {
-        userId,
-        tier: 'free',
-        status: 'active',
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-          },
-        },
-      },
-    });
-  }
-
-  return subscription;
+  };
 }
 
 /**
  * Get or create usage limits for a user
+ * Note: UsageLimit model not in current schema - returns mock data
  */
 export async function getOrCreateUsageLimit(userId: number, tier: SubscriptionTier = 'free') {
-  let usageLimit = await prisma.usageLimit.findUnique({
-    where: { userId },
-  });
-
-  if (!usageLimit) {
-    const limits = TIER_LIMITS[tier];
-    usageLimit = await prisma.usageLimit.create({
-      data: {
-        userId,
-        resumeScans: limits.resumeScans === -1 ? 999999 : limits.resumeScans,
-        maxResumeScans: limits.resumeScans === -1 ? 999999 : limits.resumeScans,
-        jobMatches: limits.jobMatches === -1 ? 999999 : limits.jobMatches,
-        maxJobMatches: limits.jobMatches === -1 ? 999999 : limits.jobMatches,
-      },
-    });
-  }
-
-  return usageLimit;
+  // UsageLimit model not in current schema - returning mock data
+  console.log('[Premium] getOrCreateUsageLimit skipped - UsageLimit model not available');
+  const limits = TIER_LIMITS[tier];
+  return {
+    id: userId,
+    userId,
+    resumeScans: limits.resumeScans === -1 ? 999999 : limits.resumeScans,
+    maxResumeScans: limits.resumeScans === -1 ? 999999 : limits.resumeScans,
+    jobMatches: limits.jobMatches === -1 ? 999999 : limits.jobMatches,
+    maxJobMatches: limits.jobMatches === -1 ? 999999 : limits.jobMatches,
+    lastResetDate: new Date(),
+  };
 }
 
 /**
@@ -165,17 +142,19 @@ export async function checkUsageLimit(
   const tierConfig = TIER_LIMITS[tier];
   
   if (action === 'resumeScan') {
+    const scans = tierConfig.resumeScans as number;
     return {
-      allowed: tierConfig.resumeScans > 0 || tierConfig.resumeScans === -1,
-      remaining: tierConfig.resumeScans,
-      limit: tierConfig.resumeScans,
+      allowed: scans > 0 || scans === -1,
+      remaining: scans,
+      limit: scans,
     };
   } else if (action === 'jobMatch') {
+    const matches = tierConfig.jobMatches as number;
     return {
-      allowed: tierConfig.jobMatches > 0 || tierConfig.jobMatches === -1,
-      remaining: tierConfig.jobMatches,
-      limit: tierConfig.jobMatches,
-      reason: tierConfig.jobMatches === 0 ? 'Job match not available in free tier' : undefined,
+      allowed: matches > 0 || matches === -1,
+      remaining: matches,
+      limit: matches,
+      reason: matches === 0 ? 'Job match not available in free tier' : undefined,
     };
   }
 

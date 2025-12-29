@@ -165,7 +165,7 @@ export class StateService {
 
       return {
         id: app.id,
-        jobTitle: app.job.jobTitle,
+        jobTitle: app.job.title,
         company: app.job.company,
         status: app.status,
         appliedAt: app.appliedAt || now, // Fallback just in case

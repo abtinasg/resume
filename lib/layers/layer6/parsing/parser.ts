@@ -5,6 +5,7 @@
  * Parses job descriptions into structured format for analysis.
  */
 
+import { SeniorityLevel } from '../../shared/types';
 import type { 
   ParsedJob, 
   JobPasteRequest, 
@@ -351,7 +352,7 @@ export function parseJobDescriptionWithFallback(
         preferred_skills: [],
         required_tools: [],
         preferred_tools: [],
-        seniority_expected: 'mid',
+        seniority_expected: SeniorityLevel.MID,
         domain_keywords: [],
         extraction_confidence: 0.1,
         extraction_method: 'regex',
