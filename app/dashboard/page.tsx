@@ -12,6 +12,8 @@ import ComparisonView from "@/components/ComparisonView";
 import FeatureGate from "@/components/FeatureGate";
 import { FEATURES } from "@/lib/featureGating";
 import { WeeklyPlanSection } from "@/components/WeeklyPlanSection";
+import { QuickStats, DailyTasksList, ProgressCharts } from "@/components/dashboard";
+import { HelpWidget } from "@/components/coach";
 
 interface Resume {
   id: number;
@@ -293,6 +295,46 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* Quick Stats Section - New Dashboard Enhancement */}
+        {user && (
+          <div className="mb-8">
+            <QuickStats 
+              userId={user.id} 
+              currentScore={latestResume?.score ?? undefined}
+              resumeCount={resumes.length}
+            />
+          </div>
+        )}
+
+        {/* Daily Tasks and Resume Score Row - New Dashboard Enhancement */}
+        {user && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <DailyTasksList userId={user.id} />
+            <div className="space-y-6">
+              {/* Keep existing stats summary in compact form */}
+              {resumes.length > 0 && (
+                <Card className="!bg-gradient-to-br !from-white !to-blue-50 !border-blue-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-gray-800">Latest Resume Score</h3>
+                      <p className="text-sm text-gray-500">From your most recent analysis</p>
+                    </div>
+                    <div className="text-right">
+                      <p className={`text-4xl font-bold ${
+                        (latestResume?.score ?? 0) >= 80 ? 'text-green-600' :
+                        (latestResume?.score ?? 0) >= 60 ? 'text-yellow-600' : 'text-red-600'
+                      }`}>
+                        {latestResume?.score !== null ? Math.round(latestResume.score) : '--'}
+                      </p>
+                      <p className="text-xs text-gray-500">out of 100</p>
+                    </div>
+                  </div>
+                </Card>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Professional Stats Summary */}
         {resumes.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -496,7 +538,19 @@ export default function DashboardPage() {
             <WeeklyPlanSection userId={user.id} />
           </div>
         )}
+
+        {/* Progress Charts Section - New Dashboard Enhancement */}
+        {user && (
+          <div className="mt-8">
+            <ProgressCharts userId={user.id} />
+          </div>
+        )}
       </div>
+
+      {/* Help Widget - New Dashboard Enhancement */}
+      {user && (
+        <HelpWidget userId={user.id} />
+      )}
 
       {/* AI Coach Button - Floating bottom right */}
       <FeatureGate feature={FEATURES.RESUME_COACH}>
