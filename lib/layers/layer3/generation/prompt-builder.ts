@@ -53,7 +53,7 @@ export function buildBulletRewritePrompt(
 
   // Format transformations
   const transformationsFormatted = formatTransformationsForPrompt(
-    plan.transformations.map((t) => ({ type: t.type, data: t.data as Record<string, unknown> }))
+    plan.transformations.map((t) => ({ type: t.type, data: t.data as unknown as Record<string, unknown> }))
   );
 
   // Build constraints

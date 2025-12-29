@@ -964,7 +964,8 @@ export function getArticles(options?: {
 
   // Filter by tag
   if (options?.tag) {
-    filtered = filtered.filter((a) => a.tags.includes(options.tag));
+    const tagFilter = options.tag;
+    filtered = filtered.filter((a) => a.tags.includes(tagFilter));
   }
 
   // Filter by search term

@@ -27,11 +27,11 @@ export function findWeakVerbs(text: string): Array<{ verb: string; position: num
     const escaped = verb.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = new RegExp(`\\b${escaped}\\b`, 'gi');
 
-    let match;
+    let match: RegExpExecArray | null;
     while ((match = regex.exec(textLower)) !== null) {
       // Check if this position is already covered by a longer phrase
       const alreadyCovered = found.some(
-        (f) => match.index >= f.position && match.index < f.position + f.verb.length
+        (f) => match!.index >= f.position && match!.index < f.position + f.verb.length
       );
 
       if (!alreadyCovered) {
