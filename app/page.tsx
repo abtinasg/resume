@@ -34,13 +34,6 @@ export default function Home() {
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const { isAuthenticated, isLoading: authLoading } = useAuthStore();
 
-  const navItems = [
-    { label: 'Platform', href: '#features' },
-    { label: 'Methodology', href: '#demo-section' },
-    { label: 'Stories', href: '#about' },
-    { label: 'Contact', href: '#contact' },
-  ];
-
   const heroFeatures: { icon: LucideIcon; title: string; description: string }[] = [
     {
       icon: ShieldCheck,
@@ -107,39 +100,6 @@ export default function Home() {
 
       {/* Main content */}
       <div className="relative z-10">
-        <motion.header
-          initial={{ opacity: 0, y: -12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="max-w-6xl mx-auto px-6 md:px-12 pt-8 flex items-center justify-between gap-6"
-        >
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="absolute inset-0 rounded-xl bg-brand-teal/40 blur" />
-              <div className="relative w-11 h-11 rounded-xl bg-gradient-to-br from-brand-indigo via-purple-500 to-brand-teal flex items-center justify-center shadow-[0_18px_45px_-16px_rgba(79,70,229,0.65)]">
-                <Sparkles className="w-5 h-5 text-white" strokeWidth={2.5} />
-              </div>
-            </div>
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gray-900">ResumeIQ</p>
-              <p className="text-xs text-gray-500">Executive resume intelligence</p>
-            </div>
-          </div>
-
-          <nav className="hidden md:flex items-center gap-6 lg:gap-8 text-sm text-gray-500">
-            {navItems.map((item) => (
-              <a
-                key={item.label}
-                className="group relative font-medium transition hover:text-gray-900"
-                href={item.href}
-              >
-                <span>{item.label}</span>
-                <span className="absolute inset-x-0 -bottom-2 h-px origin-left scale-x-0 bg-gradient-to-r from-brand-teal to-brand-indigo transition-transform duration-300 group-hover:scale-x-100" />
-              </a>
-            ))}
-          </nav>
-        </motion.header>
-
         {/* Hero Section - Immersive experience */}
         <section className="relative pt-20 pb-28 md:pb-36">
           <div className="absolute inset-0 bg-gradient-to-b from-white via-white to-slate-50" />
