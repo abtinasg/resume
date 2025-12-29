@@ -1,20 +1,15 @@
 "use server";
 
 /**
- * Production-Grade PDF Parser for Resume Extraction
+ * Simplified PDF Parser for Resume Extraction
  *
- * Multi-stage extraction pipeline with automatic fallbacks:
- * - Stage 1: pdf-parse for text-based PDFs
- * - Stage 2: pdfjs-dist deep extraction (rebuild text from low-level items)
- * - Stage 3: tesseract.js OCR for scanned/image-based resumes
- * - Stage 4: Metadata extraction fallback
+ * Uses pdf-parse for reliable, cross-platform PDF text extraction.
+ * This is a pure JavaScript solution with no native dependencies.
  *
  * Features:
  * - Never throws errors - always returns structured response
- * - Automatic fallback when method produces < 200 characters
- * - OCR with dynamic scaling (1.5x → 2x → 3x)
- * - Confidence tracking for OCR
- * - Text merging from all sources
+ * - Pure JavaScript (no native dependencies like canvas)
+ * - Works across all platforms
  * - Comprehensive structured logging
  * - Performance timing
  */
@@ -27,8 +22,8 @@ export interface PDFExtractionResult {
   status: "success" | "partial" | "failed";
   message: string;
   text: string;
-  method: "pdf-parse" | "pdfjs" | "ocr" | "metadata" | "fallback";
-  confidence?: number; // 0-1 scale for OCR confidence
+  method: "pdf-parse" | "ocr" | "fallback";
+  confidence?: number;
   characterCount: number;
 }
 
@@ -36,10 +31,8 @@ export interface PDFExtractionResult {
 // CONSTANTS
 // ============================================================================
 
-const MIN_SUCCESS_LENGTH = 50; // Minimum characters for automatic fallback (lowered for better compatibility)
-const MIN_PARTIAL_LENGTH = 15; // Minimum for partial success (lowered to accept more PDFs)
-const OCR_MAX_PAGES = 3; // Process up to 3 pages for performance
-const OCR_SCALES = [1.5, 2.0, 3.0]; // Dynamic scaling for OCR
+const MIN_SUCCESS_LENGTH = 50; // Minimum characters for success
+const MIN_PARTIAL_LENGTH = 15; // Minimum for partial success
 const PREVIEW_LENGTH = 150; // Characters to show in logs
 
 // ============================================================================
@@ -82,23 +75,6 @@ function cleanExtractedText(text: string): string {
 }
 
 /**
- * Merge multiple text extractions intelligently
- * Deduplicates and combines text from different sources
- */
-function mergeTexts(texts: string[]): string {
-  // Filter out empty texts
-  const validTexts = texts.filter((t) => t && t.length > 0);
-
-  if (validTexts.length === 0) return "";
-  if (validTexts.length === 1) return validTexts[0];
-
-  // For now, use the longest text as primary and append unique content from others
-  // In production, you might want more sophisticated merging
-  const sorted = validTexts.sort((a, b) => b.length - a.length);
-  return sorted[0]; // Use longest extraction
-}
-
-/**
  * Format time in milliseconds to human-readable string
  */
 function formatTime(ms: number): string {
@@ -107,9 +83,13 @@ function formatTime(ms: number): string {
 }
 
 // ============================================================================
-// STAGE 1: PDF-PARSE EXTRACTION
+// PDF-PARSE EXTRACTION
 // ============================================================================
 
+/**
+ * Extract text from PDF buffer using pdf-parse
+ * Pure JavaScript implementation - no native dependencies
+ */
 async function extractWithPdfParse(pdfBuffer: Buffer): Promise<string> {
   try {
     const startTime = Date.now();
@@ -132,185 +112,9 @@ async function extractWithPdfParse(pdfBuffer: Buffer): Promise<string> {
   }
 }
 
-// ============================================================================
-// STAGE 2: PDFJS-DIST DEEP EXTRACTION
-// ============================================================================
-
-async function extractWithPDFJS(pdfBuffer: Buffer): Promise<string> {
-  try {
-    const startTime = Date.now();
-
-    // Dynamic import for Next.js compatibility
-    // @ts-expect-error - pdfjs-dist types may not match perfectly
-    const pdfjsLib = await import("pdfjs-dist/build/pdf.js");
-
-    // Create typed array from buffer
-    const data = new Uint8Array(pdfBuffer);
-
-    // Load PDF document
-    const loadingTask = pdfjsLib.getDocument({ data });
-    const pdf = await loadingTask.promise;
-
-    const textParts: string[] = [];
-
-    // Extract text from each page
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      const page = await pdf.getPage(pageNum);
-      const textContent = await page.getTextContent();
-
-      // Build text from items with improved spacing logic
-      let pageText = "";
-      let lastY = -1;
-
-      textContent.items.forEach((item: any, index: number) => {
-        if ("str" in item && item.str.trim()) {
-          const currentY = item.transform?.[5] || 0;
-
-          // Add newline if we're on a different line (Y coordinate changed significantly)
-          if (lastY !== -1 && Math.abs(currentY - lastY) > 2) {
-            pageText += "\n";
-          } else if (pageText.length > 0 && !pageText.endsWith(" ") && !pageText.endsWith("\n")) {
-            // Add space if needed
-            pageText += " ";
-          }
-
-          pageText += item.str;
-          lastY = currentY;
-        }
-      });
-
-      if (pageText.trim().length > 0) {
-        textParts.push(pageText);
-      }
-    }
-
-    const fullText = textParts.join("\n");
-    const cleanText = cleanExtractedText(fullText);
-    const elapsed = Date.now() - startTime;
-
-    console.log(
-      `[PDF Parser] Extracted ${cleanText.length} chars via pdfjs (${elapsed}ms)`
-    );
-
-    return cleanText;
-  } catch (error) {
-    console.error("[PDF Parser][pdfjs] Extraction failed:", error);
-    return "";
-  }
-}
-
-// ============================================================================
-// STAGE 3: OCR EXTRACTION WITH DYNAMIC SCALING
-// ============================================================================
-
-async function extractWithOCR(pdfBuffer: Buffer): Promise<{
-  text: string;
-  confidence: number;
-}> {
-  try {
-    const startTime = Date.now();
-
-    // Dynamic imports
-    // @ts-expect-error - pdfjs-dist types may not match perfectly
-    const pdfjsLib = await import("pdfjs-dist/build/pdf.js");
-    const { createCanvas } = await import("canvas");
-    const { createWorker } = await import("tesseract.js");
-
-    const data = new Uint8Array(pdfBuffer);
-    const loadingTask = pdfjsLib.getDocument({ data });
-    const pdf = await loadingTask.promise;
-
-    // Create Tesseract worker
-    const worker = await createWorker("eng");
-
-    const textParts: string[] = [];
-    const confidences: number[] = [];
-
-    // Process first 3 pages only (OCR is slow and expensive)
-    const maxPages = Math.min(pdf.numPages, OCR_MAX_PAGES);
-
-    for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
-      try {
-        const page = await pdf.getPage(pageNum);
-        let bestText = "";
-        let bestConfidence = 0;
-
-        // Try different scales dynamically
-        for (const scale of OCR_SCALES) {
-          const viewport = page.getViewport({ scale });
-
-          // Create canvas
-          const canvas = createCanvas(viewport.width, viewport.height);
-          const context = canvas.getContext("2d");
-
-          // Render PDF page to canvas
-          await page.render({
-            canvasContext: context as any,
-            viewport: viewport,
-            canvas: canvas as any,
-          }).promise;
-
-          // Convert canvas to image buffer
-          const imageBuffer = canvas.toBuffer("image/png");
-
-          // Perform OCR
-          const {
-            data: { text, confidence },
-          } = await worker.recognize(imageBuffer);
-
-          // If this scale produces better results, use it
-          if (text.length > bestText.length) {
-            bestText = text;
-            bestConfidence = confidence;
-          }
-
-          // If we got good text with decent confidence, no need to scale further
-          if (text.length > 200 && confidence > 80) {
-            break;
-          }
-        }
-
-        if (bestText.trim().length > 0) {
-          textParts.push(bestText);
-          confidences.push(bestConfidence);
-        }
-      } catch (pageError) {
-        console.error(
-          `[PDF Parser][OCR] Failed on page ${pageNum}:`,
-          pageError
-        );
-      }
-    }
-
-    await worker.terminate();
-
-    const fullText = textParts.join("\n");
-    const cleanText = cleanExtractedText(fullText);
-    const avgConfidence =
-      confidences.length > 0
-        ? confidences.reduce((a, b) => a + b, 0) / confidences.length / 100
-        : 0;
-
-    const elapsed = Date.now() - startTime;
-
-    console.log(
-      `[PDF Parser] Extracted ${cleanText.length} chars via ocr (${elapsed}ms)`
-    );
-
-    return {
-      text: cleanText,
-      confidence: avgConfidence,
-    };
-  } catch (error) {
-    console.error("[PDF Parser][OCR] Extraction failed:", error);
-    return { text: "", confidence: 0 };
-  }
-}
-
-// ============================================================================
-// STAGE 4: METADATA FALLBACK EXTRACTION
-// ============================================================================
-
+/**
+ * Extract metadata from PDF as fallback
+ */
 async function extractMetadata(pdfBuffer: Buffer): Promise<string> {
   try {
     const pdfParse = (await import("pdf-parse")).default;
@@ -356,7 +160,6 @@ async function extractMetadata(pdfBuffer: Buffer): Promise<string> {
     }
 
     const metadataText = parts.join(" ").trim();
-
     return cleanExtractedText(metadataText);
   } catch (error) {
     console.error("[PDF Parser][metadata] Extraction failed:", error);
@@ -369,7 +172,7 @@ async function extractMetadata(pdfBuffer: Buffer): Promise<string> {
 // ============================================================================
 
 /**
- * Main extraction function with multi-stage fallbacks
+ * Main extraction function - uses pdf-parse only
  * Always resolves with a PDFExtractionResult (never throws)
  */
 export async function extractTextFromBuffer(
@@ -384,74 +187,28 @@ export async function extractTextFromBuffer(
     console.log(`[PDF Parser] Buffer size: ${(pdfBuffer.length / 1024).toFixed(2)} KB`);
     console.log(`[PDF Parser] Start time: ${new Date().toISOString()}\n`);
 
-    const extractedTexts: string[] = [];
+    let finalText = "";
     let finalMethod: PDFExtractionResult["method"] = "fallback";
-    let ocrConfidence: number | undefined;
 
-    // ===== STAGE 1: PDF-PARSE =====
+    // ===== PRIMARY: PDF-PARSE =====
     const pdfParseText = await extractWithPdfParse(pdfBuffer);
     if (pdfParseText.length > 0) {
-      extractedTexts.push(pdfParseText);
+      finalText = pdfParseText;
       finalMethod = "pdf-parse";
     }
 
-    // Check if we need fallback
-    const currentBest = mergeTexts(extractedTexts);
-    const needsFallback = currentBest.length < MIN_SUCCESS_LENGTH;
-
-    // ===== STAGE 2: PDFJS (always try for better extraction) =====
-    if (needsFallback || currentBest.length < 100) {
+    // ===== FALLBACK: METADATA (if text extraction failed) =====
+    if (finalText.length < MIN_SUCCESS_LENGTH) {
       console.log(
-        `[PDF Parser] ${needsFallback ? "Text too short" : "Trying additional extraction"} (${currentBest.length} chars), trying pdfjs...`
-      );
-      const pdfjsText = await extractWithPDFJS(pdfBuffer);
-      if (pdfjsText.length > 0) {
-        extractedTexts.push(pdfjsText);
-        if (pdfjsText.length > pdfParseText.length) {
-          finalMethod = "pdfjs";
-        }
-      }
-    }
-
-    // Check again
-    const currentBest2 = mergeTexts(extractedTexts);
-    const stillNeedsFallback = currentBest2.length < MIN_SUCCESS_LENGTH;
-
-    // ===== STAGE 3: OCR (try if text is still insufficient) =====
-    if (stillNeedsFallback || currentBest2.length < 100) {
-      console.log(
-        `[PDF Parser] ${stillNeedsFallback ? "Still too short" : "Trying OCR for better coverage"} (${currentBest2.length} chars), trying OCR...`
-      );
-      const ocrResult = await extractWithOCR(pdfBuffer);
-      if (ocrResult.text.length > 0) {
-        extractedTexts.push(ocrResult.text);
-        ocrConfidence = ocrResult.confidence;
-        if (ocrResult.text.length > currentBest2.length) {
-          finalMethod = "ocr";
-        }
-      }
-    }
-
-    // Check again
-    const currentBest3 = mergeTexts(extractedTexts);
-    const stillNeedsFallback2 = currentBest3.length < MIN_SUCCESS_LENGTH;
-
-    // ===== STAGE 4: METADATA (final fallback) =====
-    if (stillNeedsFallback2) {
-      console.log(
-        `[PDF Parser] Still too short (${currentBest3.length} chars), trying metadata...`
+        `[PDF Parser] Text too short (${finalText.length} chars), trying metadata fallback...`
       );
       const metadataText = await extractMetadata(pdfBuffer);
-      if (metadataText.length > 0) {
-        extractedTexts.push(metadataText);
-        if (metadataText.length > currentBest3.length) {
-          finalMethod = "metadata";
-        }
+      if (metadataText.length > finalText.length) {
+        finalText = metadataText;
+        // Keep method as pdf-parse since metadata also uses it
       }
     }
 
-    // ===== MERGE ALL EXTRACTIONS =====
-    const finalText = mergeTexts(extractedTexts);
     const characterCount = finalText.length;
 
     // ===== DETERMINE FINAL STATUS =====
@@ -460,16 +217,16 @@ export async function extractTextFromBuffer(
 
     if (characterCount >= MIN_SUCCESS_LENGTH) {
       status = "success";
-      message = `Text extracted successfully using ${finalMethod}.`;
+      message = "Text extracted successfully.";
     } else if (characterCount >= MIN_PARTIAL_LENGTH) {
       status = "partial";
-      message = `Design-based PDF, limited text extracted (${characterCount} characters). Consider using a text-based export.`;
+      message = `Limited text extracted (${characterCount} characters). This may be a design-heavy or scanned PDF. For best results, use a text-based PDF or paste your resume text directly.`;
     } else if (characterCount > 0) {
       status = "partial";
-      message = `Very limited text extracted (${characterCount} characters). This appears to be a heavily design-based or scanned resume with minimal recognizable text.`;
+      message = `Very limited text extracted (${characterCount} characters). Please try uploading a text-based PDF or paste your resume content directly.`;
     } else {
       status = "failed";
-      message = "No text could be extracted from this PDF. Please try a different file or format.";
+      message = "Unable to extract text from this PDF. Please ensure your PDF contains selectable text (not a scanned image). Try pasting your resume text instead.";
     }
 
     // ===== FINAL LOGGING =====
@@ -481,9 +238,6 @@ export async function extractTextFromBuffer(
     console.log(`[PDF Parser] Status: ${status.toUpperCase()}`);
     console.log(`[PDF Parser] Method: ${finalMethod}`);
     console.log(`[PDF Parser] Character count: ${characterCount}`);
-    if (ocrConfidence !== undefined) {
-      console.log(`[PDF Parser] OCR confidence: ${ocrConfidence.toFixed(2)}`);
-    }
     console.log(`[PDF Parser] Total time: ${formatTime(totalTime)}`);
 
     if (finalText.length > 0) {
@@ -500,7 +254,6 @@ export async function extractTextFromBuffer(
       message,
       text: finalText,
       method: finalMethod,
-      confidence: ocrConfidence,
       characterCount,
     };
   } catch (error) {
@@ -512,7 +265,7 @@ export async function extractTextFromBuffer(
 
     return {
       status: "failed",
-      message: "An unexpected error occurred while processing the PDF. Please try again or use a different file format.",
+      message: "An unexpected error occurred while processing the PDF. Please try pasting your resume text instead.",
       text: "",
       method: "fallback",
       characterCount: 0,
