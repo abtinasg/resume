@@ -59,13 +59,21 @@ export function ExportPanel({ userId }: ExportPanelProps) {
   const convertToCSV = (data: Record<string, unknown>): string => {
     // Simple CSV conversion for flat objects
     const rows: string[] = [];
+    const MAX_DEPTH = 10; // Prevent stack overflow from deeply nested objects
     
-    const flattenObject = (obj: Record<string, unknown>, prefix = ''): Record<string, string> => {
+    const flattenObject = (obj: Record<string, unknown>, prefix = '', depth = 0): Record<string, string> => {
       const result: Record<string, string> = {};
+      
+      // Guard against excessive depth
+      if (depth >= MAX_DEPTH) {
+        result[prefix || 'value'] = JSON.stringify(obj);
+        return result;
+      }
+      
       for (const [key, value] of Object.entries(obj)) {
         const newKey = prefix ? `${prefix}_${key}` : key;
         if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-          Object.assign(result, flattenObject(value as Record<string, unknown>, newKey));
+          Object.assign(result, flattenObject(value as Record<string, unknown>, newKey, depth + 1));
         } else {
           result[newKey] = String(value);
         }

@@ -201,6 +201,7 @@ function ScoreTrendChart({ data }: ScoreTrendChartProps) {
 
   const maxScore = Math.max(...data.map(d => d.score), 100);
   const minScore = Math.min(...data.map(d => d.score), 0);
+  // When all scores are identical, range would be 0, so default to 1 for division safety
   const range = maxScore - minScore || 1;
 
   return (

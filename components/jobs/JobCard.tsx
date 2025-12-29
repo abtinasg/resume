@@ -64,7 +64,8 @@ export function JobCard({ job, isSelected, onSelect, onViewDetails, onExplain }:
     return 'text-red-600 bg-red-50';
   };
 
-  const hasWarnings = (job.scam_detection?.red_flags?.length ?? 0) > 0 || job.category === 'avoid';
+  const hasScamRedFlags = (job.scam_detection?.red_flags?.length ?? 0) > 0;
+  const hasWarnings = hasScamRedFlags || job.category === 'avoid';
 
   return (
     <Card className={`!bg-white hover:!shadow-xl transition-all duration-300 ${

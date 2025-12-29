@@ -11,10 +11,11 @@ interface StatCardProps {
   trend?: number;
   color: string;
   bgColor: string;
+  iconBgColor: string;
   onClick?: () => void;
 }
 
-function StatCard({ label, value, icon, trend, color, bgColor, onClick }: StatCardProps) {
+function StatCard({ label, value, icon, trend, color, bgColor, iconBgColor, onClick }: StatCardProps) {
   const TrendIcon = trend && trend > 0 ? TrendingUp : trend && trend < 0 ? TrendingDown : Minus;
   const trendColor = trend && trend > 0 ? 'text-green-500' : trend && trend < 0 ? 'text-red-500' : 'text-gray-400';
 
@@ -37,7 +38,7 @@ function StatCard({ label, value, icon, trend, color, bgColor, onClick }: StatCa
             </div>
           )}
         </div>
-        <div className={`p-3 rounded-full ${bgColor.replace('from-', 'bg-').split(' ')[0].replace('!', '')}`}>
+        <div className={`p-3 rounded-full ${iconBgColor}`}>
           {icon}
         </div>
       </div>
@@ -128,6 +129,7 @@ export function QuickStats({ userId, currentScore, resumeCount = 0 }: QuickStats
         trend={5}
         color="text-blue-700"
         bgColor="!bg-gradient-to-br !from-blue-50 !to-blue-100 !border-blue-200"
+        iconBgColor="bg-blue-100"
       />
       
       <StatCard
@@ -137,6 +139,7 @@ export function QuickStats({ userId, currentScore, resumeCount = 0 }: QuickStats
         trend={12}
         color="text-green-700"
         bgColor="!bg-gradient-to-br !from-green-50 !to-emerald-100 !border-green-200"
+        iconBgColor="bg-green-100"
       />
       
       <StatCard
@@ -145,6 +148,7 @@ export function QuickStats({ userId, currentScore, resumeCount = 0 }: QuickStats
         icon={<Calendar className="w-6 h-6 text-purple-600" />}
         color="text-purple-700"
         bgColor="!bg-gradient-to-br !from-purple-50 !to-purple-100 !border-purple-200"
+        iconBgColor="bg-purple-100"
       />
       
       <StatCard
@@ -153,6 +157,7 @@ export function QuickStats({ userId, currentScore, resumeCount = 0 }: QuickStats
         icon={<CheckCircle className="w-6 h-6 text-teal-600" />}
         color="text-teal-700"
         bgColor="!bg-gradient-to-br !from-teal-50 !to-teal-100 !border-teal-200"
+        iconBgColor="bg-teal-100"
       />
     </div>
   );
