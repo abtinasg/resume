@@ -32,14 +32,9 @@ export async function GET(request: NextRequest) {
       totalResumes,
       resumesLast24h,
       resumesLast7d,
-      totalBadgesEarned,
-      badgesEarnedLast7d,
-      totalEvents,
-      eventsLast24h,
-      eventsByType,
+      totalApplications,
+      applicationsLast7d,
       topUsers,
-      exitFeedbackCount,
-      recentFeedback,
     ] = await Promise.all([
       // User stats
       prisma.user.count(),
@@ -48,31 +43,17 @@ export async function GET(request: NextRequest) {
       prisma.user.count({ where: { createdAt: { gte: last30Days } } }),
 
       // Resume stats
-      prisma.resume.count({ where: { isArchived: false } }),
-      prisma.resume.count({
-        where: { createdAt: { gte: last24Hours }, isArchived: false },
-      }),
-      prisma.resume.count({
-        where: { createdAt: { gte: last7Days }, isArchived: false },
-      }),
-
-      // Badge stats
-      prisma.userBadge.count(),
-      prisma.userBadge.count({ where: { earnedAt: { gte: last7Days } } }),
-
-      // Analytics events
-      prisma.analyticsEvent.count(),
-      prisma.analyticsEvent.count({
+      prisma.resumeVersion.count(),
+      prisma.resumeVersion.count({
         where: { createdAt: { gte: last24Hours } },
       }),
-
-      // Event breakdown by type
-      prisma.analyticsEvent.groupBy({
-        by: ['event'],
-        _count: { event: true },
-        orderBy: { _count: { event: 'desc' } },
-        take: 10,
+      prisma.resumeVersion.count({
+        where: { createdAt: { gte: last7Days } },
       }),
+
+      // Application stats
+      prisma.application.count(),
+      prisma.application.count({ where: { createdAt: { gte: last7Days } } }),
 
       // Top users by resume count
       prisma.user.findMany({
@@ -80,48 +61,18 @@ export async function GET(request: NextRequest) {
           id: true,
           email: true,
           name: true,
-          _count: { select: { resumes: true, userBadges: true } },
+          _count: { select: { resumes: true, applications: true } },
         },
         orderBy: { resumes: { _count: 'desc' } },
         take: 10,
       }),
-
-      // Exit feedback stats
-      prisma.exitFeedback.count(),
-
-      // Recent feedback
-      prisma.exitFeedback.findMany({
-        select: {
-          id: true,
-          rating: true,
-          likelihoodToReturn: true,
-          reason: true,
-          comment: true,
-          createdAt: true,
-          user: {
-            select: {
-              email: true,
-              name: true,
-            },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 5,
-      }),
     ]);
 
-    // Format event stats
-    const eventStats = eventsByType.map((e) => ({
-      event: e.event,
-      count: e._count.event,
-    }));
-
     // Calculate average score
-    const resumesWithScores = await prisma.resume.aggregate({
-      _avg: { score: true },
-      _max: { score: true },
-      _min: { score: true },
-      where: { isArchived: false },
+    const resumesWithScores = await prisma.resumeVersion.aggregate({
+      _avg: { overallScore: true },
+      _max: { overallScore: true },
+      _min: { overallScore: true },
     });
 
     return NextResponse.json({
@@ -133,26 +84,28 @@ export async function GET(request: NextRequest) {
         totalResumes,
         resumesLast24h,
         resumesLast7d,
-        totalBadgesEarned,
-        badgesEarnedLast7d,
-        totalEvents,
-        eventsLast24h,
-        exitFeedbackCount,
+        totalApplications,
+        applicationsLast7d,
+        totalBadgesEarned: 0, // Badges not in current schema
+        badgesEarnedLast7d: 0,
+        totalEvents: 0,
+        eventsLast24h: 0,
+        exitFeedbackCount: 0,
       },
       resumeStats: {
-        average: Math.round(resumesWithScores._avg.score || 0),
-        highest: resumesWithScores._max.score || 0,
-        lowest: resumesWithScores._min.score || 0,
+        average: Math.round(resumesWithScores._avg.overallScore || 0),
+        highest: resumesWithScores._max.overallScore || 0,
+        lowest: resumesWithScores._min.overallScore || 0,
       },
-      eventStats,
+      eventStats: [],
       topUsers: topUsers.map((u) => ({
         id: u.id,
         email: u.email,
         name: u.name || 'N/A',
         resumeCount: u._count.resumes,
-        badgeCount: u._count.userBadges,
+        applicationCount: u._count.applications,
       })),
-      recentFeedback,
+      recentFeedback: [],
     });
   } catch (error) {
     console.error('Error fetching analytics:', error);

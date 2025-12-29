@@ -294,28 +294,27 @@ export async function PATCH(req: NextRequest) {
 
     const { action, tier } = validation.data;
 
-    let subscription;
     let message = '';
 
     // Handle different actions
     switch (action) {
       case 'cancel':
-        subscription = await cancelSubscription(userId);
+        await cancelSubscription(userId);
         message = 'Subscription will be canceled at the end of the current period';
         await trackEvent('subscription_canceled', {
           userId,
           request: req,
-          metadata: { tier: subscription.tier },
+          metadata: { action: 'cancel' },
         });
         break;
 
       case 'reactivate':
-        subscription = await reactivateSubscription(userId);
+        await reactivateSubscription(userId);
         message = 'Subscription reactivated successfully';
         await trackEvent('subscription_reactivated', {
           userId,
           request: req,
-          metadata: { tier: subscription.tier },
+          metadata: { action: 'reactivate' },
         });
         break;
 
@@ -346,7 +345,7 @@ export async function PATCH(req: NextRequest) {
           );
         }
 
-        subscription = await upgradeSubscription(userId, tier);
+        await upgradeSubscription(userId, tier);
         message = `Successfully changed to ${tier} tier`;
         await trackEvent('subscription_tier_changed', {
           userId,

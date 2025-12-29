@@ -697,7 +697,7 @@ export async function POST(req: NextRequest) {
               ? 'Uploaded Resume (Photo)'
               : 'Uploaded Resume (Text)';
 
-        const previousResume = await prisma.resume.findFirst({
+        const previousResume = await prisma.resumeVersion.findFirst({
           where: { userId: authenticatedUser.userId },
           orderBy: { createdAt: 'desc' },
         });
@@ -712,30 +712,22 @@ export async function POST(req: NextRequest) {
             targetScore: response.targetScore,
             localScores: finalResult.localScores,
             aiScores: finalResult.aiScores,
+            summary: response.summary,
           })
         );
 
-        const createdResume = await prisma.resume.create({
+        const createdResume = await prisma.resumeVersion.create({
           data: {
             userId: authenticatedUser.userId,
-            fileName,
-            score: response.overall_score,
-            summary: response.summary,
-            data: resumePayload,
-            version: previousResume ? previousResume.version + 1 : 1,
+            name: fileName,
+            content: resumePayload,
+            overallScore: response.overall_score,
+            versionNumber: previousResume ? previousResume.versionNumber + 1 : 1,
           },
         });
 
-        await recordResumeProgress({
-          userId: authenticatedUser.userId,
-          resumeId: createdResume.id,
-          version: createdResume.version,
-          score: createdResume.score,
-          summary: createdResume.summary,
-          data: createdResume.data,
-          previousScore: previousResume?.score ?? null,
-        });
-        console.log('[API 3D] ✓ Resume saved to database for user:', authenticatedUser.email);
+        // Note: recordResumeProgress uses models not in current schema, skipping
+        console.log('[API 3D] ✓ Resume saved to database for user:', authenticatedUser.email, 'resumeId:', createdResume.id);
 
         // Decrement usage count after successful analysis
         await decrementUsage(authenticatedUser.userId, 'resumeScan');

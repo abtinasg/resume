@@ -59,6 +59,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if user has a password (for credential-based auth)
+    if (!user.password) {
+      return NextResponse.json(
+        { success: false, error: 'This account uses a different authentication method' },
+        { status: 401 }
+      );
+    }
+
     // Verify password
     const isPasswordValid = await comparePassword(password, user.password);
 

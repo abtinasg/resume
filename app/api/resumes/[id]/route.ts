@@ -30,9 +30,9 @@ export async function GET(
     }
 
     // Fetch resume ensuring it belongs to the user
-    const resume = await prisma.resume.findFirst({
+    const resume = await prisma.resumeVersion.findFirst({
       where: {
-        id: parseInt(params.id),
+        id: params.id,
         userId: user.userId,
       },
     });
@@ -81,8 +81,8 @@ export async function DELETE(
     }
 
     // Check if resume exists and belongs to user
-    const resumeId = parseInt(params.id);
-    const resume = await prisma.resume.findFirst({
+    const resumeId = params.id;
+    const resume = await prisma.resumeVersion.findFirst({
       where: {
         id: resumeId,
         userId: user.userId,
@@ -97,7 +97,7 @@ export async function DELETE(
     }
 
     // Delete the resume
-    await prisma.resume.delete({
+    await prisma.resumeVersion.delete({
       where: { id: resumeId },
     });
 
@@ -107,7 +107,7 @@ export async function DELETE(
       request: req,
       metadata: {
         resumeId,
-        resumeScore: resume.score,
+        resumeScore: resume.overallScore,
       },
     });
 

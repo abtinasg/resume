@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyToken } from "@/lib/auth";
-import { recordResumeProgress } from "@/lib/progress";
 import { trackEvent } from "@/lib/analytics";
 
 /**
@@ -28,7 +27,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Fetch user's resumes ordered by most recent first
-    const resumes = await prisma.resume.findMany({
+    const resumes = await prisma.resumeVersion.findMany({
       where: { userId: user.userId },
       orderBy: { createdAt: "desc" },
     });
@@ -90,30 +89,19 @@ export async function POST(req: NextRequest) {
     const numericScore =
       score !== undefined && score !== null ? Number(score) : 0;
 
-    const previousResume = await prisma.resume.findFirst({
+    const previousResume = await prisma.resumeVersion.findFirst({
       where: { userId: user.userId },
       orderBy: { createdAt: "desc" },
     });
 
-    const resume = await prisma.resume.create({
+    const resume = await prisma.resumeVersion.create({
       data: {
         userId: user.userId,
-        fileName: fileName || "Untitled Resume",
-        score: Number.isFinite(numericScore) ? numericScore : 0,
-        summary: summary || null,
-        data: data ?? null,
-        version: previousResume ? previousResume.version + 1 : 1,
+        name: fileName || "Untitled Resume",
+        content: data ?? {},
+        overallScore: Number.isFinite(numericScore) ? numericScore : 0,
+        versionNumber: previousResume ? previousResume.versionNumber + 1 : 1,
       },
-    });
-
-    await recordResumeProgress({
-      userId: user.userId,
-      resumeId: resume.id,
-      version: resume.version,
-      score: resume.score,
-      summary: resume.summary,
-      data: resume.data,
-      previousScore: previousResume?.score ?? null,
     });
 
     return NextResponse.json({ resume }, { status: 201 });

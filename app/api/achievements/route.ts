@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     const newlyUnlocked = await checkAndAwardBadges(decoded.userId);
     const achievements = await getAchievementsForUser(decoded.userId);
 
-    const earnedCount = achievements.filter((achievement) => achievement.earned).length;
+    const earnedCount = achievements.filter((achievement: { earned: boolean }) => achievement.earned).length;
     const completionRate = achievements.length
       ? parseFloat(((earnedCount / achievements.length) * 100).toFixed(2))
       : 0;

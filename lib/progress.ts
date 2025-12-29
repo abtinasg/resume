@@ -2,10 +2,10 @@ import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 
 export interface ResumeProgressInput {
-  userId: number;
-  resumeId: number;
+  userId: string | number;
+  resumeId: string | number;
   version: number;
-  score: number;
+  score: number | null;
   summary?: string | null;
   data?: Prisma.JsonValue | null;
   previousScore?: number | null;
@@ -13,25 +13,20 @@ export interface ResumeProgressInput {
 
 export interface ResumeProgressResponse {
   versionHistory: Array<{
-    id: number;
-    resumeId: number;
-    userId: number;
-    version: number;
-    score: number;
-    summary?: string | null;
-    data?: Prisma.JsonValue | null;
+    id: string;
+    userId: string;
+    versionNumber: number;
+    overallScore: number | null;
     createdAt: Date;
-    fileName: string;
+    name: string | null;
   }>;
   scoreHistory: Array<{
-    id: number;
-    resumeId: number;
-    userId: number;
-    score: number;
+    id: string;
+    userId: string;
+    score: number | null;
     previousScore: number | null;
     change: number;
     recordedAt: Date;
-    fileName: string;
   }>;
   summary: {
     totalVersions: number;
@@ -52,103 +47,68 @@ function calculateAverage(scores: number[]): number | null {
   return parseFloat((total / scores.length).toFixed(2));
 }
 
+/**
+ * Record resume progress
+ * Note: resumeScoreHistory model not in current schema - skipping history tracking
+ */
 export async function recordResumeProgress({
-  userId,
-  resumeId,
-  version,
-  score,
-  summary = null,
-  data = null,
-  previousScore = null,
+  userId: _userId,
+  resumeId: _resumeId,
+  version: _version,
+  score: _score,
+  summary: _summary = null,
+  data: _data = null,
+  previousScore: _previousScore = null,
 }: ResumeProgressInput): Promise<void> {
-  const change = previousScore != null ? score - previousScore : 0;
-
-  await prisma.$transaction([
-    prisma.resumeVersion.create({
-      data: {
-        resumeId,
-        userId,
-        version,
-        score,
-        summary,
-        data,
-      },
-    }),
-    prisma.resumeScoreHistory.create({
-      data: {
-        resumeId,
-        userId,
-        score,
-        previousScore,
-        change,
-      },
-    }),
-  ]);
+  // resumeScoreHistory model not in current schema - no-op
+  console.log('[Progress] Resume progress recording skipped - resumeScoreHistory model not available');
 }
 
-export async function getResumeProgress(userId: number): Promise<ResumeProgressResponse> {
-  const [versions, scoreHistory] = await Promise.all([
-    prisma.resumeVersion.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        resume: {
-          select: {
-            fileName: true,
-          },
-        },
-      },
-    }),
-    prisma.resumeScoreHistory.findMany({
-      where: { userId },
-      orderBy: { recordedAt: 'asc' },
-      include: {
-        resume: {
-          select: {
-            fileName: true,
-          },
-        },
-      },
-    }),
-  ]);
+export async function getResumeProgress(userId: string | number): Promise<ResumeProgressResponse> {
+  // Get resume versions for this user
+  const versions = await prisma.resumeVersion.findMany({
+    where: { userId: String(userId) },
+    orderBy: { createdAt: 'desc' },
+  });
 
   const versionHistory = versions.map((version) => ({
     id: version.id,
-    resumeId: version.resumeId,
     userId: version.userId,
-    version: version.version,
-    score: version.score,
-    summary: version.summary,
-    data: version.data,
+    versionNumber: version.versionNumber,
+    overallScore: version.overallScore,
     createdAt: version.createdAt,
-    fileName: version.resume.fileName,
+    name: version.name,
   }));
 
-  const scoreEntries = scoreHistory.map((entry) => ({
-    id: entry.id,
-    resumeId: entry.resumeId,
-    userId: entry.userId,
-    score: entry.score,
-    previousScore: entry.previousScore ?? null,
-    change: entry.change ?? (entry.previousScore != null ? entry.score - entry.previousScore : 0),
-    recordedAt: entry.recordedAt,
-    fileName: entry.resume.fileName,
-  }));
+  // Calculate score history from versions
+  const scoreHistory = versions.map((version, index) => {
+    const previousVersion = versions[index + 1];
+    const previousScore = previousVersion?.overallScore ?? null;
+    const currentScore = version.overallScore ?? 0;
+    return {
+      id: version.id,
+      userId: version.userId,
+      score: version.overallScore,
+      previousScore,
+      change: previousScore != null ? currentScore - previousScore : 0,
+      recordedAt: version.createdAt,
+    };
+  });
 
-  const scores = scoreEntries.map((entry) => entry.score);
+  const scores = versions.map((v) => v.overallScore).filter((s): s is number => s != null);
   const bestScore = scores.length ? Math.max(...scores) : null;
-  const latestScore = scores.length ? scores[scores.length - 1] : null;
-  const totalImprovement = scoreEntries.reduce((sum, entry) => {
-    const delta = entry.change ?? 0;
+  const latestScore = versions[0]?.overallScore ?? null;
+  const totalImprovement = scoreHistory.reduce((sum, entry) => {
+    const delta = entry.change;
     return delta > 0 ? sum + delta : sum;
   }, 0);
 
   return {
     versionHistory,
-    scoreHistory: scoreEntries,
+    scoreHistory,
     summary: {
       totalVersions: versionHistory.length,
-      trackedResumes: new Set(versionHistory.map((item) => item.resumeId)).size,
+      trackedResumes: new Set(versionHistory.map((item) => item.userId)).size,
       averageScore: calculateAverage(scores),
       bestScore,
       latestScore,

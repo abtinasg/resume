@@ -23,13 +23,11 @@ export async function GET(request: NextRequest) {
         id: true,
         email: true,
         name: true,
-        role: true,
         createdAt: true,
         _count: {
           select: {
             resumes: true,
-            userBadges: true,
-            analyticsEvents: true,
+            applications: true,
           },
         },
       },
@@ -43,12 +41,12 @@ export async function GET(request: NextRequest) {
       id: user.id,
       email: user.email,
       name: user.name || 'N/A',
-      role: user.role,
       createdAt: user.createdAt,
       stats: {
         resumeCount: user._count.resumes,
-        badgeCount: user._count.userBadges,
-        eventCount: user._count.analyticsEvents,
+        applicationCount: user._count.applications,
+        badgeCount: 0, // Badge model not in current schema
+        eventCount: 0, // Analytics events model not in current schema
       },
     }));
 

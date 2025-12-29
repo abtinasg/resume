@@ -104,7 +104,7 @@ export default function RegisterPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 px-4">
         <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-lg">
           <div className="space-y-2 text-center">
-            <h2 className="text-3xl font-bold text-gray-900">You're already signed in</h2>
+            <h2 className="text-3xl font-bold text-gray-900">You&apos;re already signed in</h2>
             <p className="text-gray-600">
               Continue to your dashboard or sign out to create a new account.
             </p>

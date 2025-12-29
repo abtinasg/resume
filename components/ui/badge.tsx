@@ -4,12 +4,14 @@ interface BadgeProps {
   children: React.ReactNode;
   variant?: 'default' | 'high' | 'medium' | 'low' | 'content' | 'format' | 'ats';
   className?: string;
+  onClick?: () => void;
 }
 
 const Badge: React.FC<BadgeProps> = ({
   children,
   variant = 'default',
   className = '',
+  onClick,
 }) => {
   const variantStyles = {
     default: 'bg-gray-100 text-gray-700',
@@ -21,12 +23,15 @@ const Badge: React.FC<BadgeProps> = ({
     ats: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
   };
 
+  const Component = onClick ? 'button' : 'span';
+
   return (
-    <span
+    <Component
+      onClick={onClick}
       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${variantStyles[variant]} ${className}`}
     >
       {children}
-    </span>
+    </Component>
   );
 };
 

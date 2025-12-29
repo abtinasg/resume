@@ -21,8 +21,22 @@ import {
   ChevronRight,
   Loader2,
 } from 'lucide-react';
-import { Post, PostStatus } from '@prisma/client';
 import Link from 'next/link';
+
+// Define Post type locally since Post model not in schema
+interface Post {
+  id: number;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  content: string;
+  status: string;
+  coverImage: string | null;
+  publishedAt: Date | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 const ARTICLES_PER_PAGE = 6;
 
@@ -248,7 +262,7 @@ export default function InsightsPage() {
             {/* Category Filter */}
             <div className="flex flex-wrap gap-2">
               <Button
-                variant={selectedCategory === 'all' ? 'primary' : 'outline'}
+                variant={selectedCategory === 'all' ? 'primary' : 'secondary'}
                 onClick={() => handleCategoryChange('all')}
                 className="flex items-center gap-2"
               >
@@ -258,7 +272,7 @@ export default function InsightsPage() {
               {Object.entries(CATEGORIES).map(([key, value]) => (
                 <Button
                   key={key}
-                  variant={selectedCategory === key ? 'primary' : 'outline'}
+                  variant={selectedCategory === key ? 'primary' : 'secondary'}
                   onClick={() => handleCategoryChange(key)}
                 >
                   {value.name}
@@ -346,7 +360,7 @@ export default function InsightsPage() {
                                       )}
                                     </div>
                                     <Button
-                                      variant="ghost"
+                                      variant="secondary"
                                       className="text-indigo-600 hover:text-indigo-700 font-semibold"
                                     >
                                       Read More
@@ -366,7 +380,7 @@ export default function InsightsPage() {
                   {totalPages > 1 && (
                     <div className="mt-12 flex items-center justify-center gap-2">
                       <Button
-                        variant="outline"
+                        variant="secondary"
                         onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
                         className="flex items-center gap-1"
@@ -379,7 +393,7 @@ export default function InsightsPage() {
                         {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                           <Button
                             key={page}
-                            variant={currentPage === page ? 'primary' : 'outline'}
+                            variant={currentPage === page ? 'primary' : 'secondary'}
                             onClick={() => setCurrentPage(page)}
                             className="w-10 h-10"
                           >
@@ -389,7 +403,7 @@ export default function InsightsPage() {
                       </div>
 
                       <Button
-                        variant="outline"
+                        variant="secondary"
                         onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                         disabled={currentPage === totalPages}
                         className="flex items-center gap-1"

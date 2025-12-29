@@ -15,9 +15,23 @@ import {
   Loader2,
   Tag,
 } from 'lucide-react';
-import { Post } from '@prisma/client';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
+
+// Define Post type locally since Post model not in schema
+interface Post {
+  id: number;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  content: string;
+  status: string;
+  coverImage: string | null;
+  publishedAt: Date | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 interface ArticleWithMeta extends Post {
   author?: {
@@ -182,7 +196,7 @@ export default function ArticlePage() {
       {/* Back Button */}
       <div className="max-w-4xl mx-auto px-6 pb-8">
         <Link href="/insights">
-          <Button variant="ghost" className="text-gray-600 hover:text-gray-900">
+          <Button variant="secondary" className="text-gray-600 hover:text-gray-900">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Insights
           </Button>
@@ -245,7 +259,7 @@ export default function ArticlePage() {
               </div>
             </div>
             <Button
-              variant="outline"
+              variant="secondary"
               onClick={handleShare}
               className="flex items-center gap-2"
             >

@@ -324,7 +324,7 @@ export default function DashboardPage() {
                         (latestResume?.score ?? 0) >= 80 ? 'text-green-600' :
                         (latestResume?.score ?? 0) >= 60 ? 'text-yellow-600' : 'text-red-600'
                       }`}>
-                        {latestResume?.score !== null ? Math.round(latestResume.score) : '--'}
+                        {latestResume?.score != null ? Math.round(latestResume.score) : '--'}
                       </p>
                       <p className="text-xs text-gray-500">out of 100</p>
                     </div>
