@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 echo "================================"
 echo "ResumeIQ Comprehensive Test Suite"
@@ -66,16 +66,16 @@ echo ""
 
 # Test 4: Build
 echo "🏗️  Running production build..."
-if npm run build 2>&1 | tail -5 | grep -q "Generating static pages"; then
+npm run build > /tmp/build_output.txt 2>&1
+BUILD_EXIT_CODE=$?
+
+if [ $BUILD_EXIT_CODE -eq 0 ]; then
   echo -e "${GREEN}✅ Production Build: PASS${NC}"
 else
-  BUILD_OUTPUT=$(npm run build 2>&1)
-  if echo "$BUILD_OUTPUT" | grep -q "Static"; then
-    echo -e "${GREEN}✅ Production Build: PASS${NC}"
-  else
-    echo -e "${RED}❌ Production Build: FAIL${NC}"
-    FAILED=1
-  fi
+  echo -e "${RED}❌ Production Build: FAIL${NC}"
+  echo "Build output:"
+  tail -20 /tmp/build_output.txt
+  FAILED=1
 fi
 echo ""
 

@@ -18,6 +18,14 @@
 // TYPES & INTERFACES
 // ============================================================================
 
+/**
+ * Result type for both PDF and image text extraction.
+ * 
+ * Methods:
+ * - 'pdf-parse': Used by extractTextFromBuffer for PDF files
+ * - 'ocr': Used by imageParser.ts for mobile camera captures
+ * - 'fallback': Used when extraction fails
+ */
 export interface PDFExtractionResult {
   status: "success" | "partial" | "failed";
   message: string;
