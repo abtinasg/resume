@@ -60,8 +60,19 @@ async function getRedisClient() {
 
   try {
     // Dynamically import redis only if needed
-    // This will fail gracefully if redis package is not installed
-    const redis = await import('redis').catch(() => null);
+    // Using require to avoid bundling issues
+    const redis = await (async () => {
+      try {
+        // Only attempt to load redis in Node.js environment
+        if (typeof window !== 'undefined') {
+          return null;
+        }
+        return require('redis');
+      } catch {
+        return null;
+      }
+    })();
+    
     if (!redis) {
       console.warn('Redis package not installed, using in-memory cache');
       return null;
@@ -280,17 +291,17 @@ if (typeof setInterval !== 'undefined') {
 /**
  * Cache user subscription data
  */
-export async function cacheUserSubscription(userId: number, data: any): Promise<void> {
+export async function cacheUserSubscription(userId: string | number, data: any): Promise<void> {
   const key = `${CACHE_CONFIG.prefixes.SUBSCRIPTION}${userId}`;
   await setCached(key, data, CACHE_CONFIG.durations.MEDIUM);
 }
 
-export async function getCachedUserSubscription(userId: number): Promise<any | null> {
+export async function getCachedUserSubscription(userId: string | number): Promise<any | null> {
   const key = `${CACHE_CONFIG.prefixes.SUBSCRIPTION}${userId}`;
   return await getCached(key);
 }
 
-export async function invalidateUserSubscription(userId: number): Promise<void> {
+export async function invalidateUserSubscription(userId: string | number): Promise<void> {
   const key = `${CACHE_CONFIG.prefixes.SUBSCRIPTION}${userId}`;
   await deleteCached(key);
 }
@@ -298,17 +309,17 @@ export async function invalidateUserSubscription(userId: number): Promise<void> 
 /**
  * Cache usage limits
  */
-export async function cacheUsageLimits(userId: number, data: any): Promise<void> {
+export async function cacheUsageLimits(userId: string | number, data: any): Promise<void> {
   const key = `${CACHE_CONFIG.prefixes.USAGE}${userId}`;
   await setCached(key, data, CACHE_CONFIG.durations.SHORT);
 }
 
-export async function getCachedUsageLimits(userId: number): Promise<any | null> {
+export async function getCachedUsageLimits(userId: string | number): Promise<any | null> {
   const key = `${CACHE_CONFIG.prefixes.USAGE}${userId}`;
   return await getCached(key);
 }
 
-export async function invalidateUsageLimits(userId: number): Promise<void> {
+export async function invalidateUsageLimits(userId: string | number): Promise<void> {
   const key = `${CACHE_CONFIG.prefixes.USAGE}${userId}`;
   await deleteCached(key);
 }
@@ -316,12 +327,12 @@ export async function invalidateUsageLimits(userId: number): Promise<void> {
 /**
  * Cache resume analysis results
  */
-export async function cacheResumeAnalysis(resumeId: number, data: any): Promise<void> {
+export async function cacheResumeAnalysis(resumeId: string | number, data: any): Promise<void> {
   const key = `${CACHE_CONFIG.prefixes.ANALYSIS}${resumeId}`;
   await setCached(key, data, CACHE_CONFIG.durations.LONG);
 }
 
-export async function getCachedResumeAnalysis(resumeId: number): Promise<any | null> {
+export async function getCachedResumeAnalysis(resumeId: string | number): Promise<any | null> {
   const key = `${CACHE_CONFIG.prefixes.ANALYSIS}${resumeId}`;
   return await getCached(key);
 }
@@ -330,7 +341,7 @@ export async function getCachedResumeAnalysis(resumeId: number): Promise<any | n
  * Cache job matching results
  */
 export async function cacheJobMatch(
-  userId: number,
+  userId: string | number,
   jobDescriptionHash: string,
   data: any
 ): Promise<void> {
@@ -339,7 +350,7 @@ export async function cacheJobMatch(
 }
 
 export async function getCachedJobMatch(
-  userId: number,
+  userId: string | number,
   jobDescriptionHash: string
 ): Promise<any | null> {
   const key = `${CACHE_CONFIG.prefixes.JOB_MATCH}${userId}:${jobDescriptionHash}`;

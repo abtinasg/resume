@@ -4,12 +4,16 @@ import { prisma } from './prisma';
 
 export interface AdminAuthResult {
   isAuthorized: boolean;
-  userId?: number;
+  userId?: string;
   error?: string;
 }
 
+// Admin email whitelist - in production, this should come from environment or database
+const ADMIN_EMAILS = process.env.ADMIN_EMAILS?.split(',') || [];
+
 /**
  * Verify that the request is from an authenticated admin user
+ * Note: User model doesn't have a role field, so we check against admin email whitelist
  */
 export async function verifyAdminAuth(
   request: NextRequest
@@ -27,17 +31,19 @@ export async function verifyAdminAuth(
     return { isAuthorized: false, error: 'Unauthorized - Invalid token' };
   }
 
-  // Get user from database and check role
+  // Get user from database
   const user = await prisma.user.findUnique({
     where: { id: decoded.userId },
-    select: { id: true, role: true },
+    select: { id: true, email: true },
   });
 
   if (!user) {
     return { isAuthorized: false, error: 'Unauthorized - User not found' };
   }
 
-  if (user.role !== 'admin') {
+  // Check if user email is in admin whitelist
+  const isAdmin = ADMIN_EMAILS.includes(user.email);
+  if (!isAdmin) {
     return { isAuthorized: false, error: 'Forbidden - Admin access required' };
   }
 

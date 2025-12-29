@@ -304,7 +304,7 @@ export default function JobMatchPage() {
                 onChange={(e) => setResumeText(e.target.value)}
                 placeholder="Paste your resume text here..."
                 className="w-full h-96 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
-                disabled={loading || (usageInfo && !usageInfo.hasAccess)}
+                disabled={loading || Boolean(usageInfo && !usageInfo.hasAccess)}
               />
               <p className="text-sm text-gray-500 mt-2">
                 {resumeText.length} characters
@@ -328,7 +328,7 @@ export default function JobMatchPage() {
                 onChange={(e) => setJobDescription(e.target.value)}
                 placeholder="Paste the job description here..."
                 className="w-full h-96 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
-                disabled={loading || (usageInfo && !usageInfo.hasAccess)}
+                disabled={loading || Boolean(usageInfo && !usageInfo.hasAccess)}
               />
               <p className="text-sm text-gray-500 mt-2">
                 {jobDescription.length} characters
@@ -346,7 +346,7 @@ export default function JobMatchPage() {
         >
           <Button
             onClick={handleAnalyze}
-            disabled={loading || !resumeText.trim() || !jobDescription.trim() || (usageInfo && !usageInfo.hasAccess)}
+            disabled={loading || !resumeText.trim() || !jobDescription.trim() || Boolean(usageInfo && !usageInfo.hasAccess)}
             className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-3 text-lg font-semibold"
           >
             {loading ? (

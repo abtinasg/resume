@@ -338,7 +338,7 @@ export default function HowItWorksPage() {
               Why Our Approach Works
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              The science and technology behind ResumeIQ's accurate resume analysis
+              The science and technology behind ResumeIQ&apos;s accurate resume analysis
             </p>
           </motion.div>
 

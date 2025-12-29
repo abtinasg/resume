@@ -12,7 +12,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const decoded = await verifyToken(token);
+    const decoded = verifyToken(token);
     if (!decoded || !decoded.userId) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
@@ -28,8 +28,8 @@ export async function POST(request: Request) {
 
     // Fetch both resumes
     const [resume1, resume2] = await Promise.all([
-      prisma.resume.findUnique({ where: { id: parseInt(resumeId1) } }),
-      prisma.resume.findUnique({ where: { id: parseInt(resumeId2) } }),
+      prisma.resumeVersion.findUnique({ where: { id: resumeId1 } }),
+      prisma.resumeVersion.findUnique({ where: { id: resumeId2 } }),
     ]);
 
     if (!resume1 || !resume2) {
@@ -51,23 +51,21 @@ export async function POST(request: Request) {
     const comparison = {
       resume1: {
         id: resume1.id,
-        fileName: resume1.fileName,
-        score: resume1.score,
-        summary: resume1.summary,
-        data: resume1.data,
-        version: resume1.version,
+        fileName: resume1.name,
+        score: resume1.overallScore,
+        data: resume1.content,
+        version: resume1.versionNumber,
         createdAt: resume1.createdAt,
       },
       resume2: {
         id: resume2.id,
-        fileName: resume2.fileName,
-        score: resume2.score,
-        summary: resume2.summary,
-        data: resume2.data,
-        version: resume2.version,
+        fileName: resume2.name,
+        score: resume2.overallScore,
+        data: resume2.content,
+        version: resume2.versionNumber,
         createdAt: resume2.createdAt,
       },
-      scoreDifference: resume2.score - resume1.score,
+      scoreDifference: (resume2.overallScore || 0) - (resume1.overallScore || 0),
     };
 
     return NextResponse.json({ comparison });

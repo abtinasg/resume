@@ -34,48 +34,8 @@ export async function GET(request: NextRequest) {
       take: 100, // Limit to recent 100 versions
     });
 
-    // Get all score history with user info
-    const scoreHistory = await prisma.resumeScoreHistory.findMany({
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-          },
-        },
-        resume: {
-          select: {
-            id: true,
-            fileName: true,
-          },
-        },
-      },
-      orderBy: {
-        recordedAt: 'desc',
-      },
-      take: 100, // Limit to recent 100 records
-    });
-
     // Calculate aggregate stats
     const totalVersions = await prisma.resumeVersion.count();
-    const totalScoreRecords = await prisma.resumeScoreHistory.count();
-
-    // Calculate average improvement
-    const improvements = await prisma.resumeScoreHistory.findMany({
-      where: {
-        change: { not: null },
-      },
-      select: {
-        change: true,
-      },
-    });
-
-    const avgImprovement =
-      improvements.length > 0
-        ? improvements.reduce((sum, i) => sum + (i.change || 0), 0) /
-          improvements.length
-        : 0;
 
     // Get users with most versions
     const userVersionCounts = await prisma.resumeVersion.groupBy({
@@ -115,29 +75,19 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       overview: {
         totalVersions,
-        totalScoreRecords,
-        avgImprovement: Math.round(avgImprovement * 10) / 10,
-        positiveImprovements: improvements.filter((i) => (i.change || 0) > 0)
-          .length,
-        negativeImprovements: improvements.filter((i) => (i.change || 0) < 0)
-          .length,
+        totalScoreRecords: 0, // resumeScoreHistory model not in schema
+        avgImprovement: 0,
+        positiveImprovements: 0,
+        negativeImprovements: 0,
       },
       recentVersions: versions.map((v) => ({
         id: v.id,
-        version: v.version,
-        score: v.score,
+        version: v.versionNumber,
+        score: v.overallScore,
         createdAt: v.createdAt,
         user: v.user,
       })),
-      recentScoreHistory: scoreHistory.map((sh) => ({
-        id: sh.id,
-        score: sh.score,
-        previousScore: sh.previousScore,
-        change: sh.change,
-        recordedAt: sh.recordedAt,
-        user: sh.user,
-        resume: sh.resume,
-      })),
+      recentScoreHistory: [], // resumeScoreHistory model not in schema
       topUsers: topUsersWithCounts,
     });
   } catch (error) {

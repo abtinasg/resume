@@ -155,7 +155,7 @@ export default function SearchPage() {
               <p className="text-gray-600">
                 Found <span className="font-semibold text-gray-900">{results.length}</span>{' '}
                 result{results.length !== 1 ? 's' : ''} for{' '}
-                <span className="font-semibold text-indigo-600">"{query}"</span>
+                <span className="font-semibold text-indigo-600">&quot;{query}&quot;</span>
               </p>
             </div>
 

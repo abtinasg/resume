@@ -36,7 +36,6 @@ export async function GET(request: NextRequest) {
         id: true,
         email: true,
         name: true,
-        image: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -64,7 +63,7 @@ export async function GET(request: NextRequest) {
       id: user.id.toString(),
       email: user.email,
       name: user.name,
-      image: user.image,
+      image: null, // Image field not in current schema
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       // Subscription information

@@ -333,7 +333,7 @@ export default function AdminOverview() {
                 </p>
               )}
               {feedback.comment && (
-                <p className="text-sm text-gray-600 italic">"{feedback.comment}"</p>
+                <p className="text-sm text-gray-600 italic">&quot;{feedback.comment}&quot;</p>
               )}
             </div>
           ))}

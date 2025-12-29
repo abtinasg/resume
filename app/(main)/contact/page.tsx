@@ -92,7 +92,7 @@ export default function ContactPage() {
             </span>
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Have a question, feedback, or need support? We'd love to hear from you.
+            Have a question, feedback, or need support? We&apos;d love to hear from you.
           </p>
         </motion.div>
 
@@ -112,7 +112,7 @@ export default function ContactPage() {
                   <div>
                     <h4 className="font-semibold text-green-900 mb-1">Message sent!</h4>
                     <p className="text-green-700 text-sm">
-                      Thank you for contacting us. We'll get back to you soon.
+                      Thank you for contacting us. We&apos;ll get back to you soon.
                     </p>
                   </div>
                 </div>
@@ -231,7 +231,7 @@ export default function ContactPage() {
                   <div>
                     <h4 className="font-semibold text-gray-900 mb-1">Technical Support</h4>
                     <p className="text-gray-600 text-sm">
-                      Having issues with the app? We're here to help resolve any technical problems.
+                      Having issues with the app? We&apos;re here to help resolve any technical problems.
                     </p>
                   </div>
                 </li>
@@ -253,7 +253,7 @@ export default function ContactPage() {
                   <div>
                     <h4 className="font-semibold text-gray-900 mb-1">Feature Requests</h4>
                     <p className="text-gray-600 text-sm">
-                      Have an idea for a new feature? We'd love to hear your suggestions.
+                      Have an idea for a new feature? We&apos;d love to hear your suggestions.
                     </p>
                   </div>
                 </li>
@@ -284,7 +284,7 @@ export default function ContactPage() {
               </div>
               <p className="text-gray-600 text-sm">
                 Our team reviews all messages and aims to provide helpful responses as quickly as possible.
-                For urgent matters, please include "URGENT" in your message.
+                For urgent matters, please include &quot;URGENT&quot; in your message.
               </p>
             </Card>
 

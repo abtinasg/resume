@@ -1,23 +1,10 @@
 import type { Metadata } from "next";
-import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import AuthProvider from "@/components/AuthProvider";
 import SessionProvider from "@/components/SessionProvider";
 
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-inter",
-  display: "swap",
-});
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  variable: "--font-grotesk",
-  display: "swap",
-});
+// Use system fonts when Google Fonts are not available in build environment
 
 export const metadata: Metadata = {
   title: "ResumeIQ - AI-Powered Resume Analysis & Optimization | Land Your Dream Job",
@@ -92,8 +79,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
-      <body className="font-inter antialiased">
+    <html lang="en">
+      <body className="font-sans antialiased">
         <SessionProvider>
           <AuthProvider>
             <Navbar />

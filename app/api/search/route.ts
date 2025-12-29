@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PostStatus } from '@prisma/client';
 import { z } from 'zod';
-
-import prisma from '@/lib/prisma';
-import { verifyAdminAuth } from '@/lib/adminAuth';
 
 export const runtime = 'nodejs';
 
@@ -16,6 +12,9 @@ const SearchQuerySchema = z.object({
     .transform((value) => value === 'true'),
 });
 
+/**
+ * Search API - Feature not yet available (Post model not in schema)
+ */
 export async function GET(req: NextRequest) {
   try {
     const params = Object.fromEntries(req.nextUrl.searchParams.entries());
@@ -39,62 +38,17 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { query, limit, includeDrafts } = parsed.data;
+    const { query } = parsed.data;
 
-    // Require admin authentication to search drafts
-    if (includeDrafts) {
-      const authResult = await verifyAdminAuth(req);
-      if (!authResult.isAuthorized) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: {
-              code: 'UNAUTHORIZED',
-              message: 'Admin access required to search draft posts',
-            },
-          },
-          { status: authResult.error?.includes('Forbidden') ? 403 : 401 }
-        );
-      }
-    }
-
-    const posts = await prisma.post.findMany({
-      where: {
-        AND: [
-          includeDrafts ? {} : { status: PostStatus.PUBLISHED },
-          {
-            OR: [
-              { title: { contains: query, mode: 'insensitive' } },
-              { excerpt: { contains: query, mode: 'insensitive' } },
-              { content: { contains: query, mode: 'insensitive' } },
-            ],
-          },
-        ],
-      },
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        excerpt: true,
-        publishedAt: true,
-        status: true,
-        updatedAt: true,
-        createdAt: true,
-      },
-      orderBy: [
-        { publishedAt: 'desc' },
-        { createdAt: 'desc' },
-      ],
-      take: limit,
-    });
-
+    // Search functionality not available - Post model not in schema
     return NextResponse.json(
       {
         success: true,
         data: {
           query,
-          posts,
+          posts: [],
         },
+        message: 'Search feature not yet available',
       },
       { status: 200 }
     );

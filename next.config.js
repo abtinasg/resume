@@ -1,6 +1,31 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Exclude problematic modules from webpack bundling
+  experimental: {
+    serverComponentsExternalPackages: ['canvas', 'pdfjs-dist', 'redis'],
+  },
+  webpack: (config, { isServer }) => {
+    // Handle canvas and other native modules
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+        canvas: false,
+        redis: false,
+      };
+    }
+    
+    // Exclude .node files
+    config.module.rules.push({
+      test: /\.node$/,
+      use: 'ignore-loader',
+    });
+
+    return config;
+  },
   async headers() {
     return [
       {

@@ -337,7 +337,7 @@ export default function ScoringCalculator() {
 
       {/* Quick Actions */}
       <div className="flex flex-wrap gap-3 justify-center">
-        <Button onClick={resetToDefaults} variant="outline" className="flex items-center gap-2">
+        <Button onClick={resetToDefaults} variant="secondary" className="flex items-center gap-2">
           <AlertCircle className="w-4 h-4" />
           Reset to Average
         </Button>

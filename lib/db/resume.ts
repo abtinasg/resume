@@ -101,7 +101,6 @@ export const resumeService = {
         overallScore: scores.overallScore,
         componentScores: scores.componentScores,
         improvementAreas: scores.improvementAreas,
-        sectionScores: null, // Explicitly set deprecated field to null
       },
     });
   },

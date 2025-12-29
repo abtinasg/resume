@@ -25,11 +25,11 @@ export async function PATCH(
 
   try {
     const params = await context.params;
-    const userId = parseInt(params.id);
+    const userId = params.id; // User ID is a string (cuid)
     const body = await request.json();
 
     // Validate user ID
-    if (isNaN(userId)) {
+    if (!userId || userId.trim() === '') {
       return NextResponse.json(
         { error: 'Invalid user ID' },
         { status: 400 }
@@ -49,10 +49,7 @@ export async function PATCH(
     }
 
     // Update user
-    const updateData: any = {};
-    if (body.role && ['user', 'admin'].includes(body.role)) {
-      updateData.role = body.role;
-    }
+    const updateData: { name?: string } = {};
     if (body.name !== undefined) {
       updateData.name = body.name;
     }
@@ -64,7 +61,6 @@ export async function PATCH(
         id: true,
         email: true,
         name: true,
-        role: true,
         createdAt: true,
       },
     });
@@ -101,9 +97,9 @@ export async function DELETE(
 
   try {
     const params = await context.params;
-    const userId = parseInt(params.id);
+    const userId = params.id; // User ID is a string (cuid)
 
-    if (isNaN(userId)) {
+    if (!userId || userId.trim() === '') {
       return NextResponse.json(
         { error: 'Invalid user ID' },
         { status: 400 }
@@ -111,7 +107,7 @@ export async function DELETE(
     }
 
     // Don't allow deleting yourself
-    if (userId === authResult.userId) {
+    if (authResult.userId && userId === String(authResult.userId)) {
       return NextResponse.json(
         { error: 'Cannot delete your own account' },
         { status: 400 }

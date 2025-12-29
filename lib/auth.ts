@@ -1,6 +1,17 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
+// Type definitions
+export interface JWTPayload {
+  userId: string;
+  email: string;
+}
+
+export interface TokenData extends JWTPayload {
+  iat: number;
+  exp: number;
+}
+
 function getJwtSecret(): string {
   const secret = process.env.JWT_SECRET;
 
@@ -116,5 +127,3 @@ export function validatePassword(password: string): {
 
   return { isValid: true };
 }
-
-export type { JWTPayload, TokenData } from '@/lib/types/auth';

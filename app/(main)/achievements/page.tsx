@@ -223,19 +223,19 @@ export default function AchievementsPage() {
           className="flex justify-center gap-4 mb-8"
         >
           <Button
-            variant={filter === 'all' ? 'primary' : 'outline'}
+            variant={filter === 'all' ? 'primary' : 'secondary'}
             onClick={() => setFilter('all')}
           >
             All ({achievements.length})
           </Button>
           <Button
-            variant={filter === 'earned' ? 'primary' : 'outline'}
+            variant={filter === 'earned' ? 'primary' : 'secondary'}
             onClick={() => setFilter('earned')}
           >
             Earned ({achievements.filter((a) => a.earned).length})
           </Button>
           <Button
-            variant={filter === 'locked' ? 'primary' : 'outline'}
+            variant={filter === 'locked' ? 'primary' : 'secondary'}
             onClick={() => setFilter('locked')}
           >
             Locked ({achievements.filter((a) => !a.earned).length})
