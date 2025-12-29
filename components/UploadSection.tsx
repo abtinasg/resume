@@ -866,6 +866,18 @@ JavaScript, TypeScript, React, Node.js, Python, AWS, Docker`;
                 Try Example
               </motion.button>
             </div>
+            
+            {/* Helper text for disabled state */}
+            {!pastedText.trim() && !uploadedFile && !isAnalyzing && (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+                className="text-sm text-gray-500 text-center mt-2"
+              >
+                Upload a PDF or paste your resume text to continue
+              </motion.p>
+            )}
           </motion.div>
             </>
           )}
