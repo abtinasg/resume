@@ -177,7 +177,6 @@ describe('No New 3D Scoring Consumers', () => {
     const ALLOWED_LEGACY_FILES = new Set([
       'lib/scoring/algorithms.ts',     // Implementation (to be deprecated)
       'lib/scoring/types.ts',          // Type definitions (to be deprecated)
-      'app/api/analyze/route.ts',      // Primary consumer (to be migrated)
       'docs/resume-analysis/CODE_ANALYSIS_REPORT.md', // Documentation
       'lib/scoring/__tests__/noLegacyImports.test.ts', // This test file (references in string literals)
     ]);

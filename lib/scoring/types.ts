@@ -662,11 +662,13 @@ export interface RoleInsights {
   };
 }
 
-// ==================== 3D Scoring System - New Architecture ====================
+// ==================== 3D Scoring System - DEPRECATED ====================
+// These types are replaced by PRO scoring (ScoringResult above).
+// For backward-compatible 3D views, use ThreeDView or ThreeDViewRaw from derivedViews.ts.
+// Will be removed in a future version.
 
 /**
- * 3D Resume Scores - Three-dimensional scoring model
- * Replaces the 4-component model with a simplified 3-axis approach
+ * @deprecated Use `ScoringResult` instead. For 3D views, use `ThreeDView` or `ThreeDViewRaw` from `derivedViews.ts`.
  */
 export interface ResumeScores {
   /** Structure score (0-40): Completeness of sections */
@@ -703,7 +705,7 @@ export interface ActionableItem {
 }
 
 /**
- * AI Analysis Response (strict scoring mode)
+ * @deprecated Used by legacy 3D scoring AI hybrid mode. Will be removed in a future version.
  */
 export interface AI3DAnalysisResponse {
   /** Executive summary of the resume */
@@ -732,7 +734,7 @@ export interface AI3DAnalysisResponse {
 }
 
 /**
- * Hybrid 3D Scoring Result (combined local + AI)
+ * @deprecated Used by legacy 3D scoring hybrid mode. Will be removed in a future version.
  */
 export interface Hybrid3DScoringResult {
   /** Final hybrid scores */

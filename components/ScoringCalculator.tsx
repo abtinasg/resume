@@ -36,7 +36,7 @@ interface CategoryScore {
 }
 
 export default function ScoringCalculator() {
-  // Initialize scoring factors based on 3D scoring system
+  // Initialize scoring factors based on PRO scoring system
   const [factors, setFactors] = useState<ScoringFactor[]>([
     {
       id: 'sections',
@@ -141,7 +141,7 @@ export default function ScoringCalculator() {
       : 0;
 
     // Overall Score (0-100)
-    // Formula: (structure/40 * 0.3 + content/60 * 0.4 + tailoring/40 * 0.3) * 100
+    // Simplified formula for interactive calculator: weighted average of dimensions
     const overall = Math.round(
       (structureScore / 40) * 0.3 * 100 +
         (contentScore / 60) * 0.4 * 100 +
@@ -267,7 +267,7 @@ export default function ScoringCalculator() {
         </div>
         <p className="text-gray-600 max-w-2xl mx-auto">
           Adjust the sliders below to see how different improvements affect your resume score.
-          This calculator is based on our 3D scoring system that evaluates Structure, Content, and Tailoring.
+          This calculator uses the PRO scoring system that evaluates Content Quality, ATS Readiness, Format, and Impact.
         </p>
       </div>
 

@@ -137,9 +137,9 @@ const AIReport: React.FC<AIReportProps> = ({
         transition={{ delay: 0.25, duration: 0.4 }}
         className="grid grid-cols-1 md:grid-cols-3 gap-4"
       >
-        {/* Content Score */}
+        {/* Content Quality Score */}
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 text-center hover:shadow-lg transition-shadow duration-300">
-          <div className="text-xs text-gray-600 font-semibold mb-2 uppercase tracking-wide">Content Score</div>
+          <div className="text-xs text-gray-600 font-semibold mb-2 uppercase tracking-wide">Content Quality</div>
           <div className="text-4xl font-bold bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent">
             {contentScore}
           </div>
@@ -147,9 +147,9 @@ const AIReport: React.FC<AIReportProps> = ({
           <div className="text-xs text-gray-400 mt-1">(40% weight)</div>
         </div>
 
-        {/* Tailoring Score */}
+        {/* ATS Readiness Score */}
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 text-center hover:shadow-lg transition-shadow duration-300">
-          <div className="text-xs text-gray-600 font-semibold mb-2 uppercase tracking-wide">Tailoring Score</div>
+          <div className="text-xs text-gray-600 font-semibold mb-2 uppercase tracking-wide">ATS Readiness</div>
           <div className="text-4xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
             {tailoringScore}
           </div>
