@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Layer6 } from '@/lib/layers';
+import { verifyAuth } from '@/lib/verifyAuth';
 
 export async function POST(request: NextRequest) {
   try {
+    // Verify authentication
+    const authResult = await verifyAuth(request);
+    if (!authResult.isValid) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { job_description, metadata, user_id, resume_version_id, resume_text } = body;
 
@@ -18,6 +25,11 @@ export async function POST(request: NextRequest) {
         { error: 'Missing user_id' },
         { status: 400 }
       );
+    }
+
+    // Verify user_id matches authenticated user
+    if (user_id !== authResult.userId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Validate job description length

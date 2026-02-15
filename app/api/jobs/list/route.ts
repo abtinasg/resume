@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Layer6 } from '@/lib/layers';
 import type { JobFilters, ParsedJob } from '@/lib/layers/layer6/types';
+import { verifyAuth } from '@/lib/verifyAuth';
 
 // Validation constants
 const VALID_CATEGORIES = ['reach', 'target', 'safety', 'avoid'] as const;
@@ -8,15 +9,26 @@ const VALID_STATUSES = ['discovered', 'saved', 'applied', 'archived'] as const;
 
 export async function GET(request: NextRequest) {
   try {
+    // Verify authentication
+    const authResult = await verifyAuth(request);
+    if (!authResult.isValid) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
-    
+
     const user_id = searchParams.get('user_id');
-    
+
     if (!user_id) {
       return NextResponse.json(
         { error: 'Missing user_id' },
         { status: 400 }
       );
+    }
+
+    // Verify user_id matches authenticated user
+    if (user_id !== authResult.userId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Parse query parameters for filtering

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
-import { rewriteService } from '@/lib/services/rewrite-service';
+import { rewriteBullet } from '@/lib/layers/layer3';
+import type { BulletRewriteRequest } from '@/lib/layers/layer3';
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,15 +24,43 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await rewriteService.rewriteBullet({
+    // Build Layer 3 evidence-anchored rewrite request
+    const rewriteRequest: BulletRewriteRequest = {
+      type: 'bullet',
       bullet,
-      targetRole,
-      context,
-    });
+      target_role: targetRole,
+      context: context?.section_type
+        ? {
+            section_type: context.section_type,
+            role: context.role,
+            company: context.company,
+            index: context.index,
+          }
+        : undefined,
+      layer1: context?.skills || context?.tools
+        ? {
+            extracted: {
+              skills: context.skills,
+              tools: context.tools,
+            },
+          }
+        : undefined,
+    };
+
+    const result = await rewriteBullet(rewriteRequest);
 
     return NextResponse.json({
       success: true,
-      data: result,
+      data: {
+        original: result.original,
+        improved: result.improved,
+        reasoning: result.reasoning,
+        changes: result.changes,
+        validation: result.validation,
+        evidence_map: result.evidence_map,
+        confidence: result.confidence,
+        estimated_score_gain: result.estimated_score_gain,
+      },
     });
   } catch (error) {
     console.error('Bullet rewrite error:', error);
@@ -41,7 +70,8 @@ export async function POST(request: NextRequest) {
     if (
       errorMessage.includes('empty') ||
       errorMessage.includes('too long') ||
-      errorMessage.includes('Bullet')
+      errorMessage.includes('Bullet') ||
+      errorMessage.includes('INVALID_INPUT')
     ) {
       return NextResponse.json(
         { success: false, error: errorMessage },
