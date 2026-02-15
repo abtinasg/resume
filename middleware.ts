@@ -3,6 +3,8 @@ import type { NextRequest } from 'next/server';
 import { verifyTokenOnEdge } from '@/lib/edge/token';
 import { getToken } from 'next-auth/jwt';
 
+const CSRF_COOKIE_NAME = '_csrf_token';
+
 // Define protected routes that require authentication
 const protectedRoutes = ['/profile', '/dashboard'];
 
@@ -71,15 +73,21 @@ export async function middleware(request: NextRequest) {
   // Check if the current route is an auth route
   const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
 
-  // Admin route protection
+  // Admin route protection with RBAC
   if (isAdminRoute) {
     if (!isAuthenticated) {
       const loginUrl = new URL('/auth/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
     }
-    // Note: Role-based admin check is disabled until role field is added to User model
-    // For now, all authenticated users can access admin routes
+
+    // Edge-compatible role check using ADMIN_EMAILS env var
+    // API-level admin routes also check the database role field via verifyAdminAuth
+    const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(e => e.trim()) || [];
+    const userEmail = legacyUser?.email || nextAuthToken?.email;
+    if (!userEmail || !adminEmails.includes(userEmail)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
   }
 
   // Allow authenticated users to access auth routes for reauth flow
@@ -95,7 +103,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  return NextResponse.next();
+  // Set CSRF cookie on page navigations so frontend can include it in API requests
+  const response = NextResponse.next();
+  const existingCsrf = request.cookies.get(CSRF_COOKIE_NAME)?.value;
+  if (!existingCsrf) {
+    // Generate a random CSRF token using Web Crypto API (edge-compatible)
+    const array = new Uint8Array(32);
+    crypto.getRandomValues(array);
+    const token = Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
+    response.cookies.set(CSRF_COOKIE_NAME, token, {
+      httpOnly: false, // Must be readable by JS to include in headers
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
+    });
+  }
+  return response;
 }
 
 // Configure which routes the middleware should run on

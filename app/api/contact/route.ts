@@ -47,6 +47,19 @@ export async function POST(request: NextRequest) {
 
     const { name, email, message } = validationResult.data;
 
+    // Strict email validation to prevent header injection
+    const strictEmailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!strictEmailRegex.test(email)) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid email format' },
+        { status: 400 }
+      );
+    }
+
+    // Sanitize CRLF characters to prevent email header injection
+    const sanitizedEmail = email.replace(/[\r\n]/g, '');
+    const sanitizedName = name.replace(/[\r\n]/g, '');
+
     // Check if email credentials are configured
     const contactEmail = process.env.CONTACT_EMAIL;
     const contactPassword = process.env.CONTACT_EMAIL_PASSWORD;
@@ -72,7 +85,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create transporter
+    // TODO: Migrate to OAuth2 or email API service (SendGrid/Resend) for production.
+    // Current approach uses app-specific password which is acceptable for MVP but not for scale.
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
@@ -85,8 +99,8 @@ export async function POST(request: NextRequest) {
     const mailOptions = {
       from: contactEmail,
       to: contactEmail,
-      replyTo: email,
-      subject: `ResumeIQ Contact Form: Message from ${name}`,
+      replyTo: sanitizedEmail,
+      subject: `ResumeIQ Contact Form: Message from ${sanitizedName}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #3B82F6;">New Contact Form Submission</h2>

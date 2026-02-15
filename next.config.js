@@ -60,7 +60,7 @@ const nextConfig = {
           },
           {
             key: 'Access-Control-Allow-Origin',
-            value: process.env.ALLOWED_ORIGIN || process.env.NEXTAUTH_URL || '*',
+            value: process.env.ALLOWED_ORIGIN || process.env.NEXTAUTH_URL || 'https://resumeiq.com',
           },
           {
             key: 'Access-Control-Allow-Methods',

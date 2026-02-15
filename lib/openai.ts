@@ -3,6 +3,8 @@ import { Agent } from 'https';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { lookup as dnsLookup } from 'dns';
 import { promisify } from 'util';
+import crypto from 'crypto';
+import { getCached, setCached, CACHE_CONFIG } from '@/lib/cache';
 
 let openaiClient: OpenAI | null = null;
 
@@ -10,7 +12,7 @@ let openaiClient: OpenAI | null = null;
 const lookupAsync = promisify(dnsLookup);
 
 // Model configuration with fallback
-const PRIMARY_MODEL = 'gpt-5-turbo';
+const PRIMARY_MODEL = process.env.OPENAI_MODEL || 'gpt-4o';
 const FALLBACK_MODEL = 'gpt-4o-mini';
 const TIMEOUT_MS = 30000; // 30 seconds
 const MAX_RETRIES = 2;
@@ -218,6 +220,15 @@ export async function analyzeResumeWithAI(
 ): Promise<ResumeAnalysis> {
   const overallStartTime = Date.now();
 
+  // Check cache first (keyed by content hash, 24-hour TTL)
+  const cacheKey = `${CACHE_CONFIG.prefixes.AI_RESPONSE}resume:${crypto.createHash('sha256').update(resumeText).digest('hex')}`;
+  const cached = await getCached<ResumeAnalysis>(cacheKey);
+  if (cached) {
+    console.log(`[OpenAI] Cache HIT for resume analysis (${Date.now() - overallStartTime}ms)`);
+    return cached;
+  }
+  console.log('[OpenAI] Cache MISS for resume analysis, calling API...');
+
   const prompt = `Analyze the following resume and provide structured feedback in JSON format.
 
 Resume:
@@ -320,6 +331,10 @@ Respond ONLY with valid JSON, no additional text.`;
     console.log(`[OpenAI] ✓ Analysis completed successfully in ${totalProcessingTime}ms`);
     console.log(`[OpenAI] Response stats: score=${analysis.score}, strengths=${analysis.strengths.length}, suggestions=${analysis.suggestions.length}`);
 
+    // Cache successful result (24-hour TTL)
+    await setCached(cacheKey, analysis, CACHE_CONFIG.durations.VERY_LONG);
+    console.log('[OpenAI] Result cached for 24 hours');
+
     return analysis;
   } catch (error) {
     const totalProcessingTime = Date.now() - overallStartTime;
@@ -418,6 +433,15 @@ export async function analyzeResumePro(
   resumeText: string
 ): Promise<ResumeAnalysisPro> {
   const overallStartTime = Date.now();
+
+  // Check cache first (keyed by content hash, 24-hour TTL)
+  const cacheKey = `${CACHE_CONFIG.prefixes.AI_RESPONSE}pro:${crypto.createHash('sha256').update(resumeText).digest('hex')}`;
+  const cached = await getCached<ResumeAnalysisPro>(cacheKey);
+  if (cached) {
+    console.log(`[OpenAI Pro] Cache HIT for pro analysis (${Date.now() - overallStartTime}ms)`);
+    return cached;
+  }
+  console.log('[OpenAI Pro] Cache MISS for pro analysis, calling API...');
 
   const prompt = `You are an expert AI recruiter and resume analyst. Analyze the following resume and provide comprehensive, multi-dimensional feedback.
 
@@ -574,6 +598,10 @@ Respond ONLY with the JSON object, no markdown formatting or additional text.`;
     console.log(
       `[OpenAI Pro] Response stats: overall_score=${analysis.overview.overall_score}, ats_pass_rate=${analysis.ats_analysis.ats_pass_rate}, actions=${analysis.improvement_actions.length}`
     );
+
+    // Cache successful result (24-hour TTL)
+    await setCached(cacheKey, analysis, CACHE_CONFIG.durations.VERY_LONG);
+    console.log('[OpenAI Pro] Result cached for 24 hours');
 
     return analysis;
   } catch (error) {
