@@ -35,7 +35,7 @@ export interface AnalysisResult {
     }[];
     confidence_level?: string;
   } | null;
-  // Additional fields for 3D scoring
+  // Additional fields for scoring
   hybrid_score?: number;
   ai_status?: 'success' | 'fallback' | 'disabled' | 'error';
   local_scoring?: {
@@ -49,8 +49,8 @@ export interface AnalysisResult {
 }
 
 /**
- * API Response Type (from /api/analyze) - 3D Scoring Hybrid Mode
- * This matches the actual structure returned by the 3D scoring backend
+ * API Response Type (from /api/analyze) - PRO Scoring with backward-compatible 3D view
+ * The backend uses PRO scoring as the source of truth and derives 3D sections for compatibility.
  */
 export interface ApiAnalysisResponse {
   success: true;
@@ -77,6 +77,17 @@ export interface ApiAnalysisResponse {
   };
   estimatedImprovementTime?: number;
   targetScore?: number;
+  /** PRO scoring data (primary source of truth) */
+  proScore?: {
+    overallScore: number;
+    grade: string;
+    componentScores: {
+      contentQuality: { score: number };
+      atsCompatibility: { score: number };
+      formatStructure: { score: number };
+      impactMetrics: { score: number };
+    };
+  };
 }
 
 export interface ApiErrorResponse {

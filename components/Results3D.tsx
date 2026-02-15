@@ -42,13 +42,24 @@ interface Results3DProps {
     };
     estimatedImprovementTime?: number;
     targetScore?: number;
+    /** PRO scoring data (when available, used for enhanced display) */
+    proScore?: {
+      overallScore: number;
+      grade: string;
+      componentScores: {
+        contentQuality: { score: number };
+        atsCompatibility: { score: number };
+        formatStructure: { score: number };
+        impactMetrics: { score: number };
+      };
+    };
   };
 }
 
 export function Results3D({ result }: Results3DProps) {
   const [isChatOpen, setIsChatOpen] = useState(false);
 
-  const { overall_score, sections, summary, actionables, estimatedImprovementTime, targetScore } = result;
+  const { overall_score, sections, summary, actionables, estimatedImprovementTime, targetScore, proScore } = result;
 
   // Calculate percentage for each section
   const structurePercent = Math.round((sections.structure / 40) * 100);
@@ -91,11 +102,46 @@ export function Results3D({ result }: Results3DProps) {
       label: 'Overview',
       content: (
         <div className="space-y-6">
-          {/* 3D Score Breakdown */}
+          {/* PRO Score Breakdown (shown when PRO data is available) */}
+          {proScore && (
+            <div>
+              <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-blue-500" />
+                Resume Quality Breakdown
+                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                  {proScore.grade}
+                </span>
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  { label: 'Content Quality', score: proScore.componentScores.contentQuality.score, color: 'bg-green-500', desc: 'Achievement clarity and impact' },
+                  { label: 'ATS Readiness', score: proScore.componentScores.atsCompatibility.score, color: 'bg-blue-500', desc: 'ATS compatibility (general)' },
+                  { label: 'Format & Structure', score: proScore.componentScores.formatStructure.score, color: 'bg-indigo-500', desc: 'Layout and organization' },
+                  { label: 'Impact & Metrics', score: proScore.componentScores.impactMetrics.score, color: 'bg-amber-500', desc: 'Quantified achievements' },
+                ].map((dim) => (
+                  <div key={dim.label} className="p-4 bg-gray-50 rounded-lg border">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-medium text-gray-700 text-sm">{dim.label}</span>
+                      <span className="text-lg font-bold text-gray-900">{dim.score}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                      <div
+                        className={`${dim.color} h-2.5 rounded-full transition-all duration-500`}
+                        style={{ width: `${dim.score}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-600 mt-2">{dim.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 3D Score Breakdown (backward compatible view) */}
           <div>
             <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-blue-500" />
-              3D Score Breakdown
+              Score Breakdown
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Structure */}

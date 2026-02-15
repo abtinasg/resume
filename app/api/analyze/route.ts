@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { extractTextFromBase64PDF } from '@/lib/pdfParser';
 import { extractTextFromBase64Image } from '@/lib/imageParser';
-import { calculate3DScore } from '@/lib/scoring/algorithms';
+import { calculatePROScore } from '@/lib/scoring';
+import { derive3DRawFromPRO, scoringResultToPROInput } from '@/lib/scoring/derivedViews';
 import { build3DStrictAIPrompt } from '@/lib/prompts-pro';
 import { HYBRID_MODE, validateEnvironment } from '@/lib/env';
 import { verifyToken } from '@/lib/auth';
@@ -11,8 +12,8 @@ import { trackEvent } from '@/lib/analytics';
 import { checkUsageLimit, decrementUsage } from '@/lib/premium';
 import { recordResumeProgress } from '@/lib/progress';
 import OpenAI from 'openai';
+import type { ScoringResult } from '@/lib/scoring/types';
 import type {
-  ResumeScores,
   ActionableItem,
   AI3DAnalysisResponse,
   Hybrid3DScoringResult
@@ -70,6 +71,17 @@ interface SuccessResponse {
   };
   estimatedImprovementTime?: number;
   targetScore?: number;
+  /** PRO scoring data (primary source of truth) */
+  proScore?: {
+    overallScore: number;
+    grade: string;
+    componentScores: {
+      contentQuality: { score: number };
+      atsCompatibility: { score: number };
+      formatStructure: { score: number };
+      impactMetrics: { score: number };
+    };
+  };
 }
 
 interface ErrorResponse {
@@ -85,11 +97,22 @@ interface ErrorResponse {
 
 /**
  * Call OpenAI API for 3D Strict Scoring
+ * Uses PRO-derived 3D scores as the local reference for AI validation.
  */
 async function analyze3DWithAI(
   resumeText: string,
   jobRole: string,
-  localScores: ReturnType<typeof calculate3DScore>
+  localScores: {
+    structure: number;
+    content: number;
+    tailoring: number;
+    overall: number;
+    breakdown: {
+      structure: { sectionsFound: string[]; sectionsMissing: string[]; completenessPercentage: number };
+      content: { quantificationRatio: number; strongVerbPercentage: number; clarityScore: number; impactScore: number };
+      tailoring: { keywordMatchPercentage: number; missingKeywords: string[] };
+    };
+  }
 ): Promise<AI3DAnalysisResponse> {
   // Validate API key
   if (!process.env.OPENAI_API_KEY) {
@@ -103,7 +126,7 @@ async function analyze3DWithAI(
   // Build the strict prompt
   const prompt = build3DStrictAIPrompt(resumeText, jobRole, localScores);
 
-  console.log('[AI 3D] 🤖 Calling OpenAI with strict 3D prompt...');
+  console.log('[AI] 🤖 Calling OpenAI with strict 3D prompt...');
   const startTime = Date.now();
 
   try {
@@ -131,7 +154,7 @@ async function analyze3DWithAI(
       throw new Error('Empty response from OpenAI');
     }
 
-    console.log('[AI 3D] ✓ OpenAI response received:', {
+    console.log('[AI] ✓ OpenAI response received:', {
       processingTime: `${processingTime}ms`,
       model: completion.model,
       tokens: completion.usage?.total_tokens,
@@ -152,7 +175,7 @@ async function analyze3DWithAI(
       throw new Error('Invalid AI response format: missing required fields');
     }
 
-    console.log('[AI 3D] ✓ AI scores:', {
+    console.log('[AI] ✓ AI scores:', {
       structure: `${parsed.structure_score}/40`,
       content: `${parsed.content_score}/60`,
       tailoring: `${parsed.tailoring_score}/40`,
@@ -163,7 +186,7 @@ async function analyze3DWithAI(
     return parsed;
   } catch (error) {
     const processingTime = Date.now() - startTime;
-    console.error('[AI 3D] ✗ AI analysis failed:', {
+    console.error('[AI] ✗ AI analysis failed:', {
       error: error instanceof Error ? error.message : 'Unknown error',
       processingTime: `${processingTime}ms`,
     });
@@ -176,7 +199,13 @@ async function analyze3DWithAI(
  * Weighting: 50% local + 50% AI (balanced approach for 3D model)
  */
 function mergeHybrid3DScores(
-  localScores: ReturnType<typeof calculate3DScore>,
+  localScores: {
+    structure: number;
+    content: number;
+    tailoring: number;
+    overall: number;
+    breakdown: any;
+  },
   aiScores: AI3DAnalysisResponse
 ): Hybrid3DScoringResult {
   // Hybrid scores: 50% local + 50% AI
@@ -191,7 +220,7 @@ function mergeHybrid3DScores(
     (hybridTailoring / 40) * 0.3 * 100
   );
 
-  console.log('[HYBRID 3D] 🔄 Merging scores:', {
+  console.log('[HYBRID] 🔄 Merging scores:', {
     local: `S:${localScores.structure} C:${localScores.content} T:${localScores.tailoring} → ${localScores.overall}`,
     ai: `S:${aiScores.structure_score} C:${aiScores.content_score} T:${aiScores.tailoring_score} → ${aiScores.overall_score}`,
     hybrid: `S:${hybridStructure} C:${hybridContent} T:${hybridTailoring} → ${hybridOverall}`,
@@ -241,13 +270,13 @@ export async function POST(req: NextRequest) {
   const startTime = Date.now();
 
   try {
-    console.log('[API 3D] 🚀 Starting 3D Resume Scoring System - Hybrid Mode:', HYBRID_MODE ? 'ENABLED' : 'DISABLED');
+    console.log('[API] Starting PRO Resume Scoring System - Hybrid Mode:', HYBRID_MODE ? 'ENABLED' : 'DISABLED');
 
     // Validate environment if hybrid mode is enabled
     if (HYBRID_MODE) {
       const envValidation = validateEnvironment();
       if (!envValidation.valid) {
-        console.error('[API 3D] ✗ Environment validation failed:', envValidation.error);
+        console.error('[API] ✗ Environment validation failed:', envValidation.error);
         return NextResponse.json<ErrorResponse>(
           {
             success: false,
@@ -413,7 +442,7 @@ export async function POST(req: NextRequest) {
         }
 
         resumeText = extractionResult.text;
-        console.log('[API 3D] ✓ PDF extraction:', {
+        console.log('[API] ✓ PDF extraction:', {
           status: extractionResult.status,
           method: extractionResult.method,
           characters: extractionResult.characterCount,
@@ -447,7 +476,7 @@ export async function POST(req: NextRequest) {
           );
         }
       } catch (error) {
-        console.error('[API 3D] ✗ PDF extraction failed:', error);
+        console.error('[API] ✗ PDF extraction failed:', error);
         return NextResponse.json<ErrorResponse>(
           {
             success: false,
@@ -522,12 +551,12 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        console.log('[API 3D] ✓ Image extraction:', {
+        console.log('[API] ✓ Image extraction:', {
           status: extractionResult.status,
           characters: extractionResult.characterCount,
         });
       } catch (error) {
-        console.error('[API 3D] ✗ Image extraction failed:', error);
+        console.error('[API] ✗ Image extraction failed:', error);
         return NextResponse.json<ErrorResponse>(
           {
             success: false,
@@ -542,21 +571,44 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // STEP 1: Local 3D Scoring (always runs)
-    console.log('[API 3D] 📊 Step 1/2: Running local 3D scoring...');
+    // STEP 1: PRO Scoring → Derive 3D View (always runs)
+    console.log('[API] Step 1/2: Running PRO scoring...');
     const localStartTime = Date.now();
 
-    const localScores = calculate3DScore(
-      resumeText,
-      validatedInput.jobRole,
-      validatedInput.jobDescription
-    );
+    const proResult = await calculatePROScore(resumeText, validatedInput.jobRole);
+    const proInput = scoringResultToPROInput(proResult);
+    const derived3D = derive3DRawFromPRO(proInput);
+
+    // Build a 3D-compatible localScores object from PRO results for backward compatibility
+    const localScores = {
+      structure: derived3D.structure,
+      content: derived3D.content,
+      tailoring: derived3D.tailoring,
+      overall: derived3D.overall,
+      breakdown: {
+        structure: {
+          sectionsFound: (proResult.componentScores.formatStructure.breakdown as any)?.sectionOrder?.found || [],
+          sectionsMissing: (proResult.componentScores.formatStructure.breakdown as any)?.sectionOrder?.missing || [],
+          completenessPercentage: proResult.componentScores.formatStructure.score,
+        },
+        content: {
+          quantificationRatio: (proResult.componentScores.contentQuality.breakdown as any)?.achievementQuantification?.percentage || 0,
+          strongVerbPercentage: (proResult.componentScores.contentQuality.breakdown as any)?.actionVerbStrength?.strongPercentage || 0,
+          clarityScore: (proResult.componentScores.contentQuality.breakdown as any)?.clarityReadability?.score || 0,
+          impactScore: proResult.componentScores.impactMetrics.score,
+        },
+        tailoring: {
+          keywordMatchPercentage: (proResult.componentScores.atsCompatibility.breakdown as any)?.keywordDensity?.mustHaveMatch || 0,
+          missingKeywords: proResult.atsDetailedReport?.keywordGapAnalysis?.mustHave?.missing || [],
+        },
+      },
+    };
 
     const localProcessingTime = Date.now() - localStartTime;
-    console.log('[API 3D] ✓ Local 3D scoring completed:', {
-      structure: `${localScores.structure}/40`,
-      content: `${localScores.content}/60`,
-      tailoring: `${localScores.tailoring}/40`,
+    console.log('[API] PRO scoring completed:', {
+      proOverall: proResult.overallScore,
+      proGrade: proResult.grade,
+      derived3D: `S:${localScores.structure}/40 C:${localScores.content}/60 T:${localScores.tailoring}/40`,
       overall: `${localScores.overall}/100`,
       processingTime: `${localProcessingTime}ms`,
     });
@@ -565,14 +617,14 @@ export async function POST(req: NextRequest) {
 
     // STEP 2: AI 3D Scoring (if hybrid mode enabled)
     if (HYBRID_MODE) {
-      console.log('[API 3D] 🤖 Step 2/2: Running AI 3D strict scoring...');
+      console.log('[API] 🤖 Step 2/2: Running AI 3D strict scoring...');
       const aiStartTime = Date.now();
 
       try {
         const aiScores = await analyze3DWithAI(resumeText, validatedInput.jobRole, localScores);
         const aiProcessingTime = Date.now() - aiStartTime;
 
-        console.log('[API 3D] ✓ AI 3D scoring completed:', {
+        console.log('[API] ✓ AI 3D scoring completed:', {
           structure: `${aiScores.structure_score}/40`,
           content: `${aiScores.content_score}/60`,
           tailoring: `${aiScores.tailoring_score}/40`,
@@ -585,7 +637,7 @@ export async function POST(req: NextRequest) {
         finalResult = mergeHybrid3DScores(localScores, aiScores);
         finalResult.metadata.processingTime = Date.now() - startTime;
 
-        console.log('[API 3D] 🎯 Hybrid 3D merge completed - Final:', {
+        console.log('[API] 🎯 Hybrid 3D merge completed - Final:', {
           structure: `${finalResult.scores.structure}/40`,
           content: `${finalResult.scores.content}/60`,
           tailoring: `${finalResult.scores.tailoring}/40`,
@@ -594,7 +646,7 @@ export async function POST(req: NextRequest) {
         });
       } catch (aiError) {
         // GRACEFUL FALLBACK: Use local scores only
-        console.error('[API 3D] ⚠️ AI scoring failed - Falling back to local scores:', aiError);
+        console.error('[API] ⚠️ AI scoring failed - Falling back to local scores:', aiError);
 
         finalResult = {
           scores: {
@@ -620,11 +672,11 @@ export async function POST(req: NextRequest) {
           targetScore: Math.min(localScores.overall + 15, 85),
         };
 
-        console.log('[API 3D] 🔄 Fallback completed - Using local scores only');
+        console.log('[API] 🔄 Fallback completed - Using local scores only');
       }
     } else {
       // Local-only mode (hybrid disabled)
-      console.log('[API 3D] ⚠️ Hybrid mode disabled - Using local scores only');
+      console.log('[API] ⚠️ Hybrid mode disabled - Using local scores only');
 
       finalResult = {
         scores: {
@@ -667,10 +719,20 @@ export async function POST(req: NextRequest) {
       metadata: finalResult.metadata,
       estimatedImprovementTime: finalResult.estimatedImprovementTime,
       targetScore: finalResult.targetScore,
+      proScore: {
+        overallScore: proResult.overallScore,
+        grade: proResult.grade,
+        componentScores: {
+          contentQuality: { score: proResult.componentScores.contentQuality.score },
+          atsCompatibility: { score: proResult.componentScores.atsCompatibility.score },
+          formatStructure: { score: proResult.componentScores.formatStructure.score },
+          impactMetrics: { score: proResult.componentScores.impactMetrics.score },
+        },
+      },
     };
 
     const totalTime = Date.now() - startTime;
-    console.log('[API 3D] 🎉 Analysis completed successfully:', {
+    console.log('[API] 🎉 Analysis completed successfully:', {
       overall_score: response.overall_score,
       ai_status: response.ai_status,
       totalTime: `${totalTime}ms`,
@@ -727,22 +789,22 @@ export async function POST(req: NextRequest) {
         });
 
         // Note: recordResumeProgress uses models not in current schema, skipping
-        console.log('[API 3D] ✓ Resume saved to database for user:', authenticatedUser.email, 'resumeId:', createdResume.id);
+        console.log('[API] ✓ Resume saved to database for user:', authenticatedUser.email, 'resumeId:', createdResume.id);
 
         // Decrement usage count after successful analysis
         await decrementUsage(authenticatedUser.userId, 'resumeScan');
-        console.log('[API 3D] ✓ Usage limit decremented for user:', authenticatedUser.userId);
+        console.log('[API] ✓ Usage limit decremented for user:', authenticatedUser.userId);
       } else {
-        console.log('[API 3D] ℹ️ Analysis completed without authentication - resume not saved');
+        console.log('[API] ℹ️ Analysis completed without authentication - resume not saved');
       }
     } catch (dbError) {
       // Don't fail the request if database save fails
-      console.error('[API 3D] ⚠️ Failed to save resume to database:', dbError);
+      console.error('[API] ⚠️ Failed to save resume to database:', dbError);
     }
 
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
-    console.error('[API 3D] ✗ Unexpected error:', error);
+    console.error('[API] ✗ Unexpected error:', error);
     return NextResponse.json<ErrorResponse>(
       {
         success: false,
@@ -759,10 +821,20 @@ export async function POST(req: NextRequest) {
 }
 
 /**
- * Generate fallback actionables based on local scoring breakdown
+ * Generate fallback actionables based on PRO-derived scoring breakdown
  */
 function generateFallbackActionables(
-  localScores: ReturnType<typeof calculate3DScore>
+  localScores: {
+    structure: number;
+    content: number;
+    tailoring: number;
+    overall: number;
+    breakdown: {
+      structure: { sectionsFound: string[]; sectionsMissing: string[]; completenessPercentage: number };
+      content: { quantificationRatio: number; strongVerbPercentage: number; clarityScore: number; impactScore: number };
+      tailoring: { keywordMatchPercentage: number; missingKeywords: string[] };
+    };
+  }
 ): ActionableItem[] {
   const actionables: ActionableItem[] = [];
 

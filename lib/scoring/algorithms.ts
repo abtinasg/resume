@@ -821,15 +821,18 @@ export function calculateGrade(score: number): string {
   return 'F';
 }
 
-// ==================== 3D Scoring System - New Architecture ====================
+// ==================== 3D Scoring System - DEPRECATED ====================
 
 /**
- * Calculate 3D Resume Score (Structure + Content + Tailoring)
+ * @deprecated This function is replaced by PRO scoring (`calculatePROScore` in `lib/scoring/index.ts`).
+ * DO NOT USE in new code. Will be removed in a future version.
  *
- * This replaces the 4-component model with a simplified 3-axis approach:
- * - Structure (0-40): Completeness of sections (summary, experience, education, skills)
- * - Content (0-60): Clarity, metrics, action verbs, impact
- * - Tailoring (0-40): Match to job description (future feature, currently returns 0)
+ * Migration:
+ * - Use `calculatePROScore()` for resume quality scoring.
+ * - Use `derive3DRawFromPRO()` from `lib/scoring/derivedViews.ts` for backward-compatible 3D views.
+ * - For job-specific scoring, use Layer 6 (job fit).
+ *
+ * Calculate 3D Resume Score (Structure + Content + Tailoring)
  *
  * @param resumeText - The resume text to analyze
  * @param jobRole - Target job role (optional)
