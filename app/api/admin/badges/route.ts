@@ -15,12 +15,11 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Return empty badges list since Badge model is not in current schema
+  // Badge model is not in current schema
   return NextResponse.json({
-    badges: [],
-    total: 0,
+    error: 'Feature not implemented',
     message: 'Badge management feature is not yet available',
-  });
+  }, { status: 501 });
 }
 
 /**

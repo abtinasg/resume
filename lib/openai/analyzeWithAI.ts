@@ -11,7 +11,7 @@
  */
 
 import OpenAI from "openai";
-import type { ScoringResult } from "@/lib/scoring/types";
+import type { ScoringResult } from "@/lib/layers/layer1";
 
 // Initialize OpenAI client with API key from environment
 const openai = new OpenAI({

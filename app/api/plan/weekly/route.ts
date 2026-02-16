@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Layer2, Layer5 } from '@/lib/layers';
-import { 
+import { verifyAuth } from '@/lib/verifyAuth';
+import {
   createMockLayer4State,
   createMockLayer1Evaluation,
   createMockLayer4StateForLayer2
@@ -8,13 +9,24 @@ import {
 
 export async function POST(request: NextRequest) {
   try {
+    // Auth check
+    const auth = await verifyAuth(request);
+    if (!auth.isValid || !auth.userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { userId } = await request.json();
-    
+
     if (!userId) {
       return NextResponse.json(
         { error: 'Missing userId' },
         { status: 400 }
       );
+    }
+
+    // Verify user can only generate plans for themselves
+    if (userId !== auth.userId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
     // Mock Layer4 state (in production, get from Layer 4)

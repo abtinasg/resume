@@ -6,22 +6,22 @@
  */
 
 /**
- * HYBRID_MODE - Controls whether the AI layer is mandatory
+ * HYBRID_MODE - Controls whether the AI layer runs alongside local scoring
  *
- * - true (default): AI layer is mandatory - system will fail if AI is unavailable
- * - false: Local scoring only mode - AI layer is skipped (for testing/development)
+ * - false (default): Local scoring only - instant results (<5 seconds)
+ * - true: AI layer runs after local scoring (adds 30-60 seconds)
  *
  * When HYBRID_MODE is true:
  * - calculatePROScore() runs first (local scoring)
- * - analyzeWithAI() must run next (AI validation/refinement)
- * - If AI fails, the entire request fails with AI_UNAVAILABLE error
+ * - AI validation/refinement runs next
+ * - If AI fails, falls back to local scores
  *
  * When HYBRID_MODE is false:
  * - Only local scoring runs
  * - AI layer is completely skipped
- * - Useful for testing, development, or offline scenarios
+ * - Users get instant deterministic scores
  */
-export const HYBRID_MODE = process.env.HYBRID_MODE !== 'false'; // Default: true
+export const HYBRID_MODE = process.env.HYBRID_MODE === 'true'; // Default: false (instant scoring)
 
 /**
  * OpenAI API Configuration

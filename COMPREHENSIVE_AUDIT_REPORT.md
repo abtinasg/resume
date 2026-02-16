@@ -1,6 +1,6 @@
 # ResumeIQ Comprehensive Codebase Audit Report
 
-**Date:** 2026-02-15
+**Date:** 2026-02-15 (Updated: 2026-02-16)
 **Auditor:** Automated Deep Audit (Claude)
 **Scope:** Full codebase — 400+ TypeScript files, 8-layer architecture, 47 API endpoints
 **Purpose:** Pre-production audit for Netherlands startup visa application
@@ -11,19 +11,32 @@
 
 **Overall Status: SECURITY HARDENED — P1 FIXES REMAINING**
 
+**Update (2026-02-16):** P0 Batch 1 complete. 4 additional P0 issues fixed. P0 count: 7 → 3.
+
 **Update (2026-02-15):** 12 P0 issues have been fixed. P0 count reduced from 21 to 9.
 
 | Category | P0 (Critical) | P1 (Important) | P2 (Minor) |
 |----------|---------------|-----------------|-------------|
 | Security | 0 (was 5) | 8 | 10 |
 | Evidence-Anchored Compliance | 0 (was 3) | 2 | 0 |
-| Code Quality & Architecture | 1 | 6 | 6 |
-| API Completeness | 2 (was 3) | 5 | 2 |
-| Performance | 1 (was 3) | 3 | 4 |
+| Code Quality & Architecture | 0 (was 1) | 6 | 6 |
+| API Completeness | 0 (was 2) | 5 | 2 |
+| Performance | 0 (was 1) | 3 | 4 |
 | Testing | 0 (was 2) | 4 | 2 |
 | Documentation | 0 (was 1) | 3 | 1 |
 | Feature Completeness (8 Layers) | 3 | 3 | 4 |
-| **TOTAL** | **7** | **34** | **29** |
+| **TOTAL** | **3** | **34** | **29** |
+
+## P0 Batch 1 Complete (2026-02-16)
+
+4 quick P0 fixes completed:
+- CQ-1: Legacy scoring removed ✅ — `/lib/scoring/` deleted, all scoring consolidated into Layer 1 (`/lib/layers/layer1/pro-scoring/`)
+- API-1: Auth added to all endpoints ✅ — 12 unprotected endpoints now require authentication with user_id verification
+- API-2: Unimplemented endpoints return 501 ✅ — `/api/posts`, `/api/search`, `/api/admin/badges` GET now return 501
+- PERF-3: Hybrid mode disabled, instant scoring ✅ — `HYBRID_MODE` defaults to `false`, users get instant deterministic scores
+
+**Remaining P0: 3 (Layer 4/5 — separate batch)**
+**Status: Critical architectural cleanup done. Complex features remain.**
 
 **Fixed (2026-02-15):**
 1. ~~Legacy RewriteService allows content fabrication~~ — **FIXED:** All rewrite endpoints migrated to Layer 3
@@ -41,9 +54,8 @@
 
 **Remaining Risks:**
 1. **Layer 4 (State) critically incomplete** — breaks the learning/feedback loop (Layers 4→7)
-2. **Dual scoring systems coexist** — legacy PRO scoring and Layer 1 scoring both active
 
-**Recommendation:** Address remaining P0 issues and P1 items. Estimated remaining fix time: 1-2 weeks.
+**Recommendation:** Address remaining 3 P0 issues (Layer 4/5) and P1 items.
 
 ---
 

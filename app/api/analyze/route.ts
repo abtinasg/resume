@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { extractTextFromBase64PDF } from '@/lib/pdfParser';
 import { extractTextFromBase64Image } from '@/lib/imageParser';
-import { calculatePROScore } from '@/lib/scoring';
-import { derive3DRawFromPRO, scoringResultToPROInput } from '@/lib/scoring/derivedViews';
+import { calculatePROScore } from '@/lib/layers/layer1';
+import { derive3DRawFromPRO, scoringResultToPROInput } from '@/lib/layers/layer1';
 import { build3DStrictAIPrompt } from '@/lib/prompts-pro';
 import { HYBRID_MODE, validateEnvironment } from '@/lib/env';
 import { verifyToken } from '@/lib/auth';
@@ -12,12 +12,12 @@ import { trackEvent } from '@/lib/analytics';
 import { checkUsageLimit, decrementUsage } from '@/lib/premium';
 import { recordResumeProgress } from '@/lib/progress';
 import OpenAI from 'openai';
-import type { ScoringResult } from '@/lib/scoring/types';
+import type { ScoringResult } from '@/lib/layers/layer1';
 import type {
   ActionableItem,
   AI3DAnalysisResponse,
   Hybrid3DScoringResult
-} from '@/lib/scoring/types';
+} from '@/lib/layers/layer1';
 
 export const runtime = 'nodejs';
 

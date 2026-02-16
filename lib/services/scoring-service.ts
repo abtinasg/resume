@@ -1,5 +1,5 @@
-import { calculatePROScore } from '@/lib/scoring';
-import { ScoringResult } from '@/lib/scoring/types';
+import { calculatePROScore } from '@/lib/layers/layer1';
+import { ScoringResult } from '@/lib/layers/layer1';
 import { resumeService } from '@/lib/db/resume';
 import { userService } from '@/lib/db/user';
 import { eventLogger, EventType } from '@/lib/services/event-logger';
