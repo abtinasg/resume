@@ -25,11 +25,8 @@ jest.mock('@/lib/imageParser', () => ({
   extractTextFromBase64Image: jest.fn(),
 }));
 
-jest.mock('@/lib/scoring', () => ({
+jest.mock('@/lib/layers/layer1', () => ({
   calculatePROScore: jest.fn(),
-}));
-
-jest.mock('@/lib/scoring/derivedViews', () => ({
   derive3DRawFromPRO: jest.fn(),
   scoringResultToPROInput: jest.fn(),
 }));
@@ -81,8 +78,7 @@ jest.mock('openai', () => {
 });
 
 import { POST } from '@/app/api/analyze/route';
-import { calculatePROScore } from '@/lib/scoring';
-import { derive3DRawFromPRO, scoringResultToPROInput } from '@/lib/scoring/derivedViews';
+import { calculatePROScore, derive3DRawFromPRO, scoringResultToPROInput } from '@/lib/layers/layer1';
 
 const mockedCalculatePROScore = calculatePROScore as jest.MockedFunction<typeof calculatePROScore>;
 const mockedDerive3DRawFromPRO = derive3DRawFromPRO as jest.MockedFunction<typeof derive3DRawFromPRO>;

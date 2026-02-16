@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Layer8 } from '@/lib/layers';
+import { verifyAuth } from '@/lib/verifyAuth';
 
 export async function GET(request: NextRequest) {
   try {
+    // Auth check
+    const auth = await verifyAuth(request);
+    if (!auth.isValid || !auth.userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const { searchParams } = new URL(request.url);
     const topic = searchParams.get('topic');
 

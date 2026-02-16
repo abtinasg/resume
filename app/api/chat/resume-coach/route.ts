@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import OpenAI from 'openai';
+import { verifyAuth } from '@/lib/verifyAuth';
 
 export const runtime = 'nodejs';
 
@@ -49,6 +50,22 @@ export async function POST(req: NextRequest) {
   const startTime = Date.now();
 
   try {
+    // Auth check
+    const auth = await verifyAuth(req);
+    if (!auth.isValid || !auth.userId) {
+      return NextResponse.json<ChatErrorResponse>(
+        {
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required',
+          },
+          timestamp: new Date().toISOString(),
+        },
+        { status: 401 }
+      );
+    }
+
     console.log('[Chat AI Coach] 💬 New chat request received');
 
     // Validate OpenAI API key

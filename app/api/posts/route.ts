@@ -1,49 +1,62 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyAuth } from '@/lib/verifyAuth';
 
 export const runtime = 'nodejs';
 
 /**
- * Posts API - Feature not yet available (Post model not in schema)
+ * Posts API - Feature not yet implemented
  */
-export async function GET(_req: NextRequest) {
-  return NextResponse.json(
-    {
-      success: true,
-      data: {
-        items: [],
-        pagination: {
-          page: 1,
-          limit: 20,
-          total: 0,
-          totalPages: 1,
-        },
-      },
-      message: 'Posts feature not yet available',
-    },
-    { status: 200 }
-  );
-}
+export async function GET(req: NextRequest) {
+  // Auth check
+  const auth = await verifyAuth(req);
+  if (!auth.isValid || !auth.userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
-export async function POST(_req: NextRequest) {
   return NextResponse.json(
     {
       success: false,
       error: {
         code: 'NOT_IMPLEMENTED',
-        message: 'Posts feature not yet available',
+        message: 'Posts feature is not yet implemented',
       },
     },
     { status: 501 }
   );
 }
 
-export async function PUT(_req: NextRequest) {
+export async function POST(req: NextRequest) {
+  // Auth check
+  const auth = await verifyAuth(req);
+  if (!auth.isValid || !auth.userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   return NextResponse.json(
     {
       success: false,
       error: {
         code: 'NOT_IMPLEMENTED',
-        message: 'Posts feature not yet available',
+        message: 'Posts feature is not yet implemented',
+      },
+    },
+    { status: 501 }
+  );
+}
+
+export async function PUT(req: NextRequest) {
+  // Auth check
+  const auth = await verifyAuth(req);
+  if (!auth.isValid || !auth.userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  return NextResponse.json(
+    {
+      success: false,
+      error: {
+        code: 'NOT_IMPLEMENTED',
+        message: 'Posts feature is not yet implemented',
       },
     },
     { status: 501 }

@@ -13,7 +13,7 @@
  */
 
 import { extractWords, removeStopWords, normalizeText } from './analyzers';
-import { analyzeResumeWithAI } from '../openai';
+import { analyzeResumeWithAI } from '@/lib/openai';
 
 // ==================== Type Definitions ====================
 

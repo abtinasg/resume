@@ -1,8 +1,15 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { verifyAuth } from '@/lib/verifyAuth';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    // Auth check
+    const auth = await verifyAuth(req);
+    if (!auth.isValid || !auth.userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { message, analysis } = await req.json();
 
     // Validate inputs

@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Layer3 } from '@/lib/layers';
+import { verifyAuth } from '@/lib/verifyAuth';
 
 export async function POST(request: NextRequest) {
   try {
+    // Auth check
+    const auth = await verifyAuth(request);
+    if (!auth.isValid || !auth.userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { actionType, payload } = await request.json();
     
     if (!actionType) {

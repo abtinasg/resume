@@ -128,3 +128,23 @@ export { detectGaps, summarizeGaps, detectGenericGaps } from './modules/gap-dete
 
 // Recommendation
 export { getRecommendation, suggestAlternatives, estimatePotentialImprovement } from './modules/recommendation';
+
+// ==================== PRO Scoring (Single Source of Truth) ====================
+
+// Main scoring functions
+export { calculatePROScore, calculatePROPlusScore } from './pro-scoring';
+
+// PRO scoring types
+export type { ScoringResult, ComponentScore, ActionableItem, AI3DAnalysisResponse, Hybrid3DScoringResult } from './pro-scoring/types';
+export * from './pro-scoring/types';
+
+// Derived views (3D backward compatibility)
+export { derive3DFromPRO, derive3DRawFromPRO, scoringResultToPROInput } from './pro-scoring/derivedViews';
+export type { ThreeDView, ThreeDViewRaw, PROScoreInput, JobFitInput } from './pro-scoring/derivedViews';
+
+// PRO scoring sub-modules
+export * from './pro-scoring/keywords';
+export * from './pro-scoring/analyzers';
+export * from './pro-scoring/algorithms';
+export * from './pro-scoring/jd-optimizer';
+export * from './pro-scoring/logic-tuner';

@@ -428,7 +428,7 @@ export async function calculatePROPlusScore(
   const { getRoleWeights, applyAdaptiveWeights } = await import('./algorithms');
   const { analyzeJDMatch } = await import('./jd-optimizer');
   const { getActiveWeights } = await import('./logic-tuner');
-  const { generateResumeInsights, generateRoleInsights } = await import('../prompts-pro');
+  const { generateResumeInsights, generateRoleInsights } = await import('@/lib/prompts-pro');
 
   // Step 1: Get base scoring result
   const baseResult = await calculatePROScore(resumeText, jobRole);

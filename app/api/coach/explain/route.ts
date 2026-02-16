@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Layer8 } from '@/lib/layers';
+import { verifyAuth } from '@/lib/verifyAuth';
 import type { ExplanationType, Tone, CoachContext } from '@/lib/layers/layer8/types';
 
 // Validation constants - these should match the ExplanationType and Tone types
@@ -8,6 +9,12 @@ const VALID_TONES: Tone[] = ['professional', 'empathetic', 'encouraging', 'direc
 
 export async function POST(request: NextRequest) {
   try {
+    // Auth check
+    const auth = await verifyAuth(request);
+    if (!auth.isValid || !auth.userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { explanation_type, context_id, user_id, tone } = body;
 
@@ -16,6 +23,11 @@ export async function POST(request: NextRequest) {
         { error: 'Missing user_id' },
         { status: 400 }
       );
+    }
+
+    // Verify user can only access their own data
+    if (user_id !== auth.userId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     if (!explanation_type) {

@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Layer7 } from '@/lib/layers';
+import { verifyAuth } from '@/lib/verifyAuth';
 
 export async function GET(request: NextRequest) {
   try {
+    // Auth check
+    const auth = await verifyAuth(request);
+    if (!auth.isValid || !auth.userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const user_id = searchParams.get('user_id');
     const format = searchParams.get('format') || 'json';
@@ -14,6 +21,11 @@ export async function GET(request: NextRequest) {
         { error: 'Missing user_id' },
         { status: 400 }
       );
+    }
+
+    // Verify user can only export their own data
+    if (user_id !== auth.userId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Validate format

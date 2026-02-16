@@ -1,15 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Layer1, Layer2 } from '@/lib/layers';
+import { verifyAuth } from '@/lib/verifyAuth';
 
 export async function POST(request: NextRequest) {
   try {
+    // Auth check
+    const auth = await verifyAuth(request);
+    if (!auth.isValid || !auth.userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { resumeContent, userId } = await request.json();
-    
+
     if (!resumeContent || !userId) {
       return NextResponse.json(
         { error: 'Missing resumeContent or userId' },
         { status: 400 }
       );
+    }
+
+    // Verify user can only analyze for themselves
+    if (userId !== auth.userId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
     // Layer 1: Evaluate
