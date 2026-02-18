@@ -10,6 +10,11 @@ An AI-powered resume builder designed to help users create professional, tailore
 - **TypeScript Support**: Fully typed for better development experience
 - **Fast Performance**: Powered by Next.js 14 with React 18
 
+## Documentation
+
+### Business Documents
+- [Pitch Deck](docs/business/PITCH_DECK_v1.md) - Company pitch deck for advisors/investors
+
 ## Tech Stack
 
 - **Framework**: [Next.js 14](https://nextjs.org/)
