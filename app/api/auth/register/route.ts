@@ -7,11 +7,20 @@ import {
   validatePassword,
 } from '@/lib/auth';
 import { trackEvent } from '@/lib/analytics';
+import { rateLimiters, rateLimitExceededResponse } from '@/lib/rateLimit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
+  const rateLimitResult = await rateLimiters.register(request);
+  if (!rateLimitResult.success) {
+    return rateLimitExceededResponse(
+      rateLimitResult,
+      'Too many sign-up attempts. Please try again later.'
+    );
+  }
+
   try {
     const body = await request.json();
     const { email, password } = body;

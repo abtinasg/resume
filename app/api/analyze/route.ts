@@ -11,6 +11,7 @@ import prisma from '@/lib/prisma';
 import { trackEvent } from '@/lib/analytics';
 import { checkUsageLimit, decrementUsage } from '@/lib/premium';
 import { recordResumeProgress } from '@/lib/progress';
+import { rateLimiters, rateLimitExceededResponse } from '@/lib/rateLimit';
 import OpenAI from 'openai';
 import type { ScoringResult } from '@/lib/layers/layer1';
 import type {
@@ -22,13 +23,15 @@ import type {
 export const runtime = 'nodejs';
 
 const MAX_TEXT_LENGTH = 15000;
+// Largest accepted upload is a 10MB image; base64 adds ~33%, plus JSON overhead.
+const MAX_REQUEST_BYTES = 15 * 1024 * 1024;
 
 const ResumeAnalyzeSchema = z
   .object({
     resumeText: z.string().min(1, 'Resume content missing'),
     format: z.enum(['pdf', 'text', 'image']),
-    jobRole: z.string().optional().default('Software Engineer'),
-    jobDescription: z.string().optional(),
+    jobRole: z.string().max(100).optional().default('Software Engineer'),
+    jobDescription: z.string().max(20000).optional(),
   })
   .superRefine((data, ctx) => {
     if (data.format === 'text') {
@@ -293,6 +296,36 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Identify the caller before doing any expensive work
+    const tokenValue = req.cookies.get('token')?.value;
+    const authenticatedUser = tokenValue ? verifyToken(tokenValue) : null;
+
+    const rateLimitResult = authenticatedUser
+      ? await rateLimiters.analyzeUser(req, String(authenticatedUser.userId))
+      : await rateLimiters.analyzeAnonymous(req);
+    if (!rateLimitResult.success) {
+      return rateLimitExceededResponse(
+        rateLimitResult,
+        'Too many resume analyses. Please try again later.'
+      );
+    }
+
+    // Reject oversized bodies before reading them (10MB image as base64 + JSON overhead)
+    const contentLength = Number(req.headers.get('content-length') || 0);
+    if (contentLength > MAX_REQUEST_BYTES) {
+      return NextResponse.json<ErrorResponse>(
+        {
+          success: false,
+          error: {
+            code: 'FILE_TOO_LARGE',
+            message: 'Request body is too large',
+          },
+          timestamp: new Date().toISOString(),
+        },
+        { status: 413 }
+      );
+    }
+
     // Parse request body
     let body: unknown;
     try {
@@ -368,9 +401,6 @@ export async function POST(req: NextRequest) {
         );
       }
     }
-
-    const tokenValue = req.cookies.get('token')?.value;
-    const authenticatedUser = tokenValue ? verifyToken(tokenValue) : null;
 
     // Check usage limits for authenticated users
     if (authenticatedUser) {
@@ -615,8 +645,9 @@ export async function POST(req: NextRequest) {
 
     let finalResult: Hybrid3DScoringResult;
 
-    // STEP 2: AI 3D Scoring (if hybrid mode enabled)
-    if (HYBRID_MODE) {
+    // STEP 2: AI 3D Scoring (if hybrid mode enabled). Paid model calls are
+    // only made for signed-in users; anonymous uploads get local scoring.
+    if (HYBRID_MODE && authenticatedUser) {
       console.log('[API] 🤖 Step 2/2: Running AI 3D strict scoring...');
       const aiStartTime = Date.now();
 
@@ -706,7 +737,7 @@ export async function POST(req: NextRequest) {
     // Build success response
     const response: SuccessResponse = {
       success: true,
-      hybrid_mode: HYBRID_MODE,
+      hybrid_mode: HYBRID_MODE && Boolean(authenticatedUser),
       overall_score: finalResult.scores.overall,
       sections: {
         structure: finalResult.scores.structure,

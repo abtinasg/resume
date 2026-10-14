@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimiters, rateLimitExceededResponse } from '@/lib/rateLimit';
 import OpenAI from 'openai';
 import { verifyAuth } from '@/lib/verifyAuth';
+
+const MAX_MESSAGE_LENGTH = 1000;
+const MAX_ANALYSIS_LENGTH = 50000;
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,6 +12,11 @@ export async function POST(req: NextRequest) {
     const auth = await verifyAuth(req);
     if (!auth.isValid || !auth.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const rateLimitResult = await rateLimiters.ai(req, String(auth.userId));
+    if (!rateLimitResult.success) {
+      return rateLimitExceededResponse(rateLimitResult);
     }
 
     const { message, analysis } = await req.json();
@@ -20,10 +29,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (message.length > MAX_MESSAGE_LENGTH) {
+      return NextResponse.json(
+        { error: `Message must be ${MAX_MESSAGE_LENGTH} characters or fewer` },
+        { status: 400 }
+      );
+    }
+
     if (!analysis) {
       return NextResponse.json(
         { error: 'Analysis context is required' },
         { status: 400 }
+      );
+    }
+
+    const analysisJson = JSON.stringify(analysis, null, 2);
+    if (analysisJson.length > MAX_ANALYSIS_LENGTH) {
+      return NextResponse.json(
+        { error: 'Analysis context is too large' },
+        { status: 413 }
       );
     }
 
@@ -38,14 +62,13 @@ export async function POST(req: NextRequest) {
     // Initialize OpenAI client only when needed
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    // Build system prompt with analysis context
-    const prompt = `
+    // Instructions and analysis context go in the system message; the user's
+    // text is sent as its own message instead of being spliced into the prompt.
+    const systemPrompt = `
 You are Resume Coach AI — an expert resume mentor that helps users understand and improve their resumes.
 
 Here's the resume analysis summary:
-${JSON.stringify(analysis, null, 2)}
-
-The user says: "${message}"
+${analysisJson}
 
 Give a helpful, specific, and motivational answer that references their AI score, strengths, weaknesses, and missing elements. Use conversational tone, 2–3 short paragraphs.
 `;
@@ -55,8 +78,8 @@ Give a helpful, specific, and motivational answer that references their AI score
       temperature: 0.7,
       max_tokens: 300,
       messages: [
-        { role: 'system', content: 'You are Resume Coach AI, a helpful expert resume mentor.' },
-        { role: 'user', content: prompt },
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: message },
       ],
     });
 

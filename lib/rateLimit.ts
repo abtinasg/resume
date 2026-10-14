@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 interface RateLimitStore {
   [key: string]: {
@@ -7,11 +7,13 @@ interface RateLimitStore {
   };
 }
 
-// In-memory store (for production, use Redis or similar)
+// In-memory store, per server instance. On multi-instance or serverless hosting
+// each instance counts separately; a shared store (e.g. Redis) needs a hosting
+// decision (D-005) before it can replace this.
 const store: RateLimitStore = {};
 
 // Clean up old entries every 5 minutes
-setInterval(() => {
+const cleanup = setInterval(() => {
   const now = Date.now();
   Object.keys(store).forEach((key) => {
     if (store[key].resetTime < now) {
@@ -19,6 +21,8 @@ setInterval(() => {
     }
   });
 }, 5 * 60 * 1000);
+// Don't keep the process (or a test runner) alive just for cleanup.
+cleanup.unref?.();
 
 export interface RateLimitOptions {
   /**
@@ -30,7 +34,12 @@ export interface RateLimitOptions {
    */
   window: number | string;
   /**
-   * Custom identifier (defaults to IP address)
+   * Limiter name. Each limiter keeps its own budget, so e.g. login attempts
+   * and contact-form posts from one IP don't count against each other.
+   */
+  name?: string;
+  /**
+   * Custom identifier such as a user id or email (defaults to client IP)
    */
   identifier?: string;
 }
@@ -65,42 +74,31 @@ function parseTimeWindow(window: number | string): number {
 }
 
 /**
- * Get client IP address from request
+ * Get client IP address from request.
+ *
+ * Prefers the platform-provided address (`request.ip`, `x-real-ip`) over
+ * `x-forwarded-for`, whose first entry a client can set to anything when no
+ * trusted proxy overwrites it.
  */
-function getClientIp(request: NextRequest): string {
+export function getClientIp(request: NextRequest): string {
   return (
-    request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-    request.headers.get('x-real-ip') ||
     request.ip ||
+    request.headers.get('x-real-ip') ||
+    request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
     'unknown'
   );
 }
 
 /**
- * Rate limit a request
- *
- * @example
- * ```typescript
- * const result = await rateLimit(request, { limit: 5, window: '15m' });
- * if (!result.success) {
- *   return NextResponse.json(
- *     { error: 'Too many requests' },
- *     { status: 429, headers: {
- *       'X-RateLimit-Limit': result.limit.toString(),
- *       'X-RateLimit-Remaining': result.remaining.toString(),
- *       'X-RateLimit-Reset': new Date(result.reset).toISOString(),
- *     }}
- *   );
- * }
- * ```
+ * Count one request against `key` and report whether it is within `limit`.
+ * Use directly when there is no NextRequest (e.g. inside NextAuth callbacks).
  */
-export async function rateLimit(
-  request: NextRequest,
-  options: RateLimitOptions
-): Promise<RateLimitResult> {
-  const { limit, window, identifier } = options;
+export function consumeRateLimit(
+  key: string,
+  limit: number,
+  window: number | string
+): RateLimitResult {
   const windowMs = parseTimeWindow(window);
-  const key = identifier || `ratelimit:${getClientIp(request)}`;
   const now = Date.now();
 
   // Get or create rate limit entry
@@ -118,57 +116,121 @@ export async function rateLimit(
   // Increment count
   entry.count++;
 
-  const remaining = Math.max(0, limit - entry.count);
-  const success = entry.count <= limit;
-
   return {
-    success,
+    success: entry.count <= limit,
     limit,
-    remaining,
+    remaining: Math.max(0, limit - entry.count),
     reset: entry.resetTime,
   };
 }
 
 /**
- * Create a rate limiter for a specific endpoint
+ * Rate limit a request
  *
  * @example
  * ```typescript
- * const loginLimiter = createRateLimiter({ limit: 5, window: '15m' });
+ * const result = await rateLimit(request, { name: 'login', limit: 5, window: '15m' });
+ * if (!result.success) return rateLimitExceededResponse(result);
+ * ```
+ */
+export async function rateLimit(
+  request: NextRequest,
+  options: RateLimitOptions
+): Promise<RateLimitResult> {
+  const { limit, window, name = 'default', identifier } = options;
+  const key = `ratelimit:${name}:${identifier || getClientIp(request)}`;
+  return consumeRateLimit(key, limit, window);
+}
+
+/**
+ * Create a named rate limiter for a specific endpoint
+ *
+ * @example
+ * ```typescript
+ * const loginLimiter = createRateLimiter('login', { limit: 5, window: '15m' });
  *
  * export async function POST(request: NextRequest) {
  *   const result = await loginLimiter(request);
- *   if (!result.success) {
- *     return NextResponse.json({ error: 'Too many login attempts' }, { status: 429 });
- *   }
+ *   if (!result.success) return rateLimitExceededResponse(result);
  *   // ... rest of endpoint
  * }
  * ```
  */
-export function createRateLimiter(options: Omit<RateLimitOptions, 'identifier'>) {
+export function createRateLimiter(
+  name: string,
+  options: Omit<RateLimitOptions, 'identifier' | 'name'>
+) {
   return (request: NextRequest, identifier?: string) =>
-    rateLimit(request, { ...options, identifier });
+    rateLimit(request, { ...options, name, identifier });
+}
+
+/**
+ * Standard 429 response with rate-limit headers
+ */
+export function rateLimitExceededResponse(
+  result: RateLimitResult,
+  message = 'Too many requests. Please try again later.'
+) {
+  return NextResponse.json(
+    { success: false, error: message },
+    {
+      status: 429,
+      headers: {
+        'X-RateLimit-Limit': result.limit.toString(),
+        'X-RateLimit-Remaining': result.remaining.toString(),
+        'X-RateLimit-Reset': new Date(result.reset).toISOString(),
+        'Retry-After': Math.max(1, Math.ceil((result.reset - Date.now()) / 1000)).toString(),
+      },
+    }
+  );
 }
 
 // Pre-configured rate limiters for common use cases
 export const rateLimiters = {
   /**
-   * Strict rate limiter for authentication endpoints (5 requests per 15 minutes)
+   * Strict rate limiter for login (5 requests per 15 minutes per IP)
    */
-  auth: createRateLimiter({ limit: 5, window: '15m' }),
+  auth: createRateLimiter('auth', { limit: 5, window: '15m' }),
+
+  /**
+   * Account creation (5 per hour per IP)
+   */
+  register: createRateLimiter('register', { limit: 5, window: '1h' }),
 
   /**
    * Standard rate limiter for API endpoints (100 requests per 15 minutes)
    */
-  api: createRateLimiter({ limit: 100, window: '15m' }),
+  api: createRateLimiter('api', { limit: 100, window: '15m' }),
 
   /**
    * Generous rate limiter for public endpoints (300 requests per 15 minutes)
    */
-  public: createRateLimiter({ limit: 300, window: '15m' }),
+  public: createRateLimiter('public', { limit: 300, window: '15m' }),
 
   /**
    * Strict rate limiter for contact/email endpoints (3 requests per hour)
    */
-  contact: createRateLimiter({ limit: 3, window: '1h' }),
+  contact: createRateLimiter('contact', { limit: 3, window: '1h' }),
+
+  /**
+   * Resume analysis without an account (parsing + OCR are CPU-heavy): 10 per hour per IP
+   */
+  analyzeAnonymous: createRateLimiter('analyze-anon', { limit: 10, window: '1h' }),
+
+  /**
+   * Resume analysis for signed-in users: 30 per hour per user
+   */
+  analyzeUser: createRateLimiter('analyze-user', { limit: 30, window: '1h' }),
+
+  /**
+   * Routes that call a paid AI model: 30 per hour per user, shared across those routes
+   */
+  ai: createRateLimiter('ai', { limit: 30, window: '1h' }),
 };
+
+/**
+ * Credentials sign-in attempts per email (NextAuth path, no NextRequest available)
+ */
+export function consumeCredentialsAttempt(email: string): RateLimitResult {
+  return consumeRateLimit(`ratelimit:credentials:${email.trim().toLowerCase()}`, 5, '15m');
+}

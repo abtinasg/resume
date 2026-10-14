@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimiters, rateLimitExceededResponse } from '@/lib/rateLimit';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
 import { rewriteSection } from '@/lib/layers/layer3';
@@ -12,6 +13,11 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
+    }
+
+    const rateLimitResult = await rateLimiters.ai(request, String(session.user.id));
+    if (!rateLimitResult.success) {
+      return rateLimitExceededResponse(rateLimitResult);
     }
 
     const body = await request.json();
