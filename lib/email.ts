@@ -112,7 +112,8 @@ export class EmailService {
       return;
     }
 
-    console.info('[EmailService] Email provider not configured. Logging email instead.', options);
+    // Don't log recipients or bodies: they contain personal data.
+    console.info('[EmailService] Email provider not configured. Email not sent:', { subject: options.subject });
   }
 
   private buildWelcomeTemplate(name?: string) {

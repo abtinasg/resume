@@ -820,7 +820,7 @@ export async function POST(req: NextRequest) {
         });
 
         // Note: recordResumeProgress uses models not in current schema, skipping
-        console.log('[API] ✓ Resume saved to database for user:', authenticatedUser.email, 'resumeId:', createdResume.id);
+        console.log('[API] ✓ Resume saved to database for user:', authenticatedUser.userId, 'resumeId:', createdResume.id);
 
         // Decrement usage count after successful analysis
         await decrementUsage(authenticatedUser.userId, 'resumeScan');
