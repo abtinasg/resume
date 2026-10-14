@@ -37,8 +37,9 @@ jobs:
 
   calibration:
     # Uncalibrated scoring expectations (see docs/decisions/DECISION_LOG.md, D-014).
-    # Reported on every PR but not blocking until reference data exists.
-    name: Scoring calibration (non-blocking)
+    # Reported on every PR but not blocking until a human-rated reference set exists.
+    # This job always passes: a green CI run does NOT mean scoring is validated.
+    name: Scoring calibration (non-blocking, known failing expectations)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -55,9 +56,14 @@ jobs:
           npm run test:calibration > calibration.log 2>&1
           status=$?
           summary=$(grep -E '^Tests:' calibration.log | tail -1)
-          echo "### Scoring calibration (non-blocking)" >> "$GITHUB_STEP_SUMMARY"
-          echo "${summary:-no summary}" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### Scoring calibration (non-blocking, known failing expectations)"
+            echo "${summary:-no summary}"
+            echo
+            echo "This job always passes. A green CI run does **not** mean the score is validated (D-014)."
+            echo "The score is uncalibrated: it is not ATS-predictive and not a hiring probability."
+          } >> "$GITHUB_STEP_SUMMARY"
           if [ $status -ne 0 ]; then
-            echo "::warning title=Scoring calibration::${summary} (expected until D-014 is resolved)"
+            echo "::warning title=Scoring calibration (known failing, non-blocking)::${summary}. CI green is not scoring validation (D-014)."
           fi
           exit 0
