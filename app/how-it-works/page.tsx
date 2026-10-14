@@ -19,8 +19,6 @@ import {
   TrendingUp,
   MessageCircle,
   Award,
-  Shield,
-  Clock,
   Layers,
   Code,
 } from 'lucide-react';
@@ -45,16 +43,15 @@ export default function HowItWorksPage() {
     },
     {
       number: 2,
-      title: 'AI Analysis Engine',
+      title: 'Analysis Engine',
       description:
-        'Our hybrid AI system analyzes your resume using rule-based algorithms and GPT-4o to evaluate structure, content, and ATS compatibility.',
+        'Structured, rule-based checks review your resume for structure, content, and ATS compatibility, then turn the results into actionable suggestions.',
       icon: <Brain className="w-10 h-10" />,
       color: 'purple',
       features: [
-        'GPT-4o powered insights',
-        'Rule-based scoring (70%)',
-        'AI enhancement layer (30%)',
-        'Real-time processing in 6 minutes',
+        'Structured resume checks',
+        'Prioritized suggestions',
+        'Optional AI suggestions when signed in',
       ],
       gradient: 'from-purple-50 to-indigo-50',
       iconBg: 'from-purple-500 to-indigo-500',
@@ -99,7 +96,7 @@ export default function HowItWorksPage() {
       icon: <MessageCircle className="w-10 h-10" />,
       color: 'pink',
       features: [
-        'Unlimited chat sessions',
+        'Chat sessions when signed in',
         'Context-aware responses',
         'Industry-specific advice',
         'Real-time suggestions',
@@ -115,7 +112,7 @@ export default function HowItWorksPage() {
       icon: <TrendingUp className="w-10 h-10" />,
       color: 'teal',
       features: [
-        'Unlimited re-scans (Premium)',
+        'Re-scan after each edit',
         'Version comparison',
         'Progress tracking',
         'Achievement badges',
@@ -128,9 +125,9 @@ export default function HowItWorksPage() {
   const whyItWorks = [
     {
       icon: <Layers className="w-8 h-8" />,
-      title: 'Hybrid AI Approach',
+      title: 'Structured Checks',
       description:
-        'We combine rule-based algorithms (70%) with GPT-4o AI (30%) for the most accurate and consistent scoring.',
+        'Every resume goes through the same rule-based checks, so the same resume gets the same result.',
       color: 'indigo',
     },
     {
@@ -140,20 +137,6 @@ export default function HowItWorksPage() {
         'Our scoring system is fully transparent. See exactly how we calculate your score and what each metric means.',
       color: 'purple',
     },
-    {
-      icon: <Shield className="w-8 h-8" />,
-      title: 'Privacy First',
-      description:
-        'Your data is encrypted and never sold. Delete your resumes anytime. We take your privacy seriously.',
-      color: 'green',
-    },
-    {
-      icon: <Clock className="w-8 h-8" />,
-      title: 'Fast Results',
-      description:
-        'Get comprehensive analysis in 6 minutes. Our optimized pipeline ensures quick turnaround without sacrificing accuracy.',
-      color: 'amber',
-    },
   ];
 
   const benefits = [
@@ -161,24 +144,20 @@ export default function HowItWorksPage() {
       icon: <Target className="w-6 h-6" />,
       title: 'Beat ATS Systems',
       description:
-        'Our analysis includes ATS compatibility checks to ensure your resume gets past automated screening.',
-      stat: '95%',
-      statLabel: 'ATS Pass Rate',
+        'Our analysis includes ATS compatibility checks to help your resume get past automated screening.',
     },
     {
       icon: <TrendingUp className="w-6 h-6" />,
       title: 'Improve Your Score',
       description:
-        'Users who follow our recommendations see an average score improvement of 25+ points.',
-      stat: '+25',
-      statLabel: 'Average Improvement',
+        'Every analysis ends with prioritized fixes, so you know which change raises your score most.',
     },
     {
       icon: <Award className="w-6 h-6" />,
       title: 'Stand Out',
       description:
         'Earn achievement badges for resume milestones and showcase your dedication to quality.',
-      stat: '12',
+      stat: '10',
       statLabel: 'Unique Badges',
     },
   ];
@@ -222,12 +201,11 @@ export default function HowItWorksPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12"
+            className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12"
           >
             {[
-              { icon: <Clock className="w-8 h-8" />, value: '6 min', label: 'Average Analysis Time' },
-              { icon: <Brain className="w-8 h-8" />, value: 'GPT-4o', label: 'AI Technology' },
-              { icon: <CheckCircle2 className="w-8 h-8" />, value: '95%', label: 'User Satisfaction' },
+              { icon: <Layers className="w-8 h-8" />, value: '3', label: 'Scoring Dimensions' },
+              { icon: <Award className="w-8 h-8" />, value: '10', label: 'Achievement Badges' },
             ].map((metric, idx) => (
               <Card
                 key={idx}
@@ -397,12 +375,14 @@ export default function HowItWorksPage() {
                   </div>
                   <h3 className="text-xl font-bold text-gray-900 mb-3">{benefit.title}</h3>
                   <p className="text-gray-600 mb-6 leading-relaxed">{benefit.description}</p>
-                  <div className="mt-auto pt-4 border-t border-gray-200">
-                    <div className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-1">
-                      {benefit.stat}
+                  {benefit.stat && (
+                    <div className="mt-auto pt-4 border-t border-gray-200">
+                      <div className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-1">
+                        {benefit.stat}
+                      </div>
+                      <div className="text-sm text-gray-600">{benefit.statLabel}</div>
                     </div>
-                    <div className="text-sm text-gray-600">{benefit.statLabel}</div>
-                  </div>
+                  )}
                 </Card>
               </motion.div>
             ))}
@@ -443,8 +423,7 @@ export default function HowItWorksPage() {
             <Zap className="w-16 h-16 mx-auto mb-6" />
             <h2 className="text-4xl font-bold mb-4">Ready to Get Started?</h2>
             <p className="text-xl text-indigo-100 mb-8 max-w-2xl mx-auto">
-              Join thousands of job seekers who have improved their resumes with ResumeIQ.
-              Start with 3 free scans today!
+              Start with a free scan today.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button

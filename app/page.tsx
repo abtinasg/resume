@@ -12,7 +12,6 @@ import ChatBotPanel from '@/components/ChatBotPanel';
 import TrustBadges from '@/components/TrustBadges';
 import MobileCTA from '@/components/MobileCTA';
 import StickyHeader from '@/components/StickyHeader';
-import TestimonialsSection from '@/components/TestimonialsSection';
 import RegistrationModal from '@/components/RegistrationModal';
 import { useAuthStore } from '@/lib/store/authStore';
 import type { AnalysisResult } from '@/lib/types/analysis';
@@ -25,7 +24,6 @@ import {
   ShieldCheck,
   Target,
   Users,
-  LineChart,
   Compass,
 } from 'lucide-react';
 
@@ -196,30 +194,6 @@ export default function Home() {
                   </motion.div>
                 ))}
               </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                className="grid gap-4 sm:grid-cols-2 max-w-lg"
-              >
-                <div className="rounded-2xl border border-slate-200 bg-white/70 p-5 shadow-sm backdrop-blur">
-                  <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    <span>Interview invites</span>
-                    <span className="flex items-center gap-1 text-emerald-500">
-                      <LineChart className="h-3.5 w-3.5" />
-                      +38%
-                    </span>
-                  </div>
-                  <p className="mt-3 text-lg font-semibold text-slate-900">After two guided revisions</p>
-                  <p className="mt-2 text-sm text-slate-500">Based on anonymised cohort of 1,200 job seekers.</p>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-brand-indigo/10 via-white to-brand-teal/10 p-5 shadow-sm backdrop-blur">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Time to clarity</p>
-                  <p className="mt-3 text-3xl font-bold text-slate-900">6m 21s</p>
-                  <p className="mt-2 text-sm text-slate-500">Average time to get your full analysis and top 3 improvements.</p>
-                </div>
-              </motion.div>
             </div>
 
             <motion.div
@@ -232,7 +206,7 @@ export default function Home() {
               <div className="relative rounded-[34px] border border-white/40 bg-white/90 shadow-[0_40px_90px_-35px_rgba(45,55,72,0.45)] backdrop-blur-xl p-6 sm:p-8">
                 <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-900 px-6 py-5 text-slate-200">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Live Candidate</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Sample Candidate</p>
                     <p className="mt-2 text-xl font-semibold text-white">Product Marketing Lead</p>
                   </div>
                   <div className="rounded-full bg-emerald-100/90 px-3 py-1 text-xs font-semibold text-emerald-600">Match 92</div>
@@ -266,7 +240,7 @@ export default function Home() {
                       </div>
                       <div className="mt-4 flex items-center gap-2 text-xs text-slate-500">
                         <div className="h-2 w-2 rounded-full bg-emerald-400" />
-                        Calibrated with human reviewers
+                        Illustrative example
                       </div>
                     </div>
                   </div>
@@ -408,9 +382,6 @@ export default function Home() {
         {/* Demo Section */}
         <DemoSection />
 
-        {/* Testimonials Section */}
-        <TestimonialsSection />
-
         {/* About Section */}
         <AboutSection />
 
@@ -451,7 +422,7 @@ export default function Home() {
                 </h2>
 
                 <p className="text-xl text-indigo-100/80 max-w-2xl mx-auto leading-relaxed">
-                  Get your free resume analysis in 6 minutes
+                  Upload your resume and see prioritized suggestions
                 </p>
               </div>
 
@@ -481,18 +452,6 @@ export default function Home() {
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                     No credit card required
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                    Results in 6 minutes
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                    12,000+ professionals
                   </span>
                 </div>
               </div>
@@ -563,8 +522,6 @@ export default function Home() {
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-600">Powered by</span>
                   <span className="text-xs text-gray-500">Next.js</span>
-                  <span className="text-gray-700">•</span>
-                  <span className="text-xs text-gray-500">OpenAI</span>
                 </div>
               </div>
             </div>

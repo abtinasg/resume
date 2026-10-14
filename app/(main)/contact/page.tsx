@@ -242,7 +242,7 @@ export default function ContactPage() {
                   <div>
                     <h4 className="font-semibold text-gray-900 mb-1">Billing Questions</h4>
                     <p className="text-gray-600 text-sm">
-                      Questions about subscriptions, payments, or refunds? Get quick answers.
+                      Questions about plans and pricing? Get quick answers.
                     </p>
                   </div>
                 </li>
