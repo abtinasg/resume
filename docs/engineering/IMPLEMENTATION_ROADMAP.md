@@ -12,7 +12,7 @@ Can start as soon as D-003 (evolve vs. rewrite) is accepted. Everything here is 
 1. Fix the build (`lib/prompts-pro.ts` broken import) and the 67 type errors.
 2. Add CI: typecheck, lint, unit tests, `next build` on every PR. Protect `main`.
 3. Fix or re-baseline the 17 failing tests (decide: is the scorer wrong or the fixture?). Make AI-dependent tests run against a fake model instead of skipping.
-4. Fix the parser text-corruption bug and non-ASCII stripping; dedupe the PDF/OCR cleaners.
+4. Fix the parser text-corruption bug and non-ASCII stripping; dedupe the PDF/OCR cleaners. Harden file processing (replace `pdf-parse`, patch `pdfjs-dist`, size/page/time caps) per D-012 amendment.
 5. Close the cost/DoS hole: auth or strict per-IP limits on `/api/analyze` and chat routes, input size caps, shared-store rate limiting keyed by user and IP.
 6. Stop logging resume content and emails; untrack `.env`, ignore `.env*`.
 7. Remove unsupported marketing claims (D-011, pending Founder sign-off for any live deployment).
@@ -48,6 +48,22 @@ Requires D-001, D-008.
 ## Stage 3 — Expand only on evidence
 
 Candidates, each needing its own decision entry: application tracking with outcomes; next-best-action planning (Layer 5 planners on real state); billing (D-009); job sourcing (D-007); approval-gated external actions (D-008 revision); framework upgrade (D-012) if not done earlier.
+
+## Investor-readiness checklist (joint, per GPT-6 review)
+
+Staged; each item needs evidence, not a claim.
+
+1. Green CI and Stage 0 security fixes merged.
+2. Working demo of the Studio on real, consenting user inputs.
+3. Blind benchmark vs. a general assistant and a specialist tool; claim fidelity reported with eval-set size.
+4. User interviews and paid-pilot evidence (D-001 gates).
+5. Unit economics: model cost per completed verified application (incl. retries, verification, p95 latency).
+6. Investor memo, deck and data room that match verified behavior.
+7. Fundraising outreach only with founder approval.
+
+## Spend policy
+
+Stage 0: $0 new paid model spend. Tests and CI use fake models. Before the first real model call, Claude publishes a costed experiment (model, price at test date, call count, worst case, hard stop) for founder approval (D-006).
 
 ## Not planned
 
