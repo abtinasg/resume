@@ -3,7 +3,7 @@
 /**
  * Simplified PDF Parser for Resume Extraction
  *
- * Uses pdf-parse for cross-platform PDF text extraction, with caps on file
+ * Uses pdf.js for cross-platform PDF text extraction, with caps on file
  * size, pages read and parse time.
  * This is a pure JavaScript solution with no native dependencies.
  *
@@ -25,7 +25,7 @@ import { cleanExtractedText } from "@/lib/textCleanup";
  * Result type for both PDF and image text extraction.
  * 
  * Methods:
- * - 'pdf-parse': Used by extractTextFromBuffer for PDF files
+ * - 'pdfjs': Used by extractTextFromBuffer for PDF files
  * - 'ocr': Used by imageParser.ts for mobile camera captures
  * - 'fallback': Used when extraction fails
  */
@@ -33,7 +33,7 @@ export interface PDFExtractionResult {
   status: "success" | "partial" | "failed";
   message: string;
   text: string;
-  method: "pdf-parse" | "ocr" | "fallback";
+  method: "pdfjs" | "ocr" | "fallback";
   confidence?: number;
   characterCount: number;
 }
@@ -95,32 +95,68 @@ interface ParsedPdf {
 }
 
 /**
- * Parse the PDF once with pdf-parse and return both the page text and the
- * descriptive metadata (title, subject, ...), which is the fallback when a
- * PDF has no text layer.
+ * Read the page text and the descriptive metadata (title, subject, ...),
+ * which is the fallback when a PDF has no text layer.
+ *
+ * Uses the pdf.js legacy (CommonJS, Node 18+) build, the same pdf.js version
+ * react-pdf ships to the browser. `isEvalSupported: false` is the upstream
+ * mitigation for CVE-2024-4367 on pdf.js versions before 4.2.67.
  */
 async function parsePdf(pdfBuffer: Buffer): Promise<ParsedPdf> {
-  const pdfParse = (await import("pdf-parse")).default;
-  const data = await withTimeout(pdfParse(pdfBuffer, { max: MAX_PDF_PAGES }), PARSE_TIMEOUT_MS);
+  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.js");
+  const loadingTask = pdfjs.getDocument({
+    data: new Uint8Array(pdfBuffer),
+    isEvalSupported: false,
+    disableFontFace: true,
+    useSystemFonts: false,
+    verbosity: 0,
+  });
 
-  const metadataParts: string[] = [];
-  for (const source of [data.info, data.metadata]) {
-    if (!source || typeof source !== "object") continue;
-    for (const [key, value] of Object.entries(source)) {
-      if (
-        typeof value === "string" &&
-        value.trim().length > 0 &&
-        !SKIP_METADATA_KEYS.includes(key.toLowerCase())
-      ) {
-        metadataParts.push(value.trim());
-      }
-    }
+  try {
+    return await withTimeout(
+      (async () => {
+        const doc = await loadingTask.promise;
+        const pageCount = Math.min(doc.numPages, MAX_PDF_PAGES);
+
+        const pages: string[] = [];
+        for (let pageNumber = 1; pageNumber <= pageCount; pageNumber++) {
+          const page = await doc.getPage(pageNumber);
+          const content = await page.getTextContent();
+          let pageText = "";
+          for (const item of content.items) {
+            if ("str" in item) pageText += item.str + (item.hasEOL ? "\n" : "");
+          }
+          pages.push(pageText);
+          page.cleanup();
+        }
+
+        const metadata = await doc.getMetadata().catch(() => null);
+        const metadataParts: string[] = [];
+        const sources = [metadata?.info, metadata?.metadata?.getAll()];
+        for (const source of sources) {
+          if (!source || typeof source !== "object") continue;
+          for (const [key, value] of Object.entries(source)) {
+            if (
+              typeof value === "string" &&
+              value.trim().length > 0 &&
+              !SKIP_METADATA_KEYS.includes(key.toLowerCase())
+            ) {
+              metadataParts.push(value.trim());
+            }
+          }
+        }
+
+        return {
+          text: cleanExtractedText(pages.join("\n\n")),
+          metadataText: cleanExtractedText(metadataParts.join(" ")),
+        };
+      })(),
+      PARSE_TIMEOUT_MS
+    );
+  } finally {
+    // Also stops parsing that is still running after a timeout.
+    await loadingTask.destroy();
   }
-
-  return {
-    text: cleanExtractedText(data.text || ""),
-    metadataText: cleanExtractedText(metadataParts.join(" ")),
-  };
 }
 
 // ============================================================================
@@ -128,7 +164,7 @@ async function parsePdf(pdfBuffer: Buffer): Promise<ParsedPdf> {
 // ============================================================================
 
 /**
- * Main extraction function - uses pdf-parse only
+ * Main extraction function
  * Always resolves with a PDFExtractionResult (never throws)
  */
 export async function extractTextFromBuffer(
@@ -151,7 +187,7 @@ export async function extractTextFromBuffer(
       parsed = await parsePdf(pdfBuffer);
     } catch (error) {
       // Corrupt, encrypted or too slow to parse. Log the reason, never the content.
-      console.error("[PDF Parser] pdf-parse failed:", error instanceof Error ? error.message : error);
+      console.error("[PDF Parser] pdf.js failed:", error instanceof Error ? error.message : error);
       return failed("Unable to read this PDF. Please ensure it is not password-protected or damaged, or paste your resume text instead.");
     }
 
@@ -164,7 +200,7 @@ export async function extractTextFromBuffer(
     }
 
     const characterCount = finalText.length;
-    const finalMethod: PDFExtractionResult["method"] = characterCount > 0 ? "pdf-parse" : "fallback";
+    const finalMethod: PDFExtractionResult["method"] = characterCount > 0 ? "pdfjs" : "fallback";
 
     // ===== DETERMINE FINAL STATUS =====
     let status: PDFExtractionResult["status"];
