@@ -61,7 +61,9 @@ describe('cleanExtractedText', () => {
   });
 
   test('normalizes ligatures, odd spaces and invisible characters', () => {
-    expect(cleanExtractedText('Of\uFB01ce\u00A0Manager\u200B')).toBe('Office Manager');
+    expect(cleanExtractedText('Of\uFB01ce\u00A0Manager\u2060')).toBe('Office Manager');
+    // A zero-width space separates words, so it must not glue them together
+    expect(cleanExtractedText('Senior\u200BEngineer')).toBe('Senior Engineer');
     expect(cleanExtractedText('\uF0E0 jane@example.com')).toBe('jane@example.com');
   });
 
