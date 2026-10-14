@@ -47,10 +47,10 @@ Status · Owner · Escalation
 | D-008 | Agent autonomy boundary and fabrication bar | Jointly agreed · provisional bar | Claude + GPT-6 | Yes | 🔺 security |
 | D-009 | Billing provider and pricing | **Founder** · open | GPT-6 | Before launch | 🔺 third-party |
 | D-010 | Archive legacy documentation | Jointly agreed | Claude | No | |
-| D-011 | Remove unsupported marketing claims | Code removal agreed · redeploy founder | GPT-6 + Claude | Before any deploy | 🔺 production |
+| D-011 | Remove unsupported marketing claims | Code removal agreed, copy rules set · redeploy founder | GPT-6 + Claude | Before any deploy | 🔺 production |
 | D-012 | Framework upgrade (Next 14 → current) | Agreed with amendment | Claude | No | |
 | D-013 | Brand rename ResumeIQ → careerQ in code | Agreed · deferred | GPT-6 | No | |
-| D-014 | Scoring calibration ground truth | **For GPT-6 review** | GPT-6 + Claude | No (Stage 0) | |
+| D-014 | Scoring calibration ground truth | Jointly agreed (D now, C later) | GPT-6 + Claude | No (Stage 0) | |
 
 ---
 
@@ -184,6 +184,14 @@ Not final until the founder confirms whether live users or data exist and author
 
 **Final decision and rationale.** **Joint operating position:** no paid model calls in Stage 0. Development and CI use fake models. _Pending founder:_ approval of the first costed experiment, then a hard monthly cap. Claude agrees with GPT-6 that cost per verified application is the right unit.
 
+**Production gate for paid AI or public deployment** (GPT-6 on PR #185, 2026-10-14; Claude agrees). The Stage 0 rate limits are acceptable as interim branch stabilization but are **not production-safe**: the in-memory store is not shared across instances, and untrusted forwarded-IP headers can undermine per-IP checks. Before any paid AI call from a deployed app or any public deployment, all of the following must be in place:
+1. A shared, durable rate limiter (not per-process memory).
+2. A centralized hard monthly AI budget that stops paid calls when reached.
+3. Request and input size limits on every route that reaches a model or a parser.
+4. Verified, trusted client-IP provenance on the actual host (which proxy headers can be trusted there).
+
+These depend on the host and budget choices in D-005 and D-006. No spending or deployment is authorized by this entry.
+
 **Risks, reversibility, validation.** Gateway makes provider changes cheap. Validation: cost per completed workflow measured and under a target set with GPT-6's pricing model.
 
 ---
@@ -263,6 +271,14 @@ Code change jointly agreed · redeploy is founder-gated · Lead: GPT-6 + Claude 
 
 **Claude's position.** Remove or replace with verifiable copy in the next code change. If a live deployment exists, the Founder decides whether to redeploy. **GPT-6's position** (GPT-6 review comments on PR #183, 2026-10-14). Agrees to remove immediately from the code: unverifiable user counts, ratings, testimonials, trial/cohort claims, and misleading 'AI validated' wording. This is allowed on a Stage 0 branch. No redeploy until the founder confirms whether a live deployment exists and approves deployment. The investor narrative must not present the 8-layer agent as a working system or overstate 'no hallucinations'. **Decision.** **Joint operating decision:** remove the claims in Stage 0 code. Any redeploy is a founder decision.
 
+**Copy rules** (GPT-6 on PR #189, 2026-10-14; applied on that PR):
+1. No model brands and no "AI-validated" or ratio claims. Describe the product as "Review your resume with structured checks and actionable suggestions."
+2. No speed claims ("6 minutes", "6-min", "6m 21s"). Use "Upload your resume and see prioritized suggestions."
+3. No refund or absolute safety assurances ("14-Day Money Back", "100% Secure & Private").
+4. No competitor prices.
+5. Plan limits, premium features and CTAs must match working flows; anything unsupported is removed or labeled as coming soon.
+6. No new claim without evidence. `__tests__/marketing-claims.test.ts` fails CI if a banned claim reappears in public pages.
+
 ---
 
 ## D-012 Framework upgrade
@@ -284,7 +300,7 @@ Jointly agreed · deferred · Lead: GPT-6
 ---
 
 ## D-014 Scoring calibration ground truth
-**For GPT-6 review** · Lead: GPT-6 + Claude
+Jointly agreed · Lead: GPT-6 + Claude
 
 **Problem and context.** Stage 0 found 15 scoring-calibration tests that have never passed on any commit. Examples: a "strong mid-level PM" is expected to score 72–85 but gets 60, and a strong software-engineer resume matches only 3 of 16 must-have keywords. The expected ranges were written without labeled data, and some of them contradict each other (a LEAD-level candidate for a SENIOR role is expected to be "aligned"). Stage 0 PR 1 moved these tests into `*.calibration.test.ts` files. A non-blocking CI job reports them on every PR, so they stay visible but do not block merges.
 
@@ -300,10 +316,17 @@ Jointly agreed · deferred · Lead: GPT-6
   - must-have keyword lists are made of generic phrases, and matching misses plurals and compounds;
   - the "•" bullet character counts as non-ASCII and lowers signal quality.
 
-**GPT-6's position.** _Requested._ Decide whether a numeric resume score is part of the v1 value proposition, and if it is, who rates the reference set and how large it must be.
+**GPT-6's position** (GPT-6 on PR #184, 2026-10-14). Agrees with "D now, C later":
+- The numeric score is not the v1 promise. It must not be presented as calibrated, ATS-predictive, or a hiring probability.
+- Keep the 15 expectations in the non-blocking calibration job, clearly labeled as known failing, so green CI is not mistaken for scoring validation.
+- Do not rewrite expected numbers or tune weights toward guessed labels.
+- Build a human-rated reference set before the score is shown as a validated claim.
+- The Application Studio ship gate is claim fidelity plus usability tests.
+- The 4 skipped real-model tests and the calibration failures remain explicit release risks.
+- No investor or website claims of ATS pass rate, score accuracy, "AI-validated score" or interview uplift.
 
 **Claude's position.** D now, C later and only if the score is user-facing. In the meantime, fix clear matcher bugs as they are found, but do not tune weights toward guessed ranges.
 
-**Final decision and rationale.** _Pending._
+**Final decision and rationale.** **Joint operating decision: D now, C later.** The score is a secondary, uncalibrated heuristic in v1. The calibration job is named "non-blocking, known failing expectations" and its summary states that green CI is not scoring validation (PR #184). Clear matcher bugs may be fixed; weights are not tuned toward guessed ranges. A human-rated reference set (C) is required before the score is presented as validated anywhere.
 
 **Risks, reversibility, validation.** Fully reversible. The risk is that users see scores that are miscalibrated, so v1 copy should not present the score as precise.

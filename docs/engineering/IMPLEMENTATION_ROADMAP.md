@@ -20,6 +20,10 @@ Can start as soon as D-003 (evolve vs. rewrite) is accepted. Everything here is 
 
 **Exit gate:** green CI on `main`; the working journey (upload → score → results → save version) covered by an end-to-end test; no anonymous path to a paid model call.
 
+**Known release risks carried out of Stage 0** (D-014): the 15 scoring-calibration expectations still fail (reported by a non-blocking job, so green CI is not scoring validation), and 4 real-model tests are skipped.
+
+**Production gate** (D-006). Stage 0 rate limits are interim and not production-safe. Before paid AI calls from a deployed app or any public deployment: a shared durable rate limiter, a centralized hard monthly AI budget, request/input size limits, and verified trusted client-IP provenance on the actual host. Deployment itself needs the founder's approval.
+
 ## Stage 1 — Foundations for 2.0
 
 Requires D-002, D-004, D-005, D-006.
