@@ -3,7 +3,8 @@
 /**
  * Simplified PDF Parser for Resume Extraction
  *
- * Uses pdf-parse for reliable, cross-platform PDF text extraction.
+ * Uses pdf-parse for cross-platform PDF text extraction, with caps on file
+ * size, pages read and parse time.
  * This is a pure JavaScript solution with no native dependencies.
  *
  * Features:
@@ -13,6 +14,8 @@
  * - Comprehensive structured logging
  * - Performance timing
  */
+
+import { cleanExtractedText } from "@/lib/textCleanup";
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -42,44 +45,18 @@ export interface PDFExtractionResult {
 const MIN_SUCCESS_LENGTH = 50; // Minimum characters for success
 const MIN_PARTIAL_LENGTH = 15; // Minimum for partial success
 
+// Resource caps. A resume is a few pages; anything far beyond that is either
+// not a resume or an attempt to tie up the server.
+const MAX_PDF_BYTES = 5 * 1024 * 1024; // matches the upload limit in /api/analyze
+const MAX_PDF_PAGES = 10; // pages beyond this are not read
+const PARSE_TIMEOUT_MS = 15_000;
+
+// Info-dictionary keys that describe the file, not the resume
+const SKIP_METADATA_KEYS = ["producer", "creator", "creationdate", "moddate", "pdfformatversion"];
+
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
-
-/**
- * Clean extracted text by removing layout artifacts and excessive whitespace
- * Fixes common issues like broken spacing ("T R A V E L" → "TRAVEL")
- */
-function cleanExtractedText(text: string): string {
-  if (!text) return "";
-
-  let cleaned = text
-    // Remove invisible/non-printable characters (keep basic ASCII + newline/return/tab)
-    .replace(/[^\x20-\x7E\n\r\t]/g, " ")
-    // Normalize line breaks
-    .replace(/\r\n/g, "\n")
-    .replace(/\r/g, "\n")
-    // Remove excessive newlines (more than 2 consecutive)
-    .replace(/\n{3,}/g, "\n\n")
-    // Collapse multiple spaces but preserve single newlines
-    .replace(/ +/g, " ")
-    // Collapse spaces around newlines
-    .replace(/ *\n */g, "\n")
-    // Remove tabs
-    .replace(/\t+/g, " ")
-    .trim();
-
-  // Fix broken spacing between individual characters
-  // Pattern: single letter followed by space and another single letter
-  // Example: "T R A V E L" → "TRAVEL"
-  cleaned = cleaned.replace(/\b([A-Z])\s+(?=[A-Z]\b)/g, "$1");
-  cleaned = cleaned.replace(/\b([a-z])\s+(?=[a-z]\b)/g, "$1");
-
-  // Handle mixed case spaced letters
-  cleaned = cleaned.replace(/([A-Za-z])\s+(?=[A-Za-z]\s+[A-Za-z])/g, "$1");
-
-  return cleaned;
-}
 
 /**
  * Format time in milliseconds to human-readable string
@@ -89,89 +66,61 @@ function formatTime(ms: number): string {
   return `${(ms / 1000).toFixed(2)}s`;
 }
 
+/**
+ * A PDF starts with "%PDF-"; the spec lets it appear anywhere in the first 1KB.
+ */
+function looksLikePdf(buffer: Buffer): boolean {
+  return buffer.subarray(0, 1024).includes("%PDF-");
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`PDF parsing timed out after ${ms}ms`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+function failed(message: string): PDFExtractionResult {
+  return { status: "failed", message, text: "", method: "fallback", characterCount: 0 };
+}
+
 // ============================================================================
 // PDF-PARSE EXTRACTION
 // ============================================================================
 
-/**
- * Extract text from PDF buffer using pdf-parse
- * Pure JavaScript implementation - no native dependencies
- */
-async function extractWithPdfParse(pdfBuffer: Buffer): Promise<string> {
-  try {
-    const startTime = Date.now();
-
-    const pdfParse = (await import("pdf-parse")).default;
-    const data = await pdfParse(pdfBuffer);
-
-    const extractedText = data.text || "";
-    const cleanText = cleanExtractedText(extractedText);
-    const elapsed = Date.now() - startTime;
-
-    console.log(
-      `[PDF Parser] Extracted ${cleanText.length} chars via pdf-parse (${elapsed}ms)`
-    );
-
-    return cleanText;
-  } catch (error) {
-    console.error("[PDF Parser][pdf-parse] Extraction failed:", error);
-    return "";
-  }
+interface ParsedPdf {
+  text: string;
+  metadataText: string;
 }
 
 /**
- * Extract metadata from PDF as fallback
+ * Parse the PDF once with pdf-parse and return both the page text and the
+ * descriptive metadata (title, subject, ...), which is the fallback when a
+ * PDF has no text layer.
  */
-async function extractMetadata(pdfBuffer: Buffer): Promise<string> {
-  try {
-    const pdfParse = (await import("pdf-parse")).default;
-    const data = await pdfParse(pdfBuffer);
+async function parsePdf(pdfBuffer: Buffer): Promise<ParsedPdf> {
+  const pdfParse = (await import("pdf-parse")).default;
+  const data = await withTimeout(pdfParse(pdfBuffer, { max: MAX_PDF_PAGES }), PARSE_TIMEOUT_MS);
 
-    const parts: string[] = [];
-
-    // Extract from metadata
-    if (data.metadata) {
-      Object.entries(data.metadata).forEach(([key, value]) => {
-        if (typeof value === "string" && value.trim().length > 0) {
-          // Skip common non-content metadata
-          const skipKeys = [
-            "producer",
-            "creator",
-            "creationdate",
-            "moddate",
-            "pdfformatversion",
-          ];
-          if (!skipKeys.includes(key.toLowerCase())) {
-            parts.push(value.trim());
-          }
-        }
-      });
+  const metadataParts: string[] = [];
+  for (const source of [data.info, data.metadata]) {
+    if (!source || typeof source !== "object") continue;
+    for (const [key, value] of Object.entries(source)) {
+      if (
+        typeof value === "string" &&
+        value.trim().length > 0 &&
+        !SKIP_METADATA_KEYS.includes(key.toLowerCase())
+      ) {
+        metadataParts.push(value.trim());
+      }
     }
-
-    // Extract from info
-    if (data.info) {
-      Object.entries(data.info).forEach(([key, value]) => {
-        if (typeof value === "string" && value.trim().length > 0) {
-          const skipKeys = [
-            "producer",
-            "creator",
-            "creationdate",
-            "moddate",
-            "pdfformatversion",
-          ];
-          if (!skipKeys.includes(key.toLowerCase())) {
-            parts.push(value.trim());
-          }
-        }
-      });
-    }
-
-    const metadataText = parts.join(" ").trim();
-    return cleanExtractedText(metadataText);
-  } catch (error) {
-    console.error("[PDF Parser][metadata] Extraction failed:", error);
-    return "";
   }
+
+  return {
+    text: cleanExtractedText(data.text || ""),
+    metadataText: cleanExtractedText(metadataParts.join(" ")),
+  };
 }
 
 // ============================================================================
@@ -188,35 +137,34 @@ export async function extractTextFromBuffer(
   const overallStartTime = Date.now();
 
   try {
-    console.log("\n╔════════════════════════════════════════════════════════════╗");
-    console.log("║           PDF PARSER - EXTRACTION START                    ║");
-    console.log("╚════════════════════════════════════════════════════════════╝");
     console.log(`[PDF Parser] Buffer size: ${(pdfBuffer.length / 1024).toFixed(2)} KB`);
-    console.log(`[PDF Parser] Start time: ${new Date().toISOString()}\n`);
 
-    let finalText = "";
-    let finalMethod: PDFExtractionResult["method"] = "fallback";
-
-    // ===== PRIMARY: PDF-PARSE =====
-    const pdfParseText = await extractWithPdfParse(pdfBuffer);
-    if (pdfParseText.length > 0) {
-      finalText = pdfParseText;
-      finalMethod = "pdf-parse";
+    if (pdfBuffer.length > MAX_PDF_BYTES) {
+      return failed(`This PDF is larger than ${MAX_PDF_BYTES / (1024 * 1024)}MB. Please upload a smaller file or paste your resume text.`);
+    }
+    if (!looksLikePdf(pdfBuffer)) {
+      return failed("This file is not a valid PDF. Please upload a PDF or paste your resume text.");
     }
 
-    // ===== FALLBACK: METADATA (if text extraction failed) =====
-    if (finalText.length < MIN_SUCCESS_LENGTH) {
-      console.log(
-        `[PDF Parser] Text too short (${finalText.length} chars), trying metadata fallback...`
-      );
-      const metadataText = await extractMetadata(pdfBuffer);
-      if (metadataText.length > finalText.length) {
-        finalText = metadataText;
-        // Keep method as pdf-parse since metadata also uses it
-      }
+    let parsed: ParsedPdf;
+    try {
+      parsed = await parsePdf(pdfBuffer);
+    } catch (error) {
+      // Corrupt, encrypted or too slow to parse. Log the reason, never the content.
+      console.error("[PDF Parser] pdf-parse failed:", error instanceof Error ? error.message : error);
+      return failed("Unable to read this PDF. Please ensure it is not password-protected or damaged, or paste your resume text instead.");
+    }
+
+    let finalText = parsed.text;
+
+    // ===== FALLBACK: METADATA (if the PDF has little or no text layer) =====
+    if (finalText.length < MIN_SUCCESS_LENGTH && parsed.metadataText.length > finalText.length) {
+      console.log(`[PDF Parser] Text too short (${finalText.length} chars), using metadata`);
+      finalText = parsed.metadataText;
     }
 
     const characterCount = finalText.length;
+    const finalMethod: PDFExtractionResult["method"] = characterCount > 0 ? "pdf-parse" : "fallback";
 
     // ===== DETERMINE FINAL STATUS =====
     let status: PDFExtractionResult["status"];
@@ -239,17 +187,12 @@ export async function extractTextFromBuffer(
     // ===== FINAL LOGGING =====
     const totalTime = Date.now() - overallStartTime;
 
-    console.log("\n╔════════════════════════════════════════════════════════════╗");
-    console.log("║           PDF PARSER - EXTRACTION COMPLETE                 ║");
-    console.log("╚════════════════════════════════════════════════════════════╝");
     console.log(`[PDF Parser] Status: ${status.toUpperCase()}`);
     console.log(`[PDF Parser] Method: ${finalMethod}`);
     console.log(`[PDF Parser] Character count: ${characterCount}`);
     console.log(`[PDF Parser] Total time: ${formatTime(totalTime)}`);
 
     // Never log extracted text: a resume's first lines are name, email and phone.
-
-    console.log(`[PDF Parser] End time: ${new Date().toISOString()}\n`);
 
     return {
       status,
