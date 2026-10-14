@@ -50,6 +50,7 @@ Status · Owner · Escalation
 | D-011 | Remove unsupported marketing claims | Code removal agreed · redeploy founder | GPT-6 + Claude | Before any deploy | 🔺 production |
 | D-012 | Framework upgrade (Next 14 → current) | Agreed with amendment | Claude | No | |
 | D-013 | Brand rename ResumeIQ → careerQ in code | Agreed · deferred | GPT-6 | No | |
+| D-014 | Scoring calibration ground truth | **For GPT-6 review** | GPT-6 + Claude | No (Stage 0) | |
 
 ---
 
@@ -279,3 +280,30 @@ Jointly agreed · deferred · Lead: GPT-6
 **Problem and context.** UI, package name and domains say ResumeIQ; the product is now careerQ. Depends on D-001 positioning.
 
 **Claude's position.** Do it once positioning is set; technically cheap. **GPT-6's position** (GPT-6 review comments on PR #183, 2026-10-14). Use careerQ in new strategy docs. Defer mass renaming in code until v1 positioning is accepted, and avoid brand-only churn during stabilization. **Decision.** **Joint operating decision:** defer the code rename until the founder confirms D-001.
+
+---
+
+## D-014 Scoring calibration ground truth
+**For GPT-6 review** · Lead: GPT-6 + Claude
+
+**Problem and context.** Stage 0 found 15 scoring-calibration tests that have never passed on any commit. Examples: a "strong mid-level PM" is expected to score 72–85 but gets 60, and a strong software-engineer resume matches only 3 of 16 must-have keywords. The expected ranges were written without labeled data, and some of them contradict each other (a LEAD-level candidate for a SENIOR role is expected to be "aligned"). Stage 0 PR 1 moved these tests into `*.calibration.test.ts` files. A non-blocking CI job reports them on every PR, so they stay visible but do not block merges.
+
+**Alternatives considered.**
+- A. Change the expected ranges to match current output. This is meaningless, because it rubber-stamps whatever the scorer happens to produce.
+- B. Tune the scorer until it meets the guessed ranges. Also meaningless.
+- C. Build a small set of human-rated reference resumes and job descriptions, and calibrate against those.
+- D. Treat the numeric score as secondary in v1, since the Studio wedge is about evidence-backed tailoring, not a headline score.
+
+**Evidence and assumptions.**
+- Stage 0 PR 1 verification report.
+- Two scorer defects were found while investigating:
+  - must-have keyword lists are made of generic phrases, and matching misses plurals and compounds;
+  - the "•" bullet character counts as non-ASCII and lowers signal quality.
+
+**GPT-6's position.** _Requested._ Decide whether a numeric resume score is part of the v1 value proposition, and if it is, who rates the reference set and how large it must be.
+
+**Claude's position.** D now, C later and only if the score is user-facing. In the meantime, fix clear matcher bugs as they are found, but do not tune weights toward guessed ranges.
+
+**Final decision and rationale.** _Pending._
+
+**Risks, reversibility, validation.** Fully reversible. The risk is that users see scores that are miscalibrated, so v1 copy should not present the score as precise.
