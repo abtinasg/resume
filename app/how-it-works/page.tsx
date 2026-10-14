@@ -19,8 +19,6 @@ import {
   TrendingUp,
   MessageCircle,
   Award,
-  Shield,
-  Clock,
   Layers,
   Code,
 } from 'lucide-react';
@@ -45,16 +43,15 @@ export default function HowItWorksPage() {
     },
     {
       number: 2,
-      title: 'AI Analysis Engine',
+      title: 'Analysis Engine',
       description:
-        'Our hybrid AI system analyzes your resume using rule-based algorithms and GPT-4o to evaluate structure, content, and ATS compatibility.',
+        'Structured, rule-based checks review your resume for structure, content, and ATS compatibility, then turn the results into actionable suggestions.',
       icon: <Brain className="w-10 h-10" />,
       color: 'purple',
       features: [
-        'GPT-4o powered insights',
-        'Rule-based scoring (70%)',
-        'AI enhancement layer (30%)',
-        'Real-time processing in 6 minutes',
+        'Structured resume checks',
+        'Prioritized suggestions',
+        'Optional AI suggestions when signed in',
       ],
       gradient: 'from-purple-50 to-indigo-50',
       iconBg: 'from-purple-500 to-indigo-500',
@@ -99,7 +96,7 @@ export default function HowItWorksPage() {
       icon: <MessageCircle className="w-10 h-10" />,
       color: 'pink',
       features: [
-        'Unlimited chat sessions',
+        'Chat sessions when signed in',
         'Context-aware responses',
         'Industry-specific advice',
         'Real-time suggestions',
@@ -115,7 +112,7 @@ export default function HowItWorksPage() {
       icon: <TrendingUp className="w-10 h-10" />,
       color: 'teal',
       features: [
-        'Unlimited re-scans (Premium)',
+        'Re-scan after each edit',
         'Version comparison',
         'Progress tracking',
         'Achievement badges',
@@ -128,9 +125,9 @@ export default function HowItWorksPage() {
   const whyItWorks = [
     {
       icon: <Layers className="w-8 h-8" />,
-      title: 'Hybrid AI Approach',
+      title: 'Structured Checks',
       description:
-        'We combine rule-based algorithms (70%) with GPT-4o AI (30%) for the most accurate and consistent scoring.',
+        'Every resume goes through the same rule-based checks, so the same resume gets the same result.',
       color: 'indigo',
     },
     {
@@ -139,20 +136,6 @@ export default function HowItWorksPage() {
       description:
         'Our scoring system is fully transparent. See exactly how we calculate your score and what each metric means.',
       color: 'purple',
-    },
-    {
-      icon: <Shield className="w-8 h-8" />,
-      title: 'Privacy First',
-      description:
-        'Your data is encrypted and never sold. Delete your resumes anytime. We take your privacy seriously.',
-      color: 'green',
-    },
-    {
-      icon: <Clock className="w-8 h-8" />,
-      title: 'Fast Results',
-      description:
-        'Get comprehensive analysis in 6 minutes. Our optimized pipeline ensures quick turnaround without sacrificing accuracy.',
-      color: 'amber',
     },
   ];
 
@@ -221,8 +204,8 @@ export default function HowItWorksPage() {
             className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12"
           >
             {[
-              { icon: <Clock className="w-8 h-8" />, value: '6 min', label: 'Average Analysis Time' },
-              { icon: <Brain className="w-8 h-8" />, value: 'GPT-4o', label: 'AI Technology' },
+              { icon: <Layers className="w-8 h-8" />, value: '3', label: 'Scoring Dimensions' },
+              { icon: <Award className="w-8 h-8" />, value: '10', label: 'Achievement Badges' },
             ].map((metric, idx) => (
               <Card
                 key={idx}
@@ -440,7 +423,7 @@ export default function HowItWorksPage() {
             <Zap className="w-16 h-16 mx-auto mb-6" />
             <h2 className="text-4xl font-bold mb-4">Ready to Get Started?</h2>
             <p className="text-xl text-indigo-100 mb-8 max-w-2xl mx-auto">
-              Start with 3 free scans today!
+              Start with a free scan today.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button

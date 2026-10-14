@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { CreditCard, Lock, Clock } from 'lucide-react';
+import { CreditCard, Lock } from 'lucide-react';
 
 interface TrustBadgesProps {
   variant?: 'light' | 'dark';
@@ -17,10 +17,6 @@ export default function TrustBadges({ variant = 'light', className = '' }: Trust
     {
       icon: Lock,
       text: 'Private',
-    },
-    {
-      icon: Clock,
-      text: '6-min results',
     },
   ];
 

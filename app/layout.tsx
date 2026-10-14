@@ -8,7 +8,7 @@ import SessionProvider from "@/components/SessionProvider";
 
 export const metadata: Metadata = {
   title: "ResumeIQ - AI-Powered Resume Analysis & Optimization | Land Your Dream Job",
-  description: "Transform your resume with ResumeIQ's AI-powered intelligence. Get personalized insights, role-specific guidance, and data-driven recommendations in just 6 minutes. Free analysis, no credit card required.",
+  description: "Review your resume with structured checks and actionable suggestions. Free analysis, no credit card required.",
   keywords: [
     "resume analysis",
     "AI resume builder",
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "ResumeIQ - AI-Powered Resume Analysis & Optimization",
-    description: "Get personalized resume insights and data-driven recommendations in 6 minutes. Free analysis, no credit card required.",
+    description: "Review your resume with structured checks and actionable suggestions. Free analysis, no credit card required.",
     url: "https://resumeiq.com",
     siteName: "ResumeIQ",
     images: [
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "ResumeIQ - AI-Powered Resume Analysis",
-    description: "Transform your resume with intelligent AI insights. Free analysis in 6 minutes.",
+    description: "Review your resume with structured checks and actionable suggestions.",
     images: ["/twitter-image.png"],
     creator: "@resumeiq",
   },

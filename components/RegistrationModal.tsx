@@ -258,7 +258,7 @@ const RegistrationModal: React.FC<RegistrationModalProps> = ({ isOpen, onClose, 
                   >
                     <div className="flex items-center gap-2 text-xs text-gray-500">
                       <Lock className="w-3.5 h-3.5" strokeWidth={2} />
-                      <span>100% Free Forever</span>
+                      <span>Free to start</span>
                     </div>
                     <span className="hidden sm:inline text-gray-300">•</span>
                     <div className="flex items-center gap-2 text-xs text-gray-500">
