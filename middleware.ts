@@ -18,7 +18,7 @@ export async function middleware(request: NextRequest) {
 
   // API routes: only the cross-site request forgery check runs here
   if (pathname.startsWith('/api/')) {
-    const origin = checkSameOrigin(request.method, request.headers);
+    const origin = checkSameOrigin(request.method, request.headers, request.url);
     if (!origin.allowed) {
       return NextResponse.json(
         {

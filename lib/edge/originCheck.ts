@@ -3,8 +3,9 @@
  *
  * Browsers attach an Origin header to every POST, PUT, PATCH and DELETE request, and
  * a page on another site cannot forge it or add custom headers without a CORS
- * preflight, which these routes never grant. So a state-changing request is accepted
- * only when its Origin (or, failing that, its Referer) is this site.
+ * preflight. So a state-changing request is accepted only when its Origin (or,
+ * failing that, its Referer) is this site, compared as a full origin: scheme, host
+ * and port. An http:// page on our own host does not count as this site.
  *
  * Edge-compatible: no Node APIs.
  */
@@ -22,37 +23,44 @@ function originOf(value: string | null): string | null {
   }
 }
 
+const firstValue = (value: string | null) => value?.split(',')[0].trim().toLowerCase() || null;
+
 /**
- * Hosts this request may come from: the Host header the browser sent, the host a
- * reverse proxy forwarded, and any origins listed in ALLOWED_ORIGINS (comma-separated).
+ * Origins this request may come from: this site as the browser addressed it (the
+ * scheme a reverse proxy reports, else the request's own, with the Host or the
+ * proxy's X-Forwarded-Host), plus the configured app origins. Those are
+ * ALLOWED_ORIGIN, the same setting next.config.js sends as the CORS
+ * Access-Control-Allow-Origin, falling back to NEXTAUTH_URL as it does.
  */
-function allowedHosts(headers: Headers, extraOrigins: string | undefined): Set<string> {
-  const hosts = new Set<string>();
-  const host = headers.get('host');
-  if (host) hosts.add(host.toLowerCase());
-  const forwardedHost = headers.get('x-forwarded-host');
-  if (forwardedHost) hosts.add(forwardedHost.split(',')[0].trim().toLowerCase());
+function allowedOrigins(headers: Headers, requestUrl: string, extraOrigins: string | undefined): Set<string> {
+  const origins = new Set<string>();
+  const scheme = firstValue(headers.get('x-forwarded-proto')) ?? new URL(requestUrl).protocol.replace(':', '');
+  for (const host of [headers.get('host'), firstValue(headers.get('x-forwarded-host'))]) {
+    const origin = host ? originOf(`${scheme}://${host}`) : null;
+    if (origin) origins.add(origin);
+  }
   for (const entry of (extraOrigins ?? '').split(',')) {
     const origin = originOf(entry.trim());
-    if (origin) hosts.add(new URL(origin).host.toLowerCase());
+    if (origin) origins.add(origin);
   }
-  return hosts;
+  return origins;
 }
 
 export function checkSameOrigin(
   method: string,
   headers: Headers,
-  extraOrigins: string | undefined = process.env.ALLOWED_ORIGINS
+  requestUrl: string,
+  extraOrigins: string | undefined = process.env.ALLOWED_ORIGIN || process.env.NEXTAUTH_URL
 ): OriginCheckResult {
   if (SAFE_METHODS.has(method.toUpperCase())) return { allowed: true };
 
-  const hosts = allowedHosts(headers, extraOrigins);
+  const origins = allowedOrigins(headers, requestUrl, extraOrigins);
   const origin = headers.get('origin');
 
   if (origin !== null) {
     // "null" is sent by sandboxed frames and some redirects: never trusted
     const parsed = originOf(origin);
-    if (parsed && hosts.has(new URL(parsed).host.toLowerCase())) return { allowed: true };
+    if (parsed && origins.has(parsed)) return { allowed: true };
     return { allowed: false, reason: 'Cross-origin request blocked' };
   }
 
@@ -64,7 +72,7 @@ export function checkSameOrigin(
 
   const referer = originOf(headers.get('referer'));
   if (referer) {
-    if (hosts.has(new URL(referer).host.toLowerCase())) return { allowed: true };
+    if (origins.has(referer)) return { allowed: true };
     return { allowed: false, reason: 'Cross-origin request blocked' };
   }
 
