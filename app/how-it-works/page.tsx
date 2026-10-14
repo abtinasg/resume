@@ -161,24 +161,20 @@ export default function HowItWorksPage() {
       icon: <Target className="w-6 h-6" />,
       title: 'Beat ATS Systems',
       description:
-        'Our analysis includes ATS compatibility checks to ensure your resume gets past automated screening.',
-      stat: '95%',
-      statLabel: 'ATS Pass Rate',
+        'Our analysis includes ATS compatibility checks to help your resume get past automated screening.',
     },
     {
       icon: <TrendingUp className="w-6 h-6" />,
       title: 'Improve Your Score',
       description:
-        'Users who follow our recommendations see an average score improvement of 25+ points.',
-      stat: '+25',
-      statLabel: 'Average Improvement',
+        'Every analysis ends with prioritized fixes, so you know which change raises your score most.',
     },
     {
       icon: <Award className="w-6 h-6" />,
       title: 'Stand Out',
       description:
         'Earn achievement badges for resume milestones and showcase your dedication to quality.',
-      stat: '12',
+      stat: '10',
       statLabel: 'Unique Badges',
     },
   ];
@@ -222,12 +218,11 @@ export default function HowItWorksPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12"
+            className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12"
           >
             {[
               { icon: <Clock className="w-8 h-8" />, value: '6 min', label: 'Average Analysis Time' },
               { icon: <Brain className="w-8 h-8" />, value: 'GPT-4o', label: 'AI Technology' },
-              { icon: <CheckCircle2 className="w-8 h-8" />, value: '95%', label: 'User Satisfaction' },
             ].map((metric, idx) => (
               <Card
                 key={idx}
@@ -397,12 +392,14 @@ export default function HowItWorksPage() {
                   </div>
                   <h3 className="text-xl font-bold text-gray-900 mb-3">{benefit.title}</h3>
                   <p className="text-gray-600 mb-6 leading-relaxed">{benefit.description}</p>
-                  <div className="mt-auto pt-4 border-t border-gray-200">
-                    <div className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-1">
-                      {benefit.stat}
+                  {benefit.stat && (
+                    <div className="mt-auto pt-4 border-t border-gray-200">
+                      <div className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-1">
+                        {benefit.stat}
+                      </div>
+                      <div className="text-sm text-gray-600">{benefit.statLabel}</div>
                     </div>
-                    <div className="text-sm text-gray-600">{benefit.statLabel}</div>
-                  </div>
+                  )}
                 </Card>
               </motion.div>
             ))}
@@ -443,7 +440,6 @@ export default function HowItWorksPage() {
             <Zap className="w-16 h-16 mx-auto mb-6" />
             <h2 className="text-4xl font-bold mb-4">Ready to Get Started?</h2>
             <p className="text-xl text-indigo-100 mb-8 max-w-2xl mx-auto">
-              Join thousands of job seekers who have improved their resumes with ResumeIQ.
               Start with 3 free scans today!
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">

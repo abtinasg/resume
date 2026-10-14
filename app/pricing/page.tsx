@@ -20,7 +20,6 @@ import {
   ChevronDown,
   Star,
   Rocket,
-  Users,
   MessageCircle,
 } from 'lucide-react';
 
@@ -427,10 +426,8 @@ export default function PricingPage() {
       {/* Trust Indicators */}
       <section className="py-12 px-6 bg-gradient-to-r from-indigo-50 to-purple-50">
         <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-center">
             {[
-              { icon: <Users className="w-8 h-8" />, value: '10,000+', label: 'Happy Users' },
-              { icon: <Star className="w-8 h-8" />, value: '4.9/5', label: 'Average Rating' },
               { icon: <Shield className="w-8 h-8" />, value: '100%', label: 'Secure & Private' },
               { icon: <Rocket className="w-8 h-8" />, value: '14-Day', label: 'Money Back' },
             ].map((stat, idx) => (
@@ -540,7 +537,6 @@ export default function PricingPage() {
             <Sparkles className="w-16 h-16 mx-auto mb-6" />
             <h2 className="text-4xl font-bold mb-4">Ready to Land Your Dream Job?</h2>
             <p className="text-xl text-indigo-100 mb-8 max-w-2xl mx-auto">
-              Join thousands of job seekers who have improved their resumes with ResumeIQ.
               Start with 3 free scans today!
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">

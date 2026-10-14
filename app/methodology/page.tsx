@@ -21,7 +21,6 @@ import {
   Sparkles,
   ArrowRight,
   ChevronDown,
-  Shield,
   Brain,
   Layers,
 } from 'lucide-react';
@@ -291,12 +290,11 @@ export default function MethodologyPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12"
+            className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12"
           >
             {[
               { icon: <BarChart3 className="w-8 h-8" />, value: '3D', label: 'Scoring Dimensions' },
               { icon: <Brain className="w-8 h-8" />, value: 'GPT-4o', label: 'AI Model' },
-              { icon: <Shield className="w-8 h-8" />, value: '95%', label: 'Accuracy Rate' },
             ].map((metric, idx) => (
               <Card
                 key={idx}

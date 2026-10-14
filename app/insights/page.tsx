@@ -555,7 +555,7 @@ export default function InsightsPage() {
               </Button>
             </div>
             <p className="text-sm text-gray-500 mt-4">
-              Join 10,000+ professionals. Unsubscribe anytime.
+              Unsubscribe anytime.
             </p>
           </Card>
         </div>

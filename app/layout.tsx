@@ -8,7 +8,7 @@ import SessionProvider from "@/components/SessionProvider";
 
 export const metadata: Metadata = {
   title: "ResumeIQ - AI-Powered Resume Analysis & Optimization | Land Your Dream Job",
-  description: "Transform your resume with ResumeIQ's AI-powered intelligence. Get personalized insights, role-specific guidance, and data-driven recommendations in just 6 minutes. Trusted by thousands of professionals. Free analysis, no credit card required.",
+  description: "Transform your resume with ResumeIQ's AI-powered intelligence. Get personalized insights, role-specific guidance, and data-driven recommendations in just 6 minutes. Free analysis, no credit card required.",
   keywords: [
     "resume analysis",
     "AI resume builder",
