@@ -6,7 +6,8 @@ import { calculatePROScore } from '@/lib/layers/layer1';
 import { derive3DRawFromPRO, scoringResultToPROInput } from '@/lib/layers/layer1';
 import { build3DStrictAIPrompt } from '@/lib/prompts-pro';
 import { HYBRID_MODE, validateEnvironment } from '@/lib/env';
-import { verifyToken } from '@/lib/auth';
+import { verifyAuth } from '@/lib/verifyAuth';
+import { readJsonWithLimit } from '@/lib/requestBody';
 import prisma from '@/lib/prisma';
 import { trackEvent } from '@/lib/analytics';
 import { checkUsageLimit, decrementUsage } from '@/lib/premium';
@@ -296,23 +297,30 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Identify the caller before doing any expensive work
-    const tokenValue = req.cookies.get('token')?.value;
-    const authenticatedUser = tokenValue ? verifyToken(tokenValue) : null;
+    // Identify the caller before doing any expensive work (legacy JWT cookie or NextAuth session)
+    const auth = await verifyAuth(req);
+    const authenticatedUser =
+      auth.isValid && auth.userId ? { userId: auth.userId, email: auth.email } : null;
 
     const rateLimitResult = authenticatedUser
       ? await rateLimiters.analyzeUser(req, String(authenticatedUser.userId))
       : await rateLimiters.analyzeAnonymous(req);
     if (!rateLimitResult.success) {
-      return rateLimitExceededResponse(
-        rateLimitResult,
-        'Too many resume analyses. Please try again later.'
-      );
+      const message = 'Too many resume analyses. Please try again later.';
+      return rateLimitExceededResponse(rateLimitResult, message, {
+        success: false,
+        error: { code: 'RATE_LIMITED', message },
+        timestamp: new Date().toISOString(),
+      } satisfies ErrorResponse);
     }
 
-    // Reject oversized bodies before reading them (10MB image as base64 + JSON overhead)
+    // Reject oversized bodies (10MB image as base64 + JSON overhead). The declared
+    // length is checked first; the stream is also counted, since chunked
+    // requests carry no Content-Length.
     const contentLength = Number(req.headers.get('content-length') || 0);
-    if (contentLength > MAX_REQUEST_BYTES) {
+    const parsedBody =
+      contentLength > MAX_REQUEST_BYTES ? null : await readJsonWithLimit(req, MAX_REQUEST_BYTES);
+    if (!parsedBody || parsedBody.tooLarge) {
       return NextResponse.json<ErrorResponse>(
         {
           success: false,
@@ -326,11 +334,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Parse request body
-    let body: unknown;
-    try {
-      body = await req.json();
-    } catch {
+    if (!parsedBody.ok) {
       return NextResponse.json<ErrorResponse>(
         {
           success: false,
@@ -347,7 +351,7 @@ export async function POST(req: NextRequest) {
     // Validate input
     let validatedInput: ResumeAnalyzeInput;
     try {
-      validatedInput = ResumeAnalyzeSchema.parse(body);
+      validatedInput = ResumeAnalyzeSchema.parse(parsedBody.value);
     } catch (error) {
       if (error instanceof z.ZodError) {
         const firstIssue = error.issues[0];

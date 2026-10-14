@@ -40,6 +40,10 @@ jest.mock('@/lib/env', () => ({
   validateEnvironment: jest.fn().mockReturnValue({ valid: true }),
 }));
 
+jest.mock('@/lib/verifyAuth', () => ({
+  verifyAuth: jest.fn().mockResolvedValue({ isValid: false }),
+}));
+
 jest.mock('@/lib/auth', () => ({
   verifyToken: jest.fn(),
 }));
@@ -78,6 +82,7 @@ jest.mock('openai', () => {
 });
 
 import { POST } from '@/app/api/analyze/route';
+import { verifyAuth } from '@/lib/verifyAuth';
 import { calculatePROScore, derive3DRawFromPRO, scoringResultToPROInput } from '@/lib/layers/layer1';
 
 const mockedCalculatePROScore = calculatePROScore as jest.MockedFunction<typeof calculatePROScore>;
@@ -201,5 +206,38 @@ describe('POST /api/analyze', () => {
     expect(res.status).toBe(500);
     expect(json.success).toBe(false);
     expect(json.error.code).toBe('INTERNAL_ERROR');
+  });
+
+  describe('rate limiting', () => {
+    const invalidBody = { resumeText: '', format: 'text' };
+
+    it('returns a structured 429 once an anonymous IP passes its limit', async () => {
+      const headers = { 'x-real-ip': '198.51.100.20' };
+      for (let i = 0; i < 10; i++) {
+        const res = await POST(createMockRequest(invalidBody, { headers }));
+        expect(res.status).toBe(400);
+      }
+
+      const res = await POST(createMockRequest(invalidBody, { headers }));
+      const json = await res.json();
+
+      expect(res.status).toBe(429);
+      expect(json.success).toBe(false);
+      expect(json.error.code).toBe('RATE_LIMITED');
+      expect(json.error.message).toMatch(/Too many resume analyses/);
+    });
+
+    it('gives a NextAuth-session user the signed-in quota, not the anonymous one', async () => {
+      (verifyAuth as jest.Mock).mockResolvedValue({ isValid: true, userId: 'session-user-1' });
+      try {
+        const headers = { 'x-real-ip': '198.51.100.21' };
+        for (let i = 0; i < 11; i++) {
+          const res = await POST(createMockRequest(invalidBody, { headers }));
+          expect(res.status).toBe(400);
+        }
+      } finally {
+        (verifyAuth as jest.Mock).mockResolvedValue({ isValid: false });
+      }
+    });
   });
 });
