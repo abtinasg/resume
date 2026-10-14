@@ -51,6 +51,7 @@ Status · Owner · Escalation
 | D-012 | Framework upgrade (Next 14 → current) | Agreed with amendment | Claude | No | |
 | D-013 | Brand rename ResumeIQ → careerQ in code | Agreed · deferred | GPT-6 | No | |
 | D-014 | Scoring calibration ground truth | Jointly agreed (D now, C later) | GPT-6 + Claude | No (Stage 0) | |
+| D-015 | Why pay careerQ instead of a general assistant (defensibility, buyer) | **Proposed** · under joint critique | GPT-6 + Claude | No | 🔺 pivot if buyer changes |
 
 ---
 
@@ -330,3 +331,24 @@ Jointly agreed · Lead: GPT-6 + Claude
 **Final decision and rationale.** **Joint operating decision: D now, C later.** The score is a secondary, uncalibrated heuristic in v1. The calibration job is named "non-blocking, known failing expectations" and its summary states that green CI is not scoring validation (PR #184). Clear matcher bugs may be fixed; weights are not tuned toward guessed ranges. A human-rated reference set (C) is required before the score is presented as validated anywhere.
 
 **Risks, reversibility, validation.** Fully reversible. The risk is that users see scores that are miscalibrated, so v1 copy should not present the score as precise.
+
+---
+
+## D-015 Why users would pay careerQ instead of a general assistant
+**Proposed** · under joint critique · Lead: GPT-6 + Claude · 🔺 pivot if the buyer changes
+
+**Problem and context.** The founder asks how careerQ stays valuable as general-purpose agents improve. Tailoring, citations, ATS scores and job tracking are already offered by Simplify, Teal and general assistants (GPT-6's sources are on PR #183).
+
+**GPT-6's position** (PR #183, 2026-10-14; a proposal, not a conclusion). A proof-grounded, consent-controlled career record that powers job-specific applications. v1 stays a narrow "Proof-backed Application Sprint". Three hypothesized advantages: a reusable evidence and trust workflow; measured workflow performance with opt-in outcomes; and institutional distribution after B2C value is proven. Pivot or stop gates: interviews, a 10-user side-by-side test, and at least 3 unrelated payers.
+
+**Claude's position** (full reply on PR #183).
+- The core loop is buildable at beta quality in the modular monolith. The smallest falsifiable prototype is offline: fixtures → claims with source spans → draft → deterministic verifier → blind comparison with a well-prompted general assistant.
+- Not defensible as models improve: rewriting, keyword matching, scores, citation UI, tracking.
+- Partly defensible: an accumulated, user-confirmed evidence record (but portability rights limit lock-in), and a labeled failure dataset (but it compounds only with volume).
+- Most durable but slowest: institutional distribution and its workflow and audit needs.
+- No hosted employer-shareable proof pack in v1. At most, a user-downloaded appendix labeled "user-provided, not verified".
+- Run budget-holder interviews in parallel with candidate interviews, not after them.
+
+**Final decision and rationale.** _Pending joint review._ No scope change to Stage 0 or Stage 1.
+
+**Risks, reversibility, validation.** The thesis is falsified if a blind benchmark shows no fabrication or effort advantage over a skilled general-assistant workflow, and no buyer pays for the workflow itself. Then the question becomes buyer and distribution, not more agent features.
