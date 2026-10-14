@@ -10,6 +10,7 @@
  */
 
 import { describe, test, expect } from '@jest/globals';
+import type { SurfaceToolData } from '@/lib/layers/layer3/types';
 import {
   Layer1,
   Layer3,
@@ -458,9 +459,9 @@ describe('Layer 3 + Layer 1 Integration', () => {
     expect(plan.transformations.length).toBeGreaterThan(0);
 
     // Any tool surfacing should reference evidence
-    const toolSurfacing = plan.transformations.filter((t) => t.type === 'tool_surfacing');
+    const toolSurfacing = plan.transformations.filter((t) => t.type === 'surface_tool');
     toolSurfacing.forEach((t) => {
-      expect(t.evidence_ids).toBeDefined();
+      expect((t.data as SurfaceToolData).evidence_id).toBeDefined();
     });
   });
 });

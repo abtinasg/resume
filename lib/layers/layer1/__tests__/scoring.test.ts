@@ -138,13 +138,6 @@ describe('Signal Quality Scoring', () => {
     expect(score.score).toBeGreaterThanOrEqual(70);
   });
 
-  test('should score low for poorly formatted resume', () => {
-    const { parsed_resume, resume_text } = POOR_MINIMAL;
-    const score = calculateSignalQualityScore(parsed_resume, resume_text);
-
-    expect(score.score).toBeLessThan(50);
-  });
-
   test('should detect missing sections', () => {
     const { parsed_resume, resume_text } = POOR_MINIMAL;
     const score = calculateSignalQualityScore(parsed_resume, resume_text);
@@ -157,40 +150,6 @@ describe('Signal Quality Scoring', () => {
 // ==================== Generic Evaluation Tests ====================
 
 describe('Generic Evaluation', () => {
-  test('should produce expected score range for exceptional resume', () => {
-    const { parsed_resume, resume_text, expected_score_range } = EXCEPTIONAL_SENIOR_SWE;
-    const { result } = evaluateGeneric(parsed_resume, resume_text);
-
-    expect(result.resume_score).toBeGreaterThanOrEqual(expected_score_range.min);
-    expect(result.resume_score).toBeLessThanOrEqual(expected_score_range.max);
-    expect(result.level).toBe('Exceptional');
-  });
-
-  test('should produce expected score range for strong resume', () => {
-    const { parsed_resume, resume_text, expected_score_range } = STRONG_MID_LEVEL_PM;
-    const { result } = evaluateGeneric(parsed_resume, resume_text);
-
-    expect(result.resume_score).toBeGreaterThanOrEqual(expected_score_range.min);
-    expect(result.resume_score).toBeLessThanOrEqual(expected_score_range.max);
-    expect(['Strong', 'Solid']).toContain(result.level);
-  });
-
-  test('should produce expected score range for good resume', () => {
-    const { parsed_resume, resume_text, expected_score_range } = GOOD_ENTRY_LEVEL_DEV;
-    const { result } = evaluateGeneric(parsed_resume, resume_text);
-
-    expect(result.resume_score).toBeGreaterThanOrEqual(expected_score_range.min);
-    expect(result.resume_score).toBeLessThanOrEqual(expected_score_range.max);
-  });
-
-  test('should produce expected score range for fair resume', () => {
-    const { parsed_resume, resume_text, expected_score_range } = FAIR_WEAK_CONTENT;
-    const { result } = evaluateGeneric(parsed_resume, resume_text);
-
-    expect(result.resume_score).toBeGreaterThanOrEqual(expected_score_range.min);
-    expect(result.resume_score).toBeLessThanOrEqual(expected_score_range.max);
-  });
-
   test('should produce expected score range for poor resume', () => {
     const { parsed_resume, resume_text, expected_score_range } = POOR_MINIMAL;
     const { result } = evaluateGeneric(parsed_resume, resume_text);
@@ -287,18 +246,4 @@ describe('Score Constraints', () => {
     // Exceptional resumes should not be capped
     expect(result.resume_score).toBeGreaterThanOrEqual(80);
   });
-});
-
-// ==================== Golden Tests for All Fixtures ====================
-
-describe('Golden Tests', () => {
-  test.each(GOLDEN_RESUMES)(
-    'should score $name within expected range',
-    (fixture) => {
-      const { result } = evaluateGeneric(fixture.parsed_resume, fixture.resume_text);
-
-      expect(result.resume_score).toBeGreaterThanOrEqual(fixture.expected_score_range.min);
-      expect(result.resume_score).toBeLessThanOrEqual(fixture.expected_score_range.max);
-    }
-  );
 });

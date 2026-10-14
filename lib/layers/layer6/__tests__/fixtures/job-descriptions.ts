@@ -5,6 +5,14 @@
  * Contains realistic job descriptions for testing parsing, ranking, and comparison.
  */
 
+import type { JobPasteRequest, UserPreferences } from '../../types';
+
+/** Shape shared by every job fixture that test helpers consume. */
+export interface JobFixture {
+  job_description: string;
+  metadata: JobPasteRequest['metadata'];
+}
+
 // ==================== Test Job Descriptions ====================
 
 /**
@@ -462,8 +470,8 @@ University of California, Berkeley | 2019
 /**
  * User preferences for testing
  */
-export const TEST_USER_PREFERENCES = {
-  work_arrangement: ['remote', 'hybrid'] as const,
+export const TEST_USER_PREFERENCES: UserPreferences = {
+  work_arrangement: ['remote', 'hybrid'],
   locations: ['San Francisco', 'Remote'],
   salary_minimum: 100000,
   excluded_industries: ['gambling', 'tobacco'],

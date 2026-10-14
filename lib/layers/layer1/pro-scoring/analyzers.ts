@@ -152,7 +152,7 @@ export function isQuantified(text: string): boolean {
   if (hasNumber) {
     const contextWords = [
       'increased', 'decreased', 'reduced', 'improved', 'grew',
-      'scaled', 'users', 'customers', 'projects', 'teams',
+      'scaled', 'users', 'customers', 'projects', 'team',
       'revenue', 'sales', 'cost', 'time', 'performance',
     ];
     const lowerText = text.toLowerCase();

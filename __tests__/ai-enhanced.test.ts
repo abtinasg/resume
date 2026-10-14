@@ -7,7 +7,7 @@ jest.mock('openai', () => {
   return jest.fn().mockImplementation(() => ({
     chat: {
       completions: {
-        create: mockCreate,
+        create: (...args) => mockCreate(...args),
       },
     },
   }));
@@ -51,6 +51,7 @@ describe('analyzeWithAIEnhanced', () => {
           title: 'Add cloud tooling keywords',
           before: 'Missing mention of AWS cloud experience.',
           after: "Add: 'Integrated AWS Lambda to automate data pipelines, reducing processing time by 35%.'",
+          reasoning: 'Cloud keywords are missing for the target role.',
           priority: 'high',
         },
       ],

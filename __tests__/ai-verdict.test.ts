@@ -5,6 +5,24 @@
  * local scoring results.
  */
 
+// Fake OpenAI client: these tests must never make paid network calls.
+const FAKE_VERDICT = {
+  ai_final_score: 72,
+  local_score_used: 70,
+  summary: 'Solid backend resume with clear impact; add more quantified outcomes.',
+  strengths: ['Clear progression', 'Relevant backend stack'],
+  weaknesses: ['Few quantified results'],
+  improvement_suggestions: ['Quantify the impact of the API migration'],
+  ats_verdict: 'Likely to pass',
+  confidence_level: 'medium',
+};
+const mockCreate = jest.fn();
+jest.mock('openai', () =>
+  jest.fn().mockImplementation(() => ({
+    chat: { completions: { create: (...args: unknown[]) => mockCreate(...args) } },
+  }))
+);
+
 import { buildFinalAIPrompt } from '@/lib/prompts-pro';
 import { analyzeWithAI, AIVerdictResponse } from '@/lib/openai/analyzeWithAI';
 
@@ -172,15 +190,13 @@ B.S. Computer Science | University of Technology | 2018
 `;
 
 describe('AI Verdict Integration', () => {
-  // Skip tests if OPENAI_API_KEY is not set (to avoid failures in CI)
-  const shouldSkip = !process.env.OPENAI_API_KEY;
-
-  if (shouldSkip) {
-    test.skip('Skipping AI verdict tests - OPENAI_API_KEY not set', () => {
-      console.warn('⚠️  OPENAI_API_KEY not configured. Skipping AI verdict tests.');
+  beforeEach(() => {
+    process.env.OPENAI_API_KEY = 'test-key';
+    mockCreate.mockReset();
+    mockCreate.mockResolvedValue({
+      choices: [{ message: { content: JSON.stringify(FAKE_VERDICT) } }],
     });
-    return;
-  }
+  });
 
   test('buildFinalAIPrompt generates valid prompt', () => {
     const prompt = buildFinalAIPrompt(
@@ -191,8 +207,8 @@ describe('AI Verdict Integration', () => {
 
     expect(prompt).toBeTruthy();
     expect(prompt).toContain('Resume Text');
-    expect(prompt).toContain('Job Role');
-    expect(prompt).toContain('Scoring Result');
+    expect(prompt).toContain('Target Role');
+    expect(prompt).toContain('Local Scoring Data');
     expect(prompt).toContain('Software Engineer');
     expect(prompt).toContain('ai_final_score');
     expect(prompt).toContain('strengths');

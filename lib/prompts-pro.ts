@@ -5,7 +5,7 @@
  * that leverage the PRO scoring system for more accurate and detailed feedback.
  */
 
-import { ScoringResult } from './scoring/types';
+import { ScoringResult } from './layers/layer1/pro-scoring/types';
 
 /**
  * Generate enhanced resume analysis prompt that includes PRO scoring data
@@ -15,10 +15,10 @@ export function generatePROAnalysisPrompt(
   scoringResult: ScoringResult
 ): string {
   // Type-safe breakdown accessors
-  const contentQuality = scoringResult.componentScores.contentQuality.breakdown as import('./scoring/types').ContentQualityBreakdown;
-  const atsCompatibility = scoringResult.componentScores.atsCompatibility.breakdown as import('./scoring/types').ATSCompatibilityBreakdown;
-  const formatStructure = scoringResult.componentScores.formatStructure.breakdown as import('./scoring/types').FormatStructureBreakdown;
-  const impactMetrics = scoringResult.componentScores.impactMetrics.breakdown as import('./scoring/types').ImpactMetricsBreakdown;
+  const contentQuality = scoringResult.componentScores.contentQuality.breakdown as import('./layers/layer1/pro-scoring/types').ContentQualityBreakdown;
+  const atsCompatibility = scoringResult.componentScores.atsCompatibility.breakdown as import('./layers/layer1/pro-scoring/types').ATSCompatibilityBreakdown;
+  const formatStructure = scoringResult.componentScores.formatStructure.breakdown as import('./layers/layer1/pro-scoring/types').FormatStructureBreakdown;
+  const impactMetrics = scoringResult.componentScores.impactMetrics.breakdown as import('./layers/layer1/pro-scoring/types').ImpactMetricsBreakdown;
 
   return `You are an expert resume reviewer and career coach with deep knowledge of ATS systems,
 recruiting best practices, and modern hiring trends.
@@ -300,7 +300,7 @@ export function generateAIActionPrompt(
   scoringResult: ScoringResult
 ): string {
   // Type-safe breakdown accessors
-  const contentQuality = scoringResult.componentScores.contentQuality.breakdown as import('./scoring/types').ContentQualityBreakdown;
+  const contentQuality = scoringResult.componentScores.contentQuality.breakdown as import('./layers/layer1/pro-scoring/types').ContentQualityBreakdown;
 
   const bullets = resumeText
     .split('\n')
@@ -498,8 +498,8 @@ export function buildFinalAIPrompt(resumeText: string, jobRole: string, scoringR
   const impactScore = scoringResult.componentScores?.impactMetrics?.score || 0;
 
   // Type-safe breakdown accessors
-  const contentQuality = scoringResult.componentScores?.contentQuality?.breakdown as import('./scoring/types').ContentQualityBreakdown | undefined;
-  const atsCompatibility = scoringResult.componentScores?.atsCompatibility?.breakdown as import('./scoring/types').ATSCompatibilityBreakdown | undefined;
+  const contentQuality = scoringResult.componentScores?.contentQuality?.breakdown as import('./layers/layer1/pro-scoring/types').ContentQualityBreakdown | undefined;
+  const atsCompatibility = scoringResult.componentScores?.atsCompatibility?.breakdown as import('./layers/layer1/pro-scoring/types').ATSCompatibilityBreakdown | undefined;
 
   // Extract key metrics for context
   const quantificationPercentage = contentQuality?.achievementQuantification?.percentage || 0;
