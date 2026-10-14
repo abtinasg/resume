@@ -99,6 +99,7 @@ export async function generateImprovement(
     timeout = 30000,
   } = options;
 
+  const timer = createTimeoutPromise(timeout);
   try {
     const response = await Promise.race([
       client.chat.completions.create({
@@ -113,7 +114,7 @@ export async function generateImprovement(
         // The prompt must also ask for JSON output for this to work
         response_format: { type: 'json_object' },
       }),
-      createTimeoutPromise(timeout),
+      timer.promise,
     ]);
 
     // Handle timeout
@@ -167,16 +168,20 @@ export async function generateImprovement(
       ExecutionErrorCode.LLM_ERROR,
       error instanceof Error ? error : new Error(String(error))
     );
+  } finally {
+    timer.cancel();
   }
 }
 
 /**
- * Create timeout promise
+ * Create a timeout promise; cancel() clears the timer once the race is decided
  */
-function createTimeoutPromise(ms: number): Promise<'timeout'> {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve('timeout'), ms);
+function createTimeoutPromise(ms: number): { promise: Promise<'timeout'>; cancel: () => void } {
+  let handle: ReturnType<typeof setTimeout> | undefined;
+  const promise = new Promise<'timeout'>((resolve) => {
+    handle = setTimeout(() => resolve('timeout'), ms);
   });
+  return { promise, cancel: () => clearTimeout(handle) };
 }
 
 // ==================== Fallback Generation ====================
