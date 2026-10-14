@@ -98,8 +98,7 @@ interface ParsedPdf {
  * Read the page text and the descriptive metadata (title, subject, ...),
  * which is the fallback when a PDF has no text layer.
  *
- * Uses the pdf.js legacy (CommonJS, Node 18+) build, the same pdf.js version
- * react-pdf ships to the browser. `isEvalSupported: false` is the upstream
+ * Uses the pdf.js legacy (CommonJS, Node 18+) build. `isEvalSupported: false` is the upstream
  * mitigation for CVE-2024-4367 on pdf.js versions before 4.2.67.
  */
 async function parsePdf(pdfBuffer: Buffer): Promise<ParsedPdf> {
