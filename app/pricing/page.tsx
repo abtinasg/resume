@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import ComparisonTable from '@/components/ComparisonTable';
 import Card from '@/components/ui/card';
 import Button from '@/components/ui/button';
 import Badge from '@/components/ui/badge';
@@ -16,10 +15,8 @@ import {
   Zap,
   Target,
   TrendingUp,
-  Shield,
   ChevronDown,
   Star,
-  Rocket,
   MessageCircle,
 } from 'lucide-react';
 
@@ -32,6 +29,8 @@ interface PricingTier {
   highlighted?: boolean;
   cta: string;
   badge?: string;
+  /** Not purchasable yet: billing and paid entitlements are not built */
+  comingSoon?: boolean;
   gradient: string;
   buttonGradient: string;
 }
@@ -135,8 +134,8 @@ export default function PricingPage() {
       description: 'Perfect for trying out ResumeIQ',
       icon: <Target className="w-8 h-8" />,
       features: [
-        '3 resume scans per month',
-        'Basic AI analysis',
+        'Resume scans',
+        'Structured resume checks',
         'Structure & content scores',
         'ATS compatibility check',
         { text: 'Job description matching', available: false },
@@ -155,7 +154,7 @@ export default function PricingPage() {
       icon: <Sparkles className="w-8 h-8" />,
       features: [
         'Unlimited resume scans',
-        'Advanced AI analysis with GPT-4o',
+        'AI-assisted analysis',
         'Detailed score breakdown',
         'ATS optimization tips',
         'Job description matching',
@@ -165,9 +164,9 @@ export default function PricingPage() {
         { text: 'Priority email support', available: false },
         { text: 'Custom templates', available: false },
       ],
-      highlighted: true,
-      badge: 'Most Popular',
-      cta: 'Start Free Trial',
+      badge: 'Coming soon',
+      comingSoon: true,
+      cta: 'Coming soon',
       gradient: 'from-indigo-50 to-purple-50',
       buttonGradient: 'from-indigo-500 to-purple-600',
     },
@@ -188,8 +187,9 @@ export default function PricingPage() {
         'Monthly 1-on-1 consultation',
         'Resume version history',
       ],
-      badge: 'Best Value',
-      cta: 'Go Pro+',
+      badge: 'Coming soon',
+      comingSoon: true,
+      cta: 'Coming soon',
       gradient: 'from-amber-50 to-yellow-50',
       buttonGradient: 'from-amber-500 to-yellow-500',
     },
@@ -197,44 +197,19 @@ export default function PricingPage() {
 
   const faqs = [
     {
-      question: 'How does the free trial work?',
+      question: 'Is ResumeIQ free?',
       answer:
-        'Start with 3 free resume scans to experience our AI-powered analysis. No credit card required. Upgrade anytime to unlock unlimited scans and premium features.',
+        'Yes. Resume analysis is free while paid plans are being built. No credit card is required.',
     },
     {
-      question: 'Can I cancel my subscription anytime?',
+      question: 'When will Premium and Pro+ be available?',
       answer:
-        "Yes! You can cancel your subscription at any time from your account settings. You'll continue to have access until the end of your billing period.",
+        'Paid plans are not available yet. The features listed for them are planned and may change before launch.',
     },
     {
-      question: 'What payment methods do you accept?',
+      question: 'What happens to my resume?',
       answer:
-        'We accept all major credit cards (Visa, Mastercard, American Express, Discover) and PayPal. Payments are processed securely through Stripe.',
-    },
-    {
-      question: 'Is my resume data secure?',
-      answer:
-        'Absolutely. We use enterprise-grade encryption and never sell your data. Your resumes are stored securely and only used to provide analysis. You can delete your data anytime.',
-    },
-    {
-      question: 'What makes ResumeIQ better than competitors?',
-      answer:
-        "ResumeIQ combines rule-based analysis with GPT-4o AI for the most accurate scoring. We offer unique features like achievement badges, interactive resume coach, and transparent methodology. Plus, we're more affordable than Resume Worded ($29/mo) and Jobscan ($49/mo).",
-    },
-    {
-      question: 'Do you offer refunds?',
-      answer:
-        'Yes! We offer a 14-day money-back guarantee. If you\'re not satisfied with Premium or Pro+ within the first 14 days, contact us for a full refund.',
-    },
-    {
-      question: 'Can I upgrade or downgrade my plan?',
-      answer:
-        'Yes, you can change your plan at any time. When upgrading, you\'ll be charged a prorated amount. When downgrading, the change takes effect at your next billing cycle.',
-    },
-    {
-      question: 'What is included in the 1-on-1 consultation?',
-      answer:
-        'Pro+ members get a monthly 30-minute video consultation with our career experts to review your resume, discuss career strategies, and get personalized advice.',
+        'Your resume is used to produce your analysis. If you are signed in, the analysis is saved to your account so you can come back to it.',
     },
   ];
 
@@ -257,7 +232,7 @@ export default function PricingPage() {
           >
             <Badge className="mb-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-2 text-sm">
               <Sparkles className="w-4 h-4 inline mr-2" />
-              14-Day Money Back Guarantee
+              Free while paid plans are in development
             </Badge>
             <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
               Simple,{' '}
@@ -384,7 +359,7 @@ export default function PricingPage() {
                     variant="primary"
                     className={`w-full mb-6 bg-gradient-to-r ${tier.buttonGradient} text-white hover:scale-105`}
                     onClick={() => handleTierSelection(tier.name)}
-                    disabled={loadingTier !== null}
+                    disabled={tier.comingSoon || loadingTier !== null}
                   >
                     {loadingTier === tier.name ? 'Processing...' : tier.cta}
                   </Button>
@@ -420,54 +395,6 @@ export default function PricingPage() {
               </motion.div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* Trust Indicators */}
-      <section className="py-12 px-6 bg-gradient-to-r from-indigo-50 to-purple-50">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-center">
-            {[
-              { icon: <Shield className="w-8 h-8" />, value: '100%', label: 'Secure & Private' },
-              { icon: <Rocket className="w-8 h-8" />, value: '14-Day', label: 'Money Back' },
-            ].map((stat, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: idx * 0.1 }}
-                className="flex flex-col items-center gap-2"
-              >
-                <div className="text-indigo-600">{stat.icon}</div>
-                <div className="text-3xl font-bold text-gray-900">{stat.value}</div>
-                <div className="text-sm text-gray-600">{stat.label}</div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Competitor Comparison */}
-      <section className="py-16 px-6">
-        <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              How We Compare to Competitors
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              See why ResumeIQ offers more features at a better price than Resume Worded, Jobscan,
-              and Rezi.
-            </p>
-          </motion.div>
-
-          <ComparisonTable />
         </div>
       </section>
 
@@ -537,7 +464,7 @@ export default function PricingPage() {
             <Sparkles className="w-16 h-16 mx-auto mb-6" />
             <h2 className="text-4xl font-bold mb-4">Ready to Land Your Dream Job?</h2>
             <p className="text-xl text-indigo-100 mb-8 max-w-2xl mx-auto">
-              Start with 3 free scans today!
+              Start with a free scan today.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button

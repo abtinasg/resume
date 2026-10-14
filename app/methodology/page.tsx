@@ -38,7 +38,6 @@ export default function MethodologyPage() {
       range: '90-100',
       color: 'bg-green-500',
       label: 'Excellent',
-      atsPass: '95%',
       description: 'Outstanding resume ready for top companies',
     },
     {
@@ -46,7 +45,6 @@ export default function MethodologyPage() {
       range: '80-89',
       color: 'bg-green-400',
       label: 'Good',
-      atsPass: '80%',
       description: 'Strong resume with minor improvements needed',
     },
     {
@@ -54,7 +52,6 @@ export default function MethodologyPage() {
       range: '70-79',
       color: 'bg-yellow-500',
       label: 'Fair',
-      atsPass: '65%',
       description: 'Decent resume requiring moderate improvements',
     },
     {
@@ -62,7 +59,6 @@ export default function MethodologyPage() {
       range: '60-69',
       color: 'bg-orange-500',
       label: 'Needs Work',
-      atsPass: '40%',
       description: 'Resume needs significant improvements',
     },
     {
@@ -70,7 +66,6 @@ export default function MethodologyPage() {
       range: '0-59',
       color: 'bg-red-500',
       label: 'Poor',
-      atsPass: '15%',
       description: 'Major revision required',
     },
   ];
@@ -204,26 +199,23 @@ export default function MethodologyPage() {
     },
     {
       step: 3,
-      title: 'AI Enhancement Layer',
-      description: 'GPT-4o validates and enhances scoring with context understanding',
+      title: 'Optional AI Layer',
+      description: 'When enabled for signed-in users, an AI model reviews the analysis and adds written feedback',
       icon: <Brain className="w-6 h-6" />,
       details: [
-        'Validate local scores for accuracy',
         'Generate executive summary',
         'Create actionable improvement suggestions',
         'Provide bullet point rewrites',
-        'Estimate improvement timeframes',
       ],
     },
     {
       step: 4,
       title: 'Hybrid Score Calculation',
-      description: 'Combine local and AI scores for maximum accuracy',
+      description: 'Combine the rule-based score with the optional AI review',
       icon: <Layers className="w-6 h-6" />,
       details: [
-        'Weighted average: 70% local + 30% AI',
-        'Cross-validation between systems',
-        'Confidence scoring',
+        'Rule-based score only when the AI layer is off',
+        'Weighted with the AI review when it is on',
         'Final grade assignment (A+ to F)',
       ],
     },
@@ -290,11 +282,10 @@ export default function MethodologyPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12"
+            className="grid grid-cols-1 max-w-sm mx-auto gap-6 mt-12"
           >
             {[
               { icon: <BarChart3 className="w-8 h-8" />, value: '3D', label: 'Scoring Dimensions' },
-              { icon: <Brain className="w-8 h-8" />, value: 'GPT-4o', label: 'AI Model' },
             ].map((metric, idx) => (
               <Card
                 key={idx}
@@ -484,8 +475,8 @@ export default function MethodologyPage() {
               How Our Algorithm Works
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              A four-step process combining rule-based analysis with AI enhancement for
-              maximum accuracy and actionable insights.
+              A four-step process: rule-based analysis first, with an optional AI review
+              that adds written feedback.
             </p>
           </motion.div>
 
@@ -559,10 +550,11 @@ export default function MethodologyPage() {
             className="text-center mb-12"
           >
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Score Ranges & ATS Pass Rates
+              Score Ranges
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Understand what your score means and the likelihood of passing ATS systems.
+              Understand what your score means. Scores are a heuristic guide, not a prediction of
+              ATS or hiring outcomes.
             </p>
           </motion.div>
 
@@ -594,10 +586,6 @@ export default function MethodologyPage() {
                         </div>
                         <p className="text-gray-600">{range.description}</p>
                       </div>
-                    </div>
-                    <div className="text-center bg-gradient-to-br from-green-50 to-emerald-50 px-6 py-4 rounded-lg border-2 border-green-200">
-                      <div className="text-sm text-gray-600 mb-1">ATS Pass Rate</div>
-                      <div className="text-3xl font-bold text-green-600">{range.atsPass}</div>
                     </div>
                   </div>
                 </Card>
