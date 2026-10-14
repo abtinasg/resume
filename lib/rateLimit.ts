@@ -165,14 +165,16 @@ export function createRateLimiter(
 }
 
 /**
- * Standard 429 response with rate-limit headers
+ * Standard 429 response with rate-limit headers.
+ * Pass `body` for routes whose clients expect a different error shape.
  */
 export function rateLimitExceededResponse(
   result: RateLimitResult,
-  message = 'Too many requests. Please try again later.'
+  message = 'Too many requests. Please try again later.',
+  body?: Record<string, unknown>
 ) {
   return NextResponse.json(
-    { success: false, error: message },
+    body ?? { success: false, error: message },
     {
       status: 429,
       headers: {
