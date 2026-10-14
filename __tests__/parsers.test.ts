@@ -6,18 +6,26 @@ import { cleanExtractedText } from '@/lib/textCleanup';
 import { extractTextFromBuffer } from '@/lib/pdfParser';
 import { extractTextFromBase64Image } from '@/lib/imageParser';
 
-/** Build a minimal one-page PDF whose page shows each line of `lines`. */
-function makePdf(lines: string[]): Buffer {
-  const content = lines
-    .map((line, i) => `BT /F1 12 Tf 72 ${720 - i * 16} Td (${line.replace(/[()\\]/g, '\\$&')}) Tj ET`)
-    .join('\n');
+/** Build a minimal PDF; each entry of `pages` is the lines shown on one page. */
+function makePdf(pages: string[][]): Buffer {
   const objects = [
     '<< /Type /Catalog /Pages 2 0 R >>',
-    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
-    `<< /Length ${content.length} >>\nstream\n${content}\nendstream`,
+    '', // page tree, filled in below
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
   ];
+  const pageIds: number[] = [];
+  for (const lines of pages) {
+    const content = lines
+      .map((line, i) => `BT /F1 12 Tf 72 ${720 - i * 16} Td (${line.replace(/[()\\]/g, '\\$&')}) Tj ET`)
+      .join('\n');
+    objects.push(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`);
+    const contentId = objects.length;
+    objects.push(
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents ${contentId} 0 R /Resources << /Font << /F1 3 0 R >> >> >>`
+    );
+    pageIds.push(objects.length);
+  }
+  objects[1] = `<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(' ')}] /Count ${pageIds.length} >>`;
 
   let pdf = '%PDF-1.4\n';
   const offsets: number[] = [];
@@ -65,14 +73,24 @@ describe('cleanExtractedText', () => {
 describe('extractTextFromBuffer (PDF)', () => {
   test('extracts text from a valid PDF', async () => {
     const pdf = makePdf([
-      'Jane Doe, Senior Software Engineer',
-      'Led a team of 5 engineers to build a payments platform',
+      ['Jane Doe, Senior Software Engineer', 'Led a team of 5 engineers to build a payments platform'],
     ]);
     const result = await extractTextFromBuffer(pdf);
 
     expect(result.status).toBe('success');
-    expect(result.method).toBe('pdf-parse');
-    expect(result.text).toContain('Led a team of 5 engineers');
+    expect(result.method).toBe('pdfjs');
+    expect(result.text).toBe(
+      'Jane Doe, Senior Software Engineer\nLed a team of 5 engineers to build a payments platform'
+    );
+  });
+
+  test('reads at most 10 pages', async () => {
+    const pages = Array.from({ length: 12 }, (_, i) => [`Experience entry on page number ${i + 1} of the resume`]);
+    const result = await extractTextFromBuffer(makePdf(pages));
+
+    expect(result.status).toBe('success');
+    expect(result.text).toContain('page number 10 of');
+    expect(result.text).not.toContain('page number 11 of');
   });
 
   test('rejects data that is not a PDF without parsing it', async () => {
