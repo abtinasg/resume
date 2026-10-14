@@ -20,7 +20,7 @@ Can start as soon as D-003 (evolve vs. rewrite) is accepted. Everything here is 
 
 **Exit gate:** green CI on `main`; the working journey (upload → score → results → save version) covered by an end-to-end test; no anonymous path to a paid model call.
 
-**Open security item: CSRF is not enforced** (found by GPT-6 on PR #190). `middleware.ts` only issues a `_csrf_token` cookie; nothing verifies it, and the middleware does not run on `/api`. The only protection today is `SameSite=Lax` on the session cookies, which is defense in depth, not a control. A follow-up PR will add and test Origin/Referer enforcement on state-changing API requests for both NextAuth and custom-JWT routes. The app must not be described as CSRF-protected until then. This blocks any public launch.
+**Open security item: CSRF is not enforced** (found by GPT-6 on PR #190). `middleware.ts` only issues a `_csrf_token` cookie; nothing verifies it, and the middleware does not run on `/api`. The only protection today is `SameSite=Lax` on the session cookies, which is defense in depth, not a control. The fix is in review as PR #191: Origin/Referer enforcement on state-changing API requests for both NextAuth and custom-JWT routes. The app must not be described as CSRF-protected until it merges. This blocks any public launch.
 
 **Critical path:** see [`CRITICAL_PATH.md`](CRITICAL_PATH.md) for dependencies from Stage 0 to the first Studio demo and the private beta, including founder-blocked steps.
 
