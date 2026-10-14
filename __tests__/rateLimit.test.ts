@@ -99,4 +99,14 @@ describe('rateLimitExceededResponse', () => {
     expect(Number(res.headers.get('Retry-After'))).toBeGreaterThan(0);
     expect(await res.json()).toEqual({ success: false, error: 'slow down' });
   });
+
+  test('uses a route-specific body when given', async () => {
+    const res = rateLimitExceededResponse(
+      { success: false, limit: 5, remaining: 0, reset: Date.now() + 30_000 },
+      'slow down',
+      { success: false, error: { code: 'RATE_LIMITED', message: 'slow down' } }
+    );
+    expect(res.status).toBe(429);
+    expect(await res.json()).toEqual({ success: false, error: { code: 'RATE_LIMITED', message: 'slow down' } });
+  });
 });
