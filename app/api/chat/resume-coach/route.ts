@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimiters, rateLimitExceededResponse } from '@/lib/rateLimit';
 import { z } from 'zod';
 import OpenAI from 'openai';
 import { verifyAuth } from '@/lib/verifyAuth';
@@ -64,6 +65,11 @@ export async function POST(req: NextRequest) {
         },
         { status: 401 }
       );
+    }
+
+    const rateLimitResult = await rateLimiters.ai(req, String(auth.userId));
+    if (!rateLimitResult.success) {
+      return rateLimitExceededResponse(rateLimitResult);
     }
 
     console.log('[Chat AI Coach] 💬 New chat request received');

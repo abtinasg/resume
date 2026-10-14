@@ -15,6 +15,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
+import { rateLimiters, rateLimitExceededResponse } from '@/lib/rateLimit';
 import { checkFeatureAccess, checkUsageLimit, decrementUsage } from '@/lib/premium';
 import { FEATURES } from '@/lib/featureGating';
 import { trackEvent } from '@/lib/analytics';
@@ -243,6 +244,11 @@ export async function POST(req: NextRequest) {
     }
 
     const userId = user.userId;
+
+    const rateLimitResult = await rateLimiters.ai(req, String(userId));
+    if (!rateLimitResult.success) {
+      return rateLimitExceededResponse(rateLimitResult);
+    }
 
     // Check premium feature access
     const accessCheck = await checkFeatureAccess(userId, FEATURES.JOB_MATCHING);

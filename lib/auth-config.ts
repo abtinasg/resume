@@ -1,6 +1,7 @@
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { userService } from '@/lib/db/user';
+import { consumeCredentialsAttempt } from '@/lib/rateLimit';
 
 export const authOptions: NextAuthOptions = {
   // Use JWT strategy - no database sessions
@@ -17,6 +18,12 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
+          return null;
+        }
+
+        // This callback checks passwords too, so it needs the same brute-force
+        // limit as /api/auth/login.
+        if (!consumeCredentialsAttempt(credentials.email).success) {
           return null;
         }
 

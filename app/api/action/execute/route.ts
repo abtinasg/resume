@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimiters, rateLimitExceededResponse } from '@/lib/rateLimit';
 import { Layer3 } from '@/lib/layers';
 import { verifyAuth } from '@/lib/verifyAuth';
 
@@ -8,6 +9,11 @@ export async function POST(request: NextRequest) {
     const auth = await verifyAuth(request);
     if (!auth.isValid || !auth.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const rateLimitResult = await rateLimiters.ai(request, String(auth.userId));
+    if (!rateLimitResult.success) {
+      return rateLimitExceededResponse(rateLimitResult);
     }
 
     const { actionType, payload } = await request.json();
