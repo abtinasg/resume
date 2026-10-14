@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifyTokenOnEdge } from '@/lib/edge/token';
 import { getToken } from 'next-auth/jwt';
-
-const CSRF_COOKIE_NAME = '_csrf_token';
+import { checkSameOrigin } from '@/lib/edge/originCheck';
 
 // Define protected routes that require authentication
 const protectedRoutes = ['/profile', '/dashboard'];
@@ -16,6 +15,22 @@ const authRoutes = ['/auth/login', '/auth/register'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // API routes: only the cross-site request forgery check runs here
+  if (pathname.startsWith('/api/')) {
+    const origin = checkSameOrigin(request.method, request.headers);
+    if (!origin.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: { code: 'FORBIDDEN_ORIGIN', message: origin.reason },
+          timestamp: new Date().toISOString(),
+        },
+        { status: 403 }
+      );
+    }
+    return NextResponse.next();
+  }
 
   // Force HTTPS in production
   if (
@@ -103,22 +118,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Set CSRF cookie on page navigations so frontend can include it in API requests
-  const response = NextResponse.next();
-  const existingCsrf = request.cookies.get(CSRF_COOKIE_NAME)?.value;
-  if (!existingCsrf) {
-    // Generate a random CSRF token using Web Crypto API (edge-compatible)
-    const array = new Uint8Array(32);
-    crypto.getRandomValues(array);
-    const token = Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
-    response.cookies.set(CSRF_COOKIE_NAME, token, {
-      httpOnly: false, // Must be readable by JS to include in headers
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/',
-    });
-  }
-  return response;
+  return NextResponse.next();
 }
 
 // Configure which routes the middleware should run on
@@ -126,12 +126,11 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public files (images, etc.)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
