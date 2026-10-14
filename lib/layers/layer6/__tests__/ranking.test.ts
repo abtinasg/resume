@@ -34,12 +34,14 @@ import {
   JOB_INCOMPLETE,
   JOB_FULLSTACK_GOOGLE,
   TEST_USER_PREFERENCES,
+  type JobFixture,
 } from './fixtures/job-descriptions';
 import type { JobPasteRequest, ParsedJob, UserPreferences } from '../types';
 import type { GapAnalysis } from '../../layer1/types';
+import { SeniorityLevel } from '../../shared/types';
 
 // Helper to create parsed job from fixture
-function createParsedJob(fixture: typeof JOB_SOFTWARE_ENGINEER_TARGET): ParsedJob {
+function createParsedJob(fixture: JobFixture): ParsedJob {
   const request: JobPasteRequest = {
     user_id: 'test_user',
     resume_version_id: 'resume_v1',
@@ -75,8 +77,8 @@ function createMockGaps(
       coverage_score: 70,
     },
     seniority: {
-      user_level: 'mid',
-      role_expected: 'mid',
+      user_level: SeniorityLevel.MID,
+      role_expected: SeniorityLevel.MID,
       alignment,
       gap_years: alignment === 'underqualified' ? 2 : 0,
     },

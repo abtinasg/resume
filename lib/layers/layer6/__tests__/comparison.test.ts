@@ -20,12 +20,13 @@ import {
   TEST_RESUME_TEXT,
   TEST_USER_SKILLS,
   TEST_USER_PREFERENCES,
+  type JobFixture,
 } from './fixtures/job-descriptions';
 import type { JobPasteRequest, RankedJob, UserPreferences } from '../types';
 
 // Helper to create parsed job from fixture
 async function createRankedJob(
-  fixture: typeof JOB_SOFTWARE_ENGINEER_TARGET
+  fixture: JobFixture
 ): Promise<RankedJob> {
   const request: JobPasteRequest = {
     user_id: 'test_user',

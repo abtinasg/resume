@@ -51,7 +51,7 @@ describe('End-to-End Orchestration', () => {
     expect(result.replanNeeded).toBeDefined();
     
     // Weekly plan should match expected mode
-    if (expected.mode) {
+    if ('mode' in expected && expected.mode) {
       expect(result.weeklyPlan.strategy_mode).toBe(expected.mode);
     }
   });

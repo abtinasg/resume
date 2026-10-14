@@ -24,12 +24,13 @@ import {
   TEST_RESUME_TEXT,
   TEST_USER_PREFERENCES,
   TEST_USER_SKILLS,
+  type JobFixture,
 } from './fixtures/job-descriptions';
 import type { JobPasteRequest, ParsedJob, UserPreferences } from '../types';
 
 // Helper to create job paste request
 function createRequest(
-  fixture: typeof JOB_SOFTWARE_ENGINEER_TARGET
+  fixture: JobFixture
 ): JobPasteRequest {
   return {
     user_id: 'test_user',

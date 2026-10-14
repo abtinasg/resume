@@ -7,6 +7,7 @@
  */
 
 import type { ParsedResume, ParsedJobRequirements } from '../../types';
+import { SeniorityLevel } from '../../../shared/types';
 
 // ==================== Type Definitions ====================
 
@@ -730,7 +731,7 @@ export const JOB_SENIOR_SWE: ParsedJobRequirements = {
   preferred_tools: [
     'Datadog', 'Prometheus', 'Grafana',
   ],
-  seniority_expected: 'senior',
+  seniority_expected: SeniorityLevel.SENIOR,
   domain_keywords: ['scalable', 'distributed', 'cloud', 'enterprise'],
   years_experience_min: 5,
   years_experience_max: 10,
@@ -750,7 +751,7 @@ export const JOB_PRODUCT_MANAGER: ParsedJobRequirements = {
   preferred_tools: [
     'Mixpanel', 'Amplitude', 'Tableau',
   ],
-  seniority_expected: 'mid',
+  seniority_expected: SeniorityLevel.MID,
   domain_keywords: ['saas', 'b2b', 'analytics', 'enterprise'],
   years_experience_min: 3,
   years_experience_max: 6,
@@ -766,7 +767,7 @@ export const JOB_ENTRY_DEVELOPER: ParsedJobRequirements = {
   required_tools: [
     'Git', 'VS Code',
   ],
-  seniority_expected: 'entry',
+  seniority_expected: SeniorityLevel.ENTRY,
   years_experience_min: 0,
   years_experience_max: 2,
 };
