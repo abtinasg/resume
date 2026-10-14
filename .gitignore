@@ -41,3 +41,8 @@ next-env.d.ts
 *.db
 *.db-journal
 prisma/migrations_backup_*/
+
+# env files (only .env.example is committed)
+.env
+.env.*
+!.env.example

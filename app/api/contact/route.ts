@@ -68,9 +68,8 @@ export async function POST(request: NextRequest) {
       console.warn('Contact email credentials not configured');
       // In development, log the message and return success
       if (process.env.NODE_ENV === 'development') {
-        console.log('📧 Contact form submission (dev mode):');
-        console.log('From:', name, '<' + email + '>');
-        console.log('Message:', message);
+        // Don't log the sender's name, email or message (personal data).
+        console.log('📧 Contact form submission received (dev mode), message length:', message.length);
         return NextResponse.json({
           success: true,
           message: 'Message received (development mode)',

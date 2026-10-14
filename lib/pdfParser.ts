@@ -41,7 +41,6 @@ export interface PDFExtractionResult {
 
 const MIN_SUCCESS_LENGTH = 50; // Minimum characters for success
 const MIN_PARTIAL_LENGTH = 15; // Minimum for partial success
-const PREVIEW_LENGTH = 150; // Characters to show in logs
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -248,12 +247,7 @@ export async function extractTextFromBuffer(
     console.log(`[PDF Parser] Character count: ${characterCount}`);
     console.log(`[PDF Parser] Total time: ${formatTime(totalTime)}`);
 
-    if (finalText.length > 0) {
-      const preview = finalText.substring(0, PREVIEW_LENGTH).replace(/\n/g, " ");
-      console.log(
-        `[PDF Parser] Preview: "${preview}${finalText.length > PREVIEW_LENGTH ? "..." : ""}"`
-      );
-    }
+    // Never log extracted text: a resume's first lines are name, email and phone.
 
     console.log(`[PDF Parser] End time: ${new Date().toISOString()}\n`);
 
